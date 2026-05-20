@@ -27,7 +27,7 @@ To find the parent for a future quarter, search Confluence for a page titled "WS
 
 `Benj Hingston - YYYY-MM-DD QJWK`
 
-- **YYYY-MM-DD** — the Friday of the current work week
+- **YYYY-MM-DD** — the Friday of the **previous** work week (the skill is run on Monday)
 - **J** — quarter number (1 = Jan–Mar, 2 = Apr–Jun, 3 = Jul–Sep, 4 = Oct–Dec)
 - **K** — week number within the quarter; find the most recent child page under the quarter parent and increment K by 1. Note: K can jump by more than 1 if Benj was on vacation.
 
@@ -35,8 +35,8 @@ To find the parent for a future quarter, search Confluence for a page titled "WS
 
 ### 1. Determine the title and target page
 
-1. Get today's date and compute the Friday of the current ISO work week.
-2. Derive the quarter from the month.
+1. Get today's date. The skill is run on **Monday** — compute the Friday of the **previous** ISO work week (i.e. 3 days ago if today is Monday).
+2. Derive the quarter from that Friday's month.
 3. List children of the quarter parent page (ordered by `created DESC`) and read the last K used — increment by 1.
 4. Construct the title: `Benj Hingston - YYYY-MM-DD QJWK`
 5. **Check if the page already exists** (it may have been pre-created). If so, use `updateConfluencePage`. If not, use `createConfluencePage` at the end.
@@ -47,9 +47,9 @@ Fetch the most recent existing page to see the **Plan** section. Progress this w
 
 ### 3. Read weekly notes
 
-Check for in-the-moment notes captured throughout the week:
+Check for in-the-moment notes captured throughout the week. Since the skill runs on Monday, read the **previous** ISO week's file:
 ```bash
-cat ~/.claude/wsu/$(date +%G-W%V).md 2>/dev/null
+cat ~/.claude/wsu/$(date -v-7d +%G-W%V 2>/dev/null || date -d "7 days ago" +%G-W%V).md 2>/dev/null
 ```
 If the file exists, these notes are high-confidence inputs — Benj captured them deliberately. Treat them as primary source material, not hints.
 
@@ -57,14 +57,16 @@ If the file exists, these notes are high-confidence inputs — Benj captured the
 
 **GitHub — PRs opened/merged:**
 ```bash
-gh search prs --author=bhingston-va --created="MON..FRI" --limit 20
-gh search prs --author=bhingston-va --merged="MON..FRI" --limit 20
+gh search prs --author=bhingston-va --created="MON..SUN" --limit 20
+gh search prs --author=bhingston-va --merged="MON..SUN" --limit 20
 ```
 
 **GitHub — PRs reviewed:**
 ```bash
-gh search prs --reviewed-by=bhingston-va --updated="MON..FRI" --limit 20
+gh search prs --reviewed-by=bhingston-va --updated="MON..SUN" --limit 20
 ```
+
+Date range is the previous **Monday through Sunday** (7 days). Run on Monday, so SUN = yesterday.
 
 **Git commits** — lead with worktrees, which is where active work lives:
 ```bash
@@ -158,6 +160,6 @@ Return the page URL. If the page was newly created, remind the user to drag it t
 
 ## Notes
 
-- Always verify the Friday date arithmetic — don't guess.
+- The skill runs on **Monday**. The title date is the previous Friday. Don't use today's date as the title.
 - Week numbers can skip (vacation); always derive K from the last existing page, not by counting from quarter start.
 - The spaceId must be a numeric Long (`1518010429`), not the space key (`~106705950`) — the API rejects the key.
