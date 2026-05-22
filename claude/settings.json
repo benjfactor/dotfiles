@@ -36,7 +36,11 @@
       "Bash(git:*)",
       "Bash(python3 -c ':*)",
       "Bash(mscli auth:*)",
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(mkdir -p ~/.claude/wsu*)",
+      "Bash(echo * >> ~/.claude/wsu/*)",
+      "Bash(cat ~/.claude/wsu/*)",
+      "Bash(tail * ~/.claude/wsu/*)"
     ],
     "additionalDirectories": [
       "~/Projects/"
