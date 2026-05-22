@@ -23,10 +23,18 @@ if [ -n "$session_id" ]; then
     fi
 fi
 
-# --- Token formatting: 45321 -> 45k ---
+# --- Token formatting: 45321 -> 45k, 1000000 -> 1M, 1500000 -> 1.5M ---
 fmt_k() {
     local n=$1
-    if [ "$n" -ge 1000 ]; then
+    if [ "$n" -ge 1000000 ]; then
+        local m_whole=$(( n / 1000000 ))
+        local m_dec=$(( (n % 1000000) / 100000 ))
+        if [ "$m_dec" -eq 0 ]; then
+            printf "%dM" "$m_whole"
+        else
+            printf "%d.%dM" "$m_whole" "$m_dec"
+        fi
+    elif [ "$n" -ge 1000 ]; then
         printf "%dk" "$(( n / 1000 ))"
     else
         printf "%s" "$n"
