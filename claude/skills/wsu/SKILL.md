@@ -82,15 +82,16 @@ git -C <worktree-path> log --author="bhingston\|Benj" --after="YYYY-MM-DD" --bef
 ```
 Also check base repos directly (commits on master). Skip anything with zero output.
 
-**GChat** — check for cached messages first:
+**GChat** — the notes file (step 3) is the primary source for chat signals, since Benj flags high-signal threads in the moment via `wsu-note`. **Prefer fetching the specific thread URLs from the notes file** — fetching a whole space downloads years of attachments and is slow/expensive.
+
+Resolve the fetcher script path dynamically (the plugin version changes, and the path moved to `skills/google-chat-fetcher/scripts/` in 0.13.0+):
 ```bash
-ls ~/.claude/fetcher/google-chat/
+FETCH=$(find ~/.claude/plugins/cache -name fetch_chat.py 2>/dev/null | sort -V | tail -1)
+python3 "$FETCH" fetch "<thread-url-from-notes>"
 ```
-GChat is often not cached. If the cache is empty, ask the user: *"Any GChat spaces worth checking? (team channel, specific threads?)"* and fetch with:
-```bash
-python3 ~/.claude/plugins/cache/vendasta-dev-agent-toolkit/vendasta-dev-agent-toolkit/0.12.0/scripts/fetch_chat.py fetch <space-url>
-```
-GChat often surfaces decisions and cross-team context not visible in code — worth the effort to fetch.
+Then read the saved file under `~/Projects/.claude/fetcher/google-chat/<space-id>/` (a thread URL writes `thread.md`; a bare space URL writes `messages.md`).
+
+Only fetch a whole space if the user explicitly asks and there are no flagged threads — then grep the resulting `messages.md` to the Mon–Sun window before reading. GChat surfaces decisions and cross-team context not visible in code.
 
 ### 5. Questionnaire
 
