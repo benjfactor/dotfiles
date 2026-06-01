@@ -15,13 +15,18 @@ Preserves history, avoids rewriting commits that are already on the remote featu
 
 ### 1. Confirm the worktree is clean
 
-Uncommitted changes risk a dirty merge.
+Uncommitted **tracked** changes risk a dirty merge. Untracked files (e.g. `.context/`, `.local-bin/`, local emulator artifacts) are *not* a problem — they aren't in git's tree and a merge can't touch them.
 
 ```bash
-git status --porcelain
+DIRTY=$(git status --porcelain | grep -v '^??' || true)
+if [ -n "$DIRTY" ]; then
+  echo "Worktree has uncommitted tracked changes — commit or stash first:"
+  echo "$DIRTY"
+  exit 1
+fi
 ```
 
-If output is non-empty → stop, tell the user to commit or stash first. Do not proceed.
+If `$DIRTY` is non-empty → stop, show the user the offending files, do not proceed. Untracked-only state is fine; continue.
 
 ### 2. Detect the base branch
 
@@ -78,14 +83,22 @@ git push
 
 ### 7. Final report
 
-- Base branch detected
-- "Already up to date" vs new merge commit SHA (and how many commits the merge brought in)
-- Build / test outcome
-- Push outcome (skipped, attempted, succeeded)
-- PR mergeable state if a PR exists:
-  ```bash
-  gh pr view --json mergeable,mergeStateStatus --jq '{mergeable, mergeState: .mergeStateStatus}'
-  ```
+**Keep it to one line by default.** The user already sees git/build/test output above — the final line is glance-status, not a recap. No tables, no markdown headers, no "Step X" labels in the happy path.
+
+**Default phrasing** (pick the one that matches the outcome):
+
+- `Already up to date with origin/<base>.`
+- `Merged origin/<base> (<short-sha>, N files) and pushed.`
+- `Merged origin/<base> (<short-sha>, N files) — build green — push skipped (<reason>).`
+
+**Verbose details only when:**
+
+- There's a **merge conflict** → list the conflicted files inline and tell the user to resolve.
+  - Example: `Conflict in foo.go, bar.go. Resolve, run targeted tests, commit, and rerun /sync-base.`
+- **Build or tests failed** → show the failing package + the relevant lines from the output. Do not push.
+- **PR mergeable state is unusual** — only call it out if it's `CONFLICTING`, `BLOCKED` for a reason other than draft, or `UNKNOWN` and not settling. A clean `MERGEABLE` doesn't need to be mentioned on every run.
+
+When the user explicitly asks for a fuller breakdown ("show me what changed", "give me the full report", etc.), then a structured / tabular response is fine.
 
 ## Notes
 
