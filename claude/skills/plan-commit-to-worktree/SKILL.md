@@ -2,9 +2,10 @@
 name: plan-commit-to-worktree
 description: >
   Run immediately after ce:plan (or compound-engineering:ce-plan) finishes writing a plan file.
-  Creates a git worktree and branch for the plan, moves the plan file into the worktree, and
-  commits it so the plan lives on the right branch from the start. Always invoke this after
-  ce:plan completes in any repo — do not wait for the user to ask.
+  When run from the default branch (main/master), creates a git worktree and branch for the plan,
+  moves the plan file into the worktree, and commits it so the plan lives on the right branch from
+  the start. When already on a feature branch/worktree, commits the plan in place instead. Always
+  invoke this after ce:plan completes in any repo — do not wait for the user to ask.
 ---
 
 # Plan Commit to Worktree
@@ -13,11 +14,42 @@ Run this automatically after every `ce:plan` / `compound-engineering:ce-plan` co
 
 ## Goal
 
-Move the newly written plan file out of the current branch and onto a dedicated feature branch
-in a new worktree, committed. This ensures `/ce:work <plan-path>` works immediately from the
-worktree without the user having to manually move anything.
+Get the newly written plan file committed onto the right feature branch so `/ce:work <plan-path>`
+works immediately, without the user having to manually move anything.
+
+There are two modes:
+- **Plan written from the default branch (main/master):** create a dedicated worktree + branch and
+  move the plan into it (the full flow below).
+- **Plan written while already on a feature branch / in a feature worktree:** the plan is already on
+  the right branch — just commit it in place (the short-circuit in Step 0).
 
 ## Steps
+
+### 0. Short-circuit: are we already on a feature branch?
+
+Plans are typically started from `main`/`master`, which is what this skill turns into a branch. But
+if the plan was written while already on a feature branch (e.g. a `docs/...` branch holding the
+brainstorm), **do not create a new worktree and do not move the plan** — moving it away from the
+work it belongs with is wrong and disruptive.
+
+```bash
+# Current branch
+CURRENT=$(git rev-parse --abbrev-ref HEAD)
+# Default branch (master or main)
+DEFAULT=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+[ -z "$DEFAULT" ] && DEFAULT=$(git rev-parse --verify origin/main >/dev/null 2>&1 && echo main || echo master)
+```
+
+**If `CURRENT` is not the default branch** (we're already on a feature branch/worktree), commit the
+plan in place and stop:
+
+1. Find the new plan file (see Step 2 for how).
+2. `git add {relative-plan-path}` and commit with `chore(plan): add implementation plan ...`.
+3. Report: which branch the plan was committed on, and the `/ce:work {relative-plan-path}` command.
+
+Then **stop** — skip Steps 1–8.
+
+**If `CURRENT` is the default branch**, continue with the full flow (Steps 1–8) to spin up a worktree.
 
 ### 1. Resolve repo context
 
@@ -32,10 +64,12 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/ori
 
 ### 2. Find the new plan file
 
-Find untracked files that look like plan documents:
+Find untracked files that look like plan documents. Use `--untracked-files=all` so plans inside a
+brand-new directory are listed individually (plain `git status --short` shows only `?? docs/plans/`,
+not the file within):
 
 ```bash
-git status --short | grep '^??' | grep '\.md'
+git status --short --untracked-files=all | grep '^??' | grep '\.md'
 ```
 
 If multiple untracked `.md` files exist, pick the most recently modified one. If none are
