@@ -128,14 +128,11 @@ if [ -n "$seven_d_pct" ] && [ -n "$seven_d_reset" ]; then
     rate_str="${rate_str} · ${c}${bar}\e[m \e[2m7d on\e[m ${reset}"
 fi
 
-# --- Claude Code version (cached hourly) ---
-version_cache="/tmp/claude-version-cache"
-version_mtime=$(stat -f%m "$version_cache" 2>/dev/null || echo 0)
-cache_age=$(( $(date +%s) - version_mtime ))
-if [ ! -f "$version_cache" ] || [ "$cache_age" -gt 3600 ]; then
-    claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 > "$version_cache"
-fi
-claude_version=$(cat "$version_cache" 2>/dev/null)
+# --- Claude Code version ---
+# Read the running session's version straight from the statusline JSON input — always
+# accurate, no cache. If the field is ever absent, leave it empty; the bottom-line
+# assembly below omits the "· v.X" segment cleanly rather than showing a stale number.
+claude_version=$(echo "$input" | jq -r '.version // empty')
 
 # --- Working directory ---
 raw_cwd=$(echo "$input" | jq -r '.cwd // empty')
