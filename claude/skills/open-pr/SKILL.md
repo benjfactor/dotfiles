@@ -55,6 +55,12 @@ EOF
 
 5. **Return the PR URL.**
 
+6. **Open the PR in Arc.** Use the `open-in-arc` skill to open the new PR in the **`PR reviews`** Space (the Space is fixed — do not ask):
+   ```bash
+   "$HOME/.claude/skills/open-in-arc/open-in-arc.sh" "<pr-url>" "PR reviews"
+   ```
+   This is best-effort: if it fails (e.g. Arc isn't running), still report the URL — never block PR creation on it.
+
 ## Notes
 
 - Never add `--reviewer` here — reviewers are added by the `pr-ready` skill.

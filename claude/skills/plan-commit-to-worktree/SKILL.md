@@ -4,8 +4,9 @@ description: >
   Run immediately after ce:plan (or compound-engineering:ce-plan) finishes writing a plan file.
   When run from the default branch (main/master), creates a git worktree and branch for the plan,
   moves the plan file into the worktree, and commits it so the plan lives on the right branch from
-  the start. When already on a feature branch/worktree, commits the plan in place instead. Always
-  invoke this after ce:plan completes in any repo — do not wait for the user to ask.
+  the start. When already on a feature branch/worktree, commits the plan in place instead. Then
+  auto-creates a draft PR (no reviewers pinged) and opens it in Arc. Always invoke this after
+  ce:plan completes in any repo — do not wait for the user to ask.
 ---
 
 # Plan Commit to Worktree
@@ -15,7 +16,8 @@ Run this automatically after every `ce:plan` / `compound-engineering:ce-plan` co
 ## Goal
 
 Get the newly written plan file committed onto the right feature branch so `/ce:work <plan-path>`
-works immediately, without the user having to manually move anything.
+works immediately, without the user having to manually move anything — then open a draft PR for it
+(no reviewers) so the branch is browsable in Arc from the moment planning ends.
 
 There are two modes:
 - **Plan written from the default branch (main/master):** create a dedicated worktree + branch and
@@ -45,7 +47,8 @@ plan in place and stop:
 
 1. Find the new plan file (see Step 2 for how).
 2. `git add {relative-plan-path}` and commit with `chore(plan): add implementation plan ...`.
-3. Report: which branch the plan was committed on, and the `/ce:work {relative-plan-path}` command.
+3. Ensure a draft PR exists for this branch — see [**Auto-create the draft PR**](#auto-create-the-draft-pr-no-ping--open-in-arc) below (run it with the current repo as cwd, since the branch is already checked out here).
+4. Report: which branch the plan was committed on, the draft PR URL, and the `/ce:work {relative-plan-path}` command.
 
 Then **stop** — skip Steps 1–8.
 
@@ -116,16 +119,36 @@ git -C ../{worktree-name} add {relative-plan-path}
 git -C ../{worktree-name} commit -m "chore(plan): add implementation plan for {TICKET}"
 ```
 
+### 7b. Auto-create the draft PR
+
+Create the draft PR for the new branch — see [**Auto-create the draft PR**](#auto-create-the-draft-pr-no-ping--open-in-arc) below. The branch lives in the new worktree, so run the `open-pr` flow **from inside `../{worktree-name}`** (push the worktree branch, then create the PR there) — not from this default-branch checkout.
+
 ### 8. Report to the user
 
 Tell the user:
 - Worktree path (absolute)
 - Branch name
+- The draft PR URL (just opened in Arc)
 - The exact `/ce:work` command to start implementation:
   ```
   /ce:work {relative-plan-path}
   ```
   (relative path works because they'll run it from inside the worktree)
+
+## Auto-create the draft PR (no ping) + open in Arc
+
+A plan is real work-in-progress, so it gets a **draft PR** immediately — that way the browsable PR (and its Arc tab) already exist before `/ce:work` runs, and `ce:work`'s own push just adds commits to it instead of opening a second PR.
+
+1. **Guard — skip if a PR already exists** for this branch (e.g. the plan was committed onto an existing brainstorm/`docs` branch):
+   ```bash
+   gh pr view --json url,state -q '.url' 2>/dev/null
+   ```
+   If that prints a URL, a PR already exists — **don't create another**. Just open the existing one in Arc and report it:
+   ```bash
+   "$HOME/.claude/skills/open-in-arc/open-in-arc.sh" "<existing-pr-url>" "PR reviews"
+   ```
+2. **Otherwise, invoke the `open-pr` skill.** It creates the PR as a **draft**, adds **no reviewers** (no ping — `pr-ready` handles that later), and opens it in Arc's `PR reviews` Space. Push the branch first if it has no upstream (`open-pr` does this too).
+3. This is best-effort — if PR creation or the Arc open fails, report the failure but don't abort the plan-commit flow; the plan is already safely committed.
 
 ## Edge cases
 
