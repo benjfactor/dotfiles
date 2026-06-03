@@ -67,6 +67,15 @@
             "command": "afplay /System/Library/Sounds/Bottle.aiff"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/notif-log.sh"
+          }
+        ]
       }
     ],
     "Stop": [
