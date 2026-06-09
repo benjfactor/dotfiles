@@ -35,6 +35,7 @@ TEAM_CHANNELS = {
     'snapcats':  'AAAAAHjNt6A',  # Snapcats channel
     'snack-ops': 'AAAAjno8gDs',  # SnackOps channel
     'phoenix':   'AAAAN_I9hG8',  # Phoenix team channel
+    'autobots':  'AAAAWOyaLAg',  # Autobots team channel
 }
 
 

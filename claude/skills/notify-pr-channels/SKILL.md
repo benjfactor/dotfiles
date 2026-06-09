@@ -15,6 +15,7 @@ When a build passes or a PR is ready, the script always posts to the personal te
 | Snapcats | https://chat.google.com/room/AAAAAHjNt6A?cls=7 | External — posted when `@vendasta/snapcats` in PR body |
 | SnackOps | https://chat.google.com/room/AAAAjno8gDs?cls=7 | External — posted when `@vendasta/snack-ops` in PR body |
 | Phoenix | https://chat.google.com/room/AAAAN_I9hG8?cls=7 | External — posted when `@vendasta/phoenix` in PR body |
+| Autobots | https://chat.google.com/room/AAAAWOyaLAg?cls=7 | External — posted when `@vendasta/autobots` in PR body |
 
 To add a new external team: add their slug → space ID to `TEAM_CHANNELS` in `scripts/chat_post.py`.
 
