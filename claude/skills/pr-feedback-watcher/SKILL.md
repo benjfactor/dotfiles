@@ -5,7 +5,28 @@ description: Watch a PR for reviewer feedback and respond — implement code cha
 
 # PR Feedback Watcher
 
-After opening a PR, poll for new reviewer feedback. For code change requests: implement them with the `green-commits` skill. For questions or discussion: respond with a comment. Monitor the build after each push. Continue until the PR is approved or you hit something that needs the user's input.
+After opening a PR, poll for new reviewer feedback. For code change requests: implement them with the `green-commits` skill. For questions or discussion: respond with a comment. Monitor the build after each push. Continue until the PR clears the **review gate** (below) or you hit something that needs the user's input.
+
+## The review gate
+
+A PR is *fully ready to merge* only when all three hold:
+
+1. **CI is green** (`ci/cloudbuild` = SUCCESS).
+2. **At least 2 human approvals.** Bot reviews (`github-actions`, any `*[bot]`) never count toward the two.
+3. **At least one approval from a member of a "team of interest"** — typically the team that owns the code being changed.
+
+**Teams of interest are not derived from CODEOWNERS** (it's incomplete in this monorepo). They come from:
+- any team the user explicitly asks the watcher to wait for (pass `--team <slug>`), plus
+- `@<org>/<team>` slugs mentioned in the PR body, plus
+- teams already requested as reviewers on the PR.
+
+Evaluate the gate with the bundled script (run from the repo):
+
+```bash
+python3 ~/.claude/skills/pr-feedback-watcher/scripts/review_gate.py <PR_NUMBER> [--team <slug>]...
+```
+
+It prints a JSON verdict: `humanApprovals`, `humanApprovers`, `teamsOfInterest`, `teamMemberApprovals` (per team, who approved), `ownerApproved`, `ci`, and `fullyReady`. Use it for the baseline and on each poll. If `membershipUncheckable` is non-empty, the org/team read failed for those teams — report it and fall back to eyeballing approver names.
 
 ## Step 1: Get baseline state
 
@@ -51,8 +72,8 @@ For each new item:
     --method POST -f body="<response>"
   ```
 
-**Approved** (`APPROVED` review state):
-- Stop monitoring. Report: "PR #X approved by `<reviewer>`. Ready to merge — run `/merge-pr` when you're ready."
+**Approval received** (`APPROVED` review state):
+- Re-run `review_gate.py` and act on the verdict (see Exit conditions). A single approval is no longer a stop signal — the gate needs 2 human approvals plus owning-team sign-off.
 
 **Build failure** (see Step 4): diagnose and fix before continuing to watch for more feedback.
 
@@ -71,10 +92,15 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 ## Exit conditions
 
-Stop the loop when:
-- The PR receives an `APPROVED` review → prompt user to run `/merge-pr`.
-- A build failure can't be resolved without user input → report details and stop.
-- The user explicitly stops the watch.
+Re-run `review_gate.py` after each new approval and after each green build, then:
+
+- **`fullyReady: true`** (green CI + ≥2 human approvals + an owning-team member approved) → stop. Report: "PR #X ready — N approvals incl. `<team>` member `<who>`, CI green. Run `/merge-pr` when you're ready."
+- **≥2 human approvals + green CI, but no owning-team member approved** (`ownerApproved: false`, or a specific team you care about is still missing) → **stop and ask.** Show the per-team breakdown and: "Approvals + CI are met, but `<team>` hasn't signed off. Merge anyway, or keep waiting for them?" Let the user decide — don't auto-declare ready.
+- **< 2 human approvals** → keep polling. One approval (even from the owning team) is not enough.
+- **A build failure** that can't be resolved without user input → report details and stop.
+- **The user explicitly stops the watch.**
+
+When the user starts the watch and names a team to wait for ("watch it and wait for autobots"), pass that as `--team autobots` so the gate requires *that* team specifically.
 
 ## Notes
 
