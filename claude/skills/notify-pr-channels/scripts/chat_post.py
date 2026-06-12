@@ -36,6 +36,9 @@ TEAM_CHANNELS = {
     'snack-ops': 'AAAAjno8gDs',  # SnackOps channel
     'phoenix':   'AAAAN_I9hG8',  # Phoenix team channel
     'autobots':  'AAAAWOyaLAg',  # Autobots team channel
+    'np-easy':   'AAAAqGa-a8I',  # NP-Easy (CRMaaS) team channel
+    'warped-tour': 'AAQANVVa_PA',  # Warped Tour team channel
+    'marketplace-institute-of-technology': 'AAAACpnkUis',  # Marketplace Institute of Technology (MIT) team channel
 }
 
 
