@@ -20,7 +20,10 @@ When a build passes or a PR is ready, the script always posts to the personal te
 | Warped Tour | https://chat.google.com/room/AAQANVVa_PA?cls=7 | External — posted when `@vendasta/warped-tour` in PR body |
 | Marketplace Institute of Technology | https://chat.google.com/room/AAAACpnkUis?cls=7 | External — posted when `@vendasta/marketplace-institute-of-technology` in PR body |
 
-To add a new external team: add their slug → space ID to `TEAM_CHANNELS` in `scripts/chat_post.py`.
+To add a new external team: add their slug → space ID to `TEAM_CHANNELS` in the
+[send-gchat-message](../send-gchat-message/SKILL.md) skill (`scripts/send_gchat.py`) —
+that map is the single source of truth. Unmapped teams are resolved live via
+`spaces.list` ("Team: <Name>"), so a missing entry degrades to a lookup, not a failure.
 
 ## When to notify
 
@@ -31,13 +34,19 @@ Only run this skill after the PR is marked ready for review. Do not notify chann
 Use the bundled script — no webhook URLs needed, auth is handled via OAuth:
 
 ```bash
+# Standard PR notification:
 python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "<PR_URL>" "<PR_TITLE>"
+
+# With an optional prefix line (e.g. context for why you're posting):
+python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "<PR_URL>" "<PR_TITLE>" "Found during deploy monitor for a different PR."
 ```
 
 The script:
 - Always posts to the personal team PR channel with @Craig Kumick and @Daniel Ngo mentions
 - Reads the PR body via `gh pr view` and posts to any external team channels whose `@vendasta/<slug>` appears in the body
-- Auth: refreshes OAuth token via GCP secret `google-chat-oauth-client-secret` (repcore-prod), cached at `~/.config/google-chat-cli/credentials-rw.json`
+- Optional 3rd arg is a prefix line prepended to every message
+- **Delegates auth + channel resolution to the [send-gchat-message](../send-gchat-message/SKILL.md) skill** (`scripts/send_gchat.py`) — it only owns the PR-specific message shape
+- Auth: OAuth token via GCP secret `google-chat-oauth-client-secret` (repcore-prod), cached at `~/.config/google-chat-cli/credentials-rw.json`
 
 ### Known user IDs (hardcoded in script)
 - Craig Kumick: `users/101609381686230694100`
