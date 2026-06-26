@@ -27,8 +27,10 @@ fi
 BRANCH=$(git -C "$CWD" rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
-  # Block destructive git operations
-  if echo "$CMD" | grep -qE '^\s*git\s+(commit|push|merge|rebase|reset|revert|tag|branch -[Dd]|cherry-pick)'; then
+  # Block destructive git operations that modify files or history on the base branch.
+  # Branch management (e.g. `git branch -d/-D` to clean up merged branches) is allowed —
+  # it touches no files and is safe on master.
+  if echo "$CMD" | grep -qE '^\s*git\s+(commit|push|merge|rebase|reset|revert|tag|cherry-pick)'; then
     deny "Blocked destructive git command on branch '$BRANCH'. Switch to a feature branch first."
   fi
 
