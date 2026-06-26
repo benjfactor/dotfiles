@@ -36,10 +36,30 @@ python3 "$SCRIPT" --targets "phoenix,some-new-team" --resolve-only
 # Add @mentions by user ID:
 python3 "$SCRIPT" --targets "meerkats" --message "PR ready" \
   --mention "users/101609381686230694100,users/107059066615888383168"
+
+# Reply INTO an existing thread (pass a Chat URL, a full spaces/.../threads/... name,
+# or a bare thread id). Requires exactly one --targets space:
+python3 "$SCRIPT" --targets "AAAACOXIXAM" --message-file /tmp/msg.md \
+  --thread "https://chat.google.com/room/AAAACOXIXAM/ZpNybdmNiAw/ZpNybdmNiAw"
 ```
 
 Always write multi-line / markdown messages to a file and use `--message-file`
 (shell heredoc quoting is fragile).
+
+## Threading
+
+`--thread` replies into an existing thread. Accepts a **Chat web URL**, a full
+`spaces/<space>/threads/<thread>` name, or a **bare thread id** (the web-URL thread
+segment works directly as the REST thread id). It needs exactly one resolved
+`--targets` space, and the space must match the thread's.
+
+By default a thread that can't be found **fails loudly** (`REPLY_MESSAGE_OR_FAIL`)
+so a wrong id never leaves a stray top-level message in the channel. Pass
+`--thread-new-ok` to fall back to starting a new thread instead
+(`REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD`). Importers can thread too:
+`send_gchat.post_message(token, sid, text, thread_name="spaces/<s>/threads/<t>")`,
+and `send_gchat.parse_thread_ref(url_or_name_or_id, default_space=sid)` resolves a
+reference to `(space, thread_name)`.
 
 ## Resolution & the channel map
 

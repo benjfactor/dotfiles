@@ -11,6 +11,9 @@ Usage:
   send_gchat.py --targets "@vendasta/phoenix" --message-file body.md
   send_gchat.py --targets "phoenix" --resolve-only          # print resolution, do not send
   send_gchat.py --targets "meerkats" --message "..." --mention "users/101...,users/107..."
+  # reply into an existing thread (URL, full name, or bare thread id):
+  send_gchat.py --targets "AAAACOXIXAM" --message-file body.md \
+    --thread "https://chat.google.com/room/AAAACOXIXAM/ZpNybdmNiAw/ZpNybdmNiAw"
 
 Auth: OAuth via GCP secret google-chat-oauth-client-secret (repcore-prod),
 cached refresh token at ~/.config/google-chat-cli/credentials-rw.json.
@@ -104,11 +107,46 @@ def resolve_target(target, token=None):
     return None, 'unresolved'
 
 
-def post_message(token, space_id, text):
-    """Post text to a space. Returns (ok, error_string_or_None)."""
-    body = json.dumps({'text': text}).encode()
-    req = urllib.request.Request(
-        f'https://chat.googleapis.com/v1/spaces/{space_id}/messages', data=body, method='POST')
+def parse_thread_ref(ref, default_space=None):
+    """Resolve a thread reference to (space_id, thread_name).
+
+    Accepts any of:
+      - a Chat web URL: https://chat.google.com/room/<space>/<thread>[/<msg>]
+      - a full resource name: spaces/<space>/threads/<thread>
+      - a bare thread id (combined with default_space)
+
+    The web-URL thread segment is used directly as the REST thread id — verified
+    working against live threads (KAT-1584). Returns (space_id, 'spaces/.../threads/...').
+    """
+    ref = ref.strip()
+    m = re.search(r'/room/([^/]+)/([^/?#]+)', ref)              # web URL
+    if m:
+        return m.group(1), f"spaces/{m.group(1)}/threads/{m.group(2)}"
+    m = re.fullmatch(r'spaces/([^/]+)/threads/([^/]+)', ref)    # full resource name
+    if m:
+        return m.group(1), ref
+    if default_space is None:                                   # bare thread id
+        raise ValueError("bare thread id needs a space — pass a single --targets space")
+    return default_space, f"spaces/{default_space}/threads/{ref}"
+
+
+def post_message(token, space_id, text, thread_name=None, fail_if_thread_missing=True):
+    """Post text to a space, optionally into an existing thread.
+
+    Returns (ok, error_string_or_None). Backward-compatible: callers that omit the
+    thread args get the original unthreaded behavior. When thread_name is set, the
+    message replies into that thread; fail_if_thread_missing chooses the reply
+    option — True => REPLY_MESSAGE_OR_FAIL (error, no stray message, if the thread
+    isn't found), False => REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD (start a new thread).
+    """
+    payload = {'text': text}
+    url = f'https://chat.googleapis.com/v1/spaces/{space_id}/messages'
+    if thread_name:
+        payload['thread'] = {'name': thread_name}
+        opt = 'REPLY_MESSAGE_OR_FAIL' if fail_if_thread_missing else 'REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD'
+        url += f'?messageReplyOption={opt}'
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=body, method='POST')
     req.add_header('Authorization', 'Bearer ' + token)
     req.add_header('Content-Type', 'application/json')
     try:
@@ -128,6 +166,16 @@ def main():
                     help='comma-separated user IDs (users/123...) appended as <users/...> mentions')
     ap.add_argument('--resolve-only', action='store_true',
                     help='print target resolution and exit without sending')
+    ap.add_argument('--thread',
+                    help='reply into an existing thread: a Chat URL '
+                         '(https://chat.google.com/room/<space>/<thread>/...), a full '
+                         'spaces/<space>/threads/<thread> name, or a bare thread id. '
+                         'Requires exactly one --targets space.')
+    ap.add_argument('--thread-new-ok', action='store_true',
+                    help='with --thread, fall back to a NEW thread if the thread is not '
+                         'found (REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD) instead of failing. '
+                         'Default fails loudly (REPLY_MESSAGE_OR_FAIL) so a wrong thread id '
+                         'never leaves a stray top-level message.')
     args = ap.parse_args()
 
     targets = [t for t in args.targets.split(',') if t.strip()]
@@ -143,6 +191,18 @@ def main():
     if args.resolve_only:
         return
 
+    # Resolve the thread reference (if any) to a thread name + owning space.
+    thread_name = None
+    if args.thread:
+        if len(resolved) != 1:
+            print("ERROR: --thread requires exactly one resolved target space")
+            sys.exit(1)
+        target_space = resolved[0][1]
+        tspace, thread_name = parse_thread_ref(args.thread, default_space=target_space)
+        if tspace != target_space:
+            print(f"ERROR: --thread belongs to space {tspace} but --targets resolved to {target_space}")
+            sys.exit(1)
+
     text = Path(args.message_file).read_text() if args.message_file else args.message
     if not text:
         print("ERROR: --message or --message-file required to send")
@@ -152,8 +212,10 @@ def main():
 
     failures = 0
     for t, sid in resolved:
-        ok, err = post_message(token, sid, text)
-        print(f"{'posted' if ok else 'ERROR'} -> {t} ({sid})" + (f": {err}" if err else ''))
+        ok, err = post_message(token, sid, text, thread_name=thread_name,
+                               fail_if_thread_missing=not args.thread_new_ok)
+        dest = f"{t} ({sid})" + (f" thread {thread_name.split('/')[-1]}" if thread_name else '')
+        print(f"{'posted' if ok else 'ERROR'} -> {dest}" + (f": {err}" if err else ''))
         failures += 0 if ok else 1
     if failures:
         sys.exit(1)
