@@ -1,5 +1,9 @@
 # Claude Code — Global Preferences
 
+## Communication & Output
+- Minimize conversational fluff and do not output full code blocks or text diffs in your responses unless explicitly asked.
+- Summarize file changes in a single sentence (e.g., "Updated line 12 in server.js") instead of providing text-based diff previews.
+
 ## Workflow
 - Always use git worktrees for feature branches. Never work directly on master/main.
 - Worktree dir naming: `{repo}-{ticket}-{description}` (e.g. `atlas-kat-1309-simple-templates-nav`)
