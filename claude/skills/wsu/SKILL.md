@@ -58,13 +58,13 @@ If the file exists, these notes are high-confidence inputs — Benj captured the
 
 **GitHub — PRs opened/merged:**
 ```bash
-gh search prs --author=bhingston-va --created="MON..SUN" --limit 20
-gh search prs --author=bhingston-va --merged="MON..SUN" --limit 20
+gh search prs --author=@me --created="MON..SUN" --limit 20
+gh search prs --author=@me --merged="MON..SUN" --limit 20
 ```
 
 **GitHub — PRs reviewed:**
 ```bash
-gh search prs --reviewed-by=bhingston-va --updated="MON..SUN" --limit 20
+gh search prs --reviewed-by=@me --updated="MON..SUN" --limit 20
 ```
 
 Date range is the previous **Monday through Sunday** (7 days). Run on Monday, so SUN = yesterday.

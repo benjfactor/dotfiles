@@ -11,7 +11,7 @@ folder" feature.
 ## Setting up a new machine
 
 ```bash
-git clone git@github.com:bhingston-va/dotfiles.git ~/dotfiles   # if not already there
+git clone git@github.com:benjfactor/dotfiles.git ~/dotfiles   # if not already there
 cd ~/dotfiles/terminal/iterm2
 
 # Quit iTerm2 first (Cmd-Q), then run this from Terminal.app:
@@ -91,7 +91,7 @@ these on export. This is deliberate on iTerm2's part, not a workaround.
 
 ## Note on this being a public repo
 
-`bhingston-va/dotfiles` is public. iTerm2 profiles can accumulate hostnames,
+`benjfactor/dotfiles` is public. iTerm2 profiles can accumulate hostnames,
 custom command lines, working directories, and badge text. Nothing sensitive
 was present when this was set up, but glance at the `sync.sh` diff before
 committing. If something private lands here, move this folder to a private
