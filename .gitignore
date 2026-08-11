@@ -1,4 +1,11 @@
+# Third-party plugins: fetched by vim-plug and TPM, never committed.
+# Committing them created gitlinks with no .gitmodules, which clone as empty
+# directories -- silently breaking every plugin on a fresh machine.
 vimide/.vim/plugged/*
+.tmux/plugins/*
+.vim/bundle/*
+.vim/plugged/*
+.vim/erics_vim_syntax_and_color_highlighting-master/
 .DS_Store
 .vim/DS_Store
 Session.vim
