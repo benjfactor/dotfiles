@@ -37,7 +37,7 @@
       "Bash(python3 -c ':*)",
       "Bash(mscli auth:*)",
       "Bash(gh pr:*)",
-      "Bash(python3 *stream_events.py --url http://127.0.0.1:*)",
+      "Bash(python3 /Users/bhingston/.claude/plugins/cache/vendasta-dev-agent-toolkit/*)",
       "Bash(mkdir -p ~/.claude/wsu*)",
       "Bash(echo * >> ~/.claude/wsu/*)",
       "Bash(cat ~/.claude/wsu/*)",
