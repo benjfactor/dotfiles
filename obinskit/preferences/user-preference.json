@@ -1,0 +1,13 @@
+{
+	"theme": "cyan",
+	"locale": "en",
+	"source": "latest",
+	"isDev": false,
+	"xMinimize": false,
+	"autoLaunch": false,
+	"__internal__": {
+		"migrations": {
+			"version": "1.2.11"
+		}
+	}
+}

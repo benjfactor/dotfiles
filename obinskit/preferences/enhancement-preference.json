@@ -1,0 +1,13 @@
+{
+	"notifyStayTime": 1000,
+	"notifyAnimation": "none",
+	"capsLock": true,
+	"numLock": true,
+	"scrollLock": true,
+	"insertKey": true,
+	"kbdLight": true,
+	"volumeEnable": true,
+	"volumeStep": 2,
+	"screenBrightnessEnable": true,
+	"screenBrightnessStep": 10
+}

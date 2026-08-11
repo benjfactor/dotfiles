@@ -96,6 +96,42 @@ Short version: iTerm2 loads its settings directly from `terminal/iterm2/`, and
 you must quit iTerm2 before running that setup script. Never symlink a macOS
 preference plist — `cfprefsd` will clobber it.
 
+## ObinsKit (Anne Pro keyboard)
+
+`obinskit/` is the one directory here that `bootstrap.sh` does **not** touch,
+because there is nothing to link. Your keymap and lighting live in the
+keyboard's own firmware, not on the computer — plug the board into a new
+machine and they are already there. ObinsKit is only an editor that flashes to
+it.
+
+What the repo keeps is therefore a manual backup, in two parts.
+
+**Exports** (`obinskit/*.json`) — re-import through the ObinsKit UI when you
+want to edit a profile, or to rebuild after a firmware reset:
+
+| File | Type |
+|---|---|
+| `VimBoard.json` | keymap layout |
+| `F1.json`, `F2.json`, `Split.json`, `Subtle Cyan.json`, `mod+arrows.json` | lighting effects |
+| `BenjsColours.json`, `DefaultColours.json` | colour palettes |
+
+**App preferences** (`obinskit/preferences/*.json`) — the app's own settings,
+which do live on disk. Restore by copying them back:
+
+```bash
+cp obinskit/preferences/*.json ~/Library/Application\ Support/ObinsKit/storage/
+```
+
+Quit ObinsKit first. This is a copy rather than a symlink or a bootstrap step
+on purpose: it is an Electron app that rewrites these files on exit, so linking
+them invites the same clobbering problem as symlinking a macOS plist, and
+overwriting them while the app runs just loses the change.
+
+To refresh the backup after changing settings, copy in the other direction.
+
+Note `~/Library/Application Support/ObinsKit` and `.../obinskit` are the same
+directory — macOS is case-insensitive, and it is easy to think there are two.
+
 ## Gotchas
 
 **Do not run `bootstrap.sh` from a git worktree.** Every link it creates is
