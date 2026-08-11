@@ -1,0 +1,3 @@
+# iTerm2 key bindings embed raw control characters, so git's heuristic would
+# otherwise classify this XML as binary and refuse to show diffs.
+com.googlecode.iterm2.plist diff
