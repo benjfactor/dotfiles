@@ -33,9 +33,9 @@ python3 "$SCRIPT" --targets "@vendasta/phoenix" --message-file /tmp/msg.md
 # Just resolve targets to space IDs without sending (useful for a review gate):
 python3 "$SCRIPT" --targets "phoenix,some-new-team" --resolve-only
 
-# Add @mentions by user ID:
-python3 "$SCRIPT" --targets "meerkats" --message "PR ready" \
-  --mention "users/101609381686230694100,users/107059066615888383168"
+# Add @mentions by person slug (see PEOPLE in send_gchat.py) or raw user ID:
+python3 "$SCRIPT" --targets "meerkats" --message "PR ready" --mention "craig,daniel"
+python3 "$SCRIPT" --targets "meerkats" --message "product question" --mention "will"
 
 # Reply INTO an existing thread (pass a Chat URL, a full spaces/.../threads/... name,
 # or a bare thread id). Requires exactly one --targets space:
@@ -91,5 +91,9 @@ headless/cron contexts.
 
 - `--resolve-only` is the right call before an outward-facing send when you want
   to confirm targets in a review gate first.
-- Resolving an individual **person** (GitHub username → Chat user ID) is not
-  supported — only teams/channels. Pass known `users/...` IDs via `--mention`.
+- Known people are mapped in `PEOPLE` in `send_gchat.py` (`craig`, `daniel`, `will`)
+  and can be passed to `--mention` by slug; raw `users/...` IDs still work. An
+  unknown slug is a hard error rather than a silently broken mention.
+- Resolving an arbitrary person (e.g. GitHub username → Chat user ID) is still not
+  supported. To add someone, @-mention them once in Chat and read the ID from
+  `annotations[].userMention.user.name` on that message, then add it to `PEOPLE`.

@@ -10,7 +10,7 @@ Usage:
   send_gchat.py --targets "phoenix,marina,AAAAIj8WMWc" --message "text"
   send_gchat.py --targets "@vendasta/phoenix" --message-file body.md
   send_gchat.py --targets "phoenix" --resolve-only          # print resolution, do not send
-  send_gchat.py --targets "meerkats" --message "..." --mention "users/101...,users/107..."
+  send_gchat.py --targets "meerkats" --message "..." --mention "craig,will"
   # reply into an existing thread (URL, full name, or bare thread id):
   send_gchat.py --targets "AAAACOXIXAM" --message-file body.md \
     --thread "https://chat.google.com/room/AAAACOXIXAM/ZpNybdmNiAw/ZpNybdmNiAw"
@@ -40,11 +40,31 @@ TEAM_CHANNELS = {
     "snack-ops":                           "AAAAjno8gDs",
     "phoenix":                             "AAAAN_I9hG8",
     "marina":                              "AAAABIynxDE",  # discovered via spaces.list 2026-06-24
-    "autobots":                            "AAAAWOyaLAg",
+    "autobots":                            "AAAAkkgulAw",  # corrected via spaces.list 2026-06-26 (old AAAAWOyaLAg → 403)
     "np-easy":                             "AAAAqGa-a8I",
     "warped-tour":                         "AAQANVVa_PA",
     "marketplace-institute-of-technology": "AAAACpnkUis",
 }
+
+# Person slug -> Google Chat user ID, for --mention. Same rationale as TEAM_CHANNELS: this is the
+# generic posting primitive, so anything reusable lives here rather than in a caller. IDs come from
+# the userMention annotation on a message where the person was @-ed:
+#   GET /v1/spaces/<space>/messages -> annotations[].userMention.user.name
+PEOPLE = {
+    "craig":  "users/101609381686230694100",  # Craig Kumick
+    "daniel": "users/107059066615888383168",  # Daniel Ngo
+    "will":   "users/116331619409537721608",  # Will Fawcett
+}
+
+
+def resolve_person(ref):
+    """Accept a slug ('craig'), a display first name, or a raw 'users/123' ID."""
+    ref = ref.strip()
+    if not ref:
+        return None
+    if ref.startswith("users/"):
+        return ref
+    return PEOPLE.get(ref.lower().lstrip("@"))
 
 
 def get_access_token():
@@ -163,7 +183,8 @@ def main():
     ap.add_argument('--message', help='message text')
     ap.add_argument('--message-file', help='read message text from this file')
     ap.add_argument('--mention', default='',
-                    help='comma-separated user IDs (users/123...) appended as <users/...> mentions')
+                    help='comma-separated people to @-mention: slugs from PEOPLE (craig, daniel, will) '
+                         'or raw user IDs (users/123...)')
     ap.add_argument('--resolve-only', action='store_true',
                     help='print target resolution and exit without sending')
     ap.add_argument('--thread',
@@ -208,7 +229,16 @@ def main():
         print("ERROR: --message or --message-file required to send")
         sys.exit(1)
     if args.mention:
-        text = text + ' ' + ' '.join(f"<{m.strip()}>" for m in args.mention.split(',') if m.strip())
+        ids, unknown = [], []
+        for ref in args.mention.split(','):
+            if not ref.strip():
+                continue
+            uid = resolve_person(ref)
+            (ids.append(uid) if uid else unknown.append(ref.strip()))
+        if unknown:
+            print(f"ERROR: unknown --mention {unknown}; known slugs: {sorted(PEOPLE)}")
+            sys.exit(1)
+        text = text + ' ' + ' '.join(f"<{u}>" for u in ids)
 
     failures = 0
     for t, sid in resolved:

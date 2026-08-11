@@ -24,8 +24,10 @@ sys.path.insert(0, os.path.expanduser('~/.claude/skills/send-gchat-message/scrip
 import send_gchat  # noqa: E402
 
 # Team members (Google Chat user IDs) mentioned on the personal team channel.
-CRAIG_ID = "users/101609381686230694100"   # Craig Kumick
-DANIEL_ID = "users/107059066615888383168"  # Daniel Ngo
+# People IDs live in send_gchat.PEOPLE, so the generic posting skill stays the one place they are
+# maintained. Adding someone there makes them available to --mention here and everywhere else.
+CRAIG_ID = send_gchat.PEOPLE["craig"]
+DANIEL_ID = send_gchat.PEOPLE["daniel"]
 TEAM_SPACE = "AAAAIj8WMWc"                  # personal team PR channel (always posted)
 
 
