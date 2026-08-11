@@ -26,3 +26,8 @@
 ## Dev Environment
 - Galaxy dev server: `PID=VUNI NODE_OPTIONS=--max_old_space_size=12000 npm run start business-center-client` (run from galaxy worktree)
 - Auth tokens: `mscli auth session --env {demo|prod} --skip-version-check`
+- **Two Homebrews on this M1 Pro** — Intel at `/usr/local` (~162 formulae, the main one) and native arm64 at `/opt/homebrew` (colima, lima, docker, docker-buildx only).
+  - Claude Code's bash runs under Rosetta, so a bare `brew install X` silently installs the **x86_64** build. To target the arm64 brew: `arch -arm64 /bin/bash -c '/opt/homebrew/bin/brew install <formula>'`
+  - Verify with `brew config` — the arm64 one reports `macOS: <ver>-arm64` and `Rosetta 2: false`.
+  - `/etc/paths` puts `/usr/local/bin` first, so Intel wins ties. Don't add `brew shellenv` to `~/.bash_profile` — it symlinks into `~/dotfiles` and PATH is already handled by `/etc/paths.d/homebrew`.
+- Container runtime is **colima**, not Docker Desktop. Start with `colima start --vm-type vz --vz-rosetta --cpu 4 --memory 8`. Health-check the full Docker surface mscli needs with `bash ~/Projects/colima-doctor.sh`.
