@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# Set up this machine from the dotfiles repo.
+#
+# Idempotent and safe to re-run: anything it would overwrite is moved into a
+# timestamped backup directory first, and links that are already correct are
+# left alone. Run with --dry-run to see the plan without touching anything.
+#
+# See SETUP.md for what this does and why the .claude layer is unusual.
+
+set -euo pipefail
+
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
+DRY_RUN=false
+[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
+
+created=0 skipped=0 backed_up=0
+
+# Refuse to run from a git worktree unless forced. Every link this script makes
+# is absolute, so bootstrapping from a throwaway worktree would silently point
+# ~/.vimrc, ~/.claude and friends at a directory that gets deleted when the
+# branch is cleaned up -- leaving a machine full of dangling symlinks.
+if [[ -f "$DOTFILES/.git" ]] && [[ "${FORCE_WORKTREE:-}" != "1" ]]; then
+  printf '%s\n' \
+    "refusing to run: $DOTFILES is a git worktree, not the main checkout." \
+    "Links would point here and break when the worktree is removed." \
+    "" \
+    "Run this from your real clone (e.g. ~/dotfiles), or set FORCE_WORKTREE=1" \
+    "if you genuinely mean to bootstrap against this worktree." >&2
+  exit 1
+fi
+
+say()  { printf '%s\n' "$*"; }
+run()  { if $DRY_RUN; then say "    would: $*"; else "$@"; fi; }
+
+# link <path-relative-to-repo> <absolute-link-path>
+# Creates link -> $DOTFILES/<relative>, preserving anything already there.
+link() {
+  local target="$DOTFILES/$1" link_path="$2" label="~${2#$HOME}"
+
+  if [[ ! -e "$target" ]]; then
+    say "SKIP  $label  (target missing in repo: $1)"
+    skipped=$((skipped + 1))
+    return
+  fi
+
+  # Already correct? readlink -f resolves both sides so a trailing slash or a
+  # relative link that happens to point at the same place still counts.
+  if [[ -L "$link_path" ]] && [[ "$(readlink -f "$link_path" 2>/dev/null)" == "$(readlink -f "$target")" ]]; then
+    say "ok    $label"
+    skipped=$((skipped + 1))
+    return
+  fi
+
+  if [[ -e "$link_path" || -L "$link_path" ]]; then
+    run mkdir -p "$BACKUP_DIR"
+    run mv "$link_path" "$BACKUP_DIR/"
+    say "MOVED $label -> backup"
+    backed_up=$((backed_up + 1))
+  fi
+
+  [[ -d "$(dirname "$link_path")" ]] || run mkdir -p "$(dirname "$link_path")"
+  run ln -s "$target" "$link_path"
+  say "LINK  $label -> $1"
+  created=$((created + 1))
+}
+
+say "dotfiles: $DOTFILES"
+$DRY_RUN && say "(dry run -- nothing will be changed)"
+say
+
+# ---------------------------------------------------------------------------
+say "== shell, git, tmux, vim =="
+link .bash_profile                     "$HOME/.bash_profile"
+link gitfiles/.gitconfig               "$HOME/.gitconfig"
+link gitfiles/.githooks                "$HOME/.githooks"
+link gitfiles/.git-templates           "$HOME/.git-templates"
+link gitfiles/.gitmux.conf             "$HOME/.gitmux.conf"
+link .tmux.conf                        "$HOME/.tmux.conf"
+link .tmux                             "$HOME/.tmux"
+link tmux_battery_charge_indicator.sh  "$HOME/tmux_battery_charge_indicator.sh"
+link vimide/.vimrc                     "$HOME/.vimrc"
+link vimide/.vim                       "$HOME/.vim"
+link vimide/.ctags                     "$HOME/.ctags"
+
+# ---------------------------------------------------------------------------
+# The Claude layer needs explaining. ~/.claude is a live runtime directory --
+# logs, history, caches, hundreds of megabytes -- so it is gitignored and does
+# NOT arrive with a clone. What IS tracked is claude/, and the five config
+# entries below are linked from inside the runtime directory back out to it.
+#
+# So: create the ignored runtime dir, populate it with links to tracked files,
+# and only then point ~/.claude at the whole thing.
+say
+say "== claude =="
+if $DRY_RUN; then
+  say "    would: mkdir -p $DOTFILES/.claude"
+else
+  mkdir -p "$DOTFILES/.claude"
+fi
+link claude/CLAUDE.md             "$DOTFILES/.claude/CLAUDE.md"
+link claude/settings.json         "$DOTFILES/.claude/settings.json"
+link claude/hooks                 "$DOTFILES/.claude/hooks"
+link claude/skills                "$DOTFILES/.claude/skills"
+link claude/statusline-command.sh "$DOTFILES/.claude/statusline-command.sh"
+link .claude                      "$HOME/.claude"
+
+# ---------------------------------------------------------------------------
+# tmux plugins are managed by TPM, which is itself a plugin fetched by git.
+# It is deliberately not tracked in this repo, so a fresh clone has no TPM and
+# .tmux.conf's `run '~/.tmux/plugins/tpm/tpm'` silently does nothing.
+say
+say "== tmux plugin manager =="
+TPM_DIR="$DOTFILES/.tmux/plugins/tpm"
+if [[ -d "$TPM_DIR/.git" ]]; then
+  say "ok    tpm already installed"
+else
+  say "CLONE tpm"
+  run git clone -q https://github.com/tmux-plugins/tpm "$TPM_DIR"
+fi
+
+# ---------------------------------------------------------------------------
+say
+say "== external tools =="
+missing=()
+check() {
+  if command -v "$1" >/dev/null 2>&1; then
+    say "ok    $1"
+  else
+    say "MISS  $1  ($2)"
+    missing+=("$1")
+  fi
+}
+# nvm is a shell function sourced by .bash_profile, never a binary on PATH,
+# so `command -v nvm` reports missing even on a machine where it works fine.
+# Check for the script .bash_profile actually sources instead.
+check_file() {
+  if [[ -s "$2" ]]; then
+    say "ok    $1"
+  else
+    say "MISS  $1  ($3)"
+    missing+=("$1")
+  fi
+}
+
+check      brew   "https://brew.sh"
+check      go     "brew install go"
+check      gitmux "go install github.com/arl/gitmux@latest  -- tmux status line git section"
+check      fzf    "brew install fzf"
+check      pyenv  "brew install pyenv"
+check      rbenv  "brew install rbenv"
+check_file nvm    "${NVM_DIR:-$HOME/.nvm}/nvm.sh" "brew install nvm"
+
+# ---------------------------------------------------------------------------
+say
+say "-------------------------------------------------------------"
+say "linked: $created   already ok: $skipped   backed up: $backed_up"
+[[ $backed_up -gt 0 ]] && say "backups: $BACKUP_DIR"
+say
+say "Remaining manual steps:"
+say "  1. vim +PlugInstall +qall          # install vim plugins"
+say "  2. tmux, then prefix + I           # install tmux plugins via TPM"
+say "  3. terminal/iterm2/setup.sh        # iTerm2 settings (quit iTerm2 first)"
+[[ ${#missing[@]} -gt 0 ]] && say "  4. install missing tools: ${missing[*]}"
+say
+say "See SETUP.md for details."
