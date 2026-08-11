@@ -1,0 +1,120 @@
+# Setting up a machine from this repo
+
+Written to be followed cold — by a human on a new laptop, or by an agent with
+shell access and no prior knowledge of this setup.
+
+## Quick start
+
+```bash
+git clone git@github.com:benjfactor/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+./bootstrap.sh --dry-run     # read the plan first
+./bootstrap.sh               # create the symlinks
+```
+
+Then the four things `bootstrap.sh` deliberately does not do for you:
+
+```bash
+vim +PlugInstall +qall                 # 1. vim plugins
+tmux                                   # 2. then press: prefix + I  (capital i)
+./terminal/iterm2/setup.sh             # 3. iTerm2 settings -- QUIT iTerm2 first
+                                       # 4. install anything it reported as MISS
+```
+
+Restart your shell. Done.
+
+## What bootstrap.sh does
+
+It is **idempotent** — re-running is safe and does nothing when already set up.
+Anything it would overwrite is moved to `~/.dotfiles-backup-<timestamp>/`
+first; it never deletes. `--dry-run` prints the plan and touches nothing.
+
+### The symlinks it creates
+
+| Link | Target in repo |
+|---|---|
+| `~/.bash_profile` | `.bash_profile` |
+| `~/.gitconfig` | `gitfiles/.gitconfig` |
+| `~/.githooks` | `gitfiles/.githooks` |
+| `~/.git-templates` | `gitfiles/.git-templates` |
+| `~/.gitmux.conf` | `gitfiles/.gitmux.conf` |
+| `~/.tmux.conf` | `.tmux.conf` |
+| `~/.tmux` | `.tmux` |
+| `~/tmux_battery_charge_indicator.sh` | `tmux_battery_charge_indicator.sh` |
+| `~/.vimrc` | `vimide/.vimrc` |
+| `~/.vim` | `vimide/.vim` |
+| `~/.ctags` | `vimide/.ctags` |
+| `~/.claude` | `.claude` (see below) |
+
+## The `.claude` layer — read this before touching it
+
+This is the one genuinely non-obvious part of the repo, and it is invisible
+from a fresh clone.
+
+`~/.claude` is a **live runtime directory**: logs, history, caches, daemon
+state, hundreds of megabytes that change constantly. It is gitignored, so a
+clone does not contain it at all.
+
+What *is* tracked is `claude/` (no dot). Five entries are linked from inside
+the ignored runtime directory back out to the tracked one:
+
+```
+~/.claude  ->  dotfiles/.claude/          (gitignored runtime dir)
+                 ├── CLAUDE.md             -> dotfiles/claude/CLAUDE.md
+                 ├── settings.json         -> dotfiles/claude/settings.json
+                 ├── hooks                 -> dotfiles/claude/hooks
+                 ├── skills                -> dotfiles/claude/skills
+                 ├── statusline-command.sh -> dotfiles/claude/statusline-command.sh
+                 └── (everything else: runtime state, not tracked)
+```
+
+So config is version-controlled while runtime noise is not. `bootstrap.sh`
+builds this in the right order: create the ignored directory, link the five
+tracked entries into it, then point `~/.claude` at the whole thing.
+
+**Do not** replace `~/.claude` with a link straight to `claude/` — you would
+lose the runtime directory and Claude Code would recreate it somewhere else.
+
+## Plugins
+
+**vim** — vim-plug is vendored in this repo at `vimide/.vim/autoload/plug.vim`,
+so it needs no install. The plugins themselves are not tracked; run
+`vim +PlugInstall +qall` and vim-plug fetches them into `vimide/.vim/plugged/`.
+
+**tmux** — TPM is *not* tracked. `bootstrap.sh` clones it into
+`.tmux/plugins/tpm`, after which `prefix + I` inside tmux installs the rest
+(resurrect, continuum, window-name).
+
+Neither plugin set belongs in git: they are third-party repos with their own
+history, and committing them is what produced the phantom-submodule problem
+this setup previously had.
+
+## iTerm2
+
+Covered separately in [`terminal/iterm2/README.md`](terminal/iterm2/README.md).
+Short version: iTerm2 loads its settings directly from `terminal/iterm2/`, and
+you must quit iTerm2 before running that setup script. Never symlink a macOS
+preference plist — `cfprefsd` will clobber it.
+
+## Gotchas
+
+**Do not run `bootstrap.sh` from a git worktree.** Every link it creates is
+absolute, so bootstrapping from a throwaway worktree points `~/.vimrc` and
+`~/.claude` at a directory that disappears when the branch is cleaned up. The
+script refuses to run from a worktree; override with `FORCE_WORKTREE=1` only
+if you really mean it.
+
+**`nvm` is a shell function, not a binary.** `command -v nvm` reports it
+missing even when it works. The tool check looks for `$NVM_DIR/nvm.sh`.
+
+**Three vim configs exist.** `vimide/.vimrc` is the live one. `.vimrc` and
+`portable/.vimrc` at the repo root are older copies kept for reference — the
+symlink is what settles which is real.
+
+## What is not covered
+
+Machine-level setup that this repo does not attempt: Homebrew itself, macOS
+system preferences, SSH keys, GPG keys, app installs. `bootstrap.sh` reports
+missing command-line tools but does not install them, on purpose — installing
+toolchains behind your back on a fresh machine is not a thing a setup script
+should decide for you.
