@@ -3,3 +3,4 @@ vimide/.vim/plugged/*
 .vim/DS_Store
 Session.vim
 .claude/
+__pycache__/

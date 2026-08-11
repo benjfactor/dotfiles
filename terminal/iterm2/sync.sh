@@ -15,10 +15,18 @@ PLIST="$FOLDER/com.googlecode.iterm2.plist"
 PUSH=false
 [[ "${1:-}" == "--push" ]] && PUSH=true
 
-# iTerm2 only flushes its in-memory settings on quit (or when you hit
+# Is iTerm2 writing this folder itself? That changes everything below: in
+# managed mode the file on disk is already authoritative and a running iTerm2
+# is not a problem, because it saves as you change settings.
+MANAGED=false
+if [[ "$(defaults read com.googlecode.iterm2 LoadPrefsFromCustomFolder 2>/dev/null)" == "1" ]]; then
+  MANAGED=true
+fi
+
+# Unmanaged only: iTerm2 flushes in-memory settings on quit (or when you hit
 # "Save Settings to Folder"). If it's running, what `defaults export` sees may
 # lag whatever you just changed in the UI.
-if pgrep -x iTerm2 >/dev/null; then
+if ! $MANAGED && pgrep -x iTerm2 >/dev/null; then
   echo "!! iTerm2 is running -- settings changed in this session may not be"
   echo "   captured yet. For a guaranteed-complete snapshot, either:"
   echo "     - quit iTerm2 (Cmd-Q) and re-run this, or"
@@ -37,6 +45,18 @@ fi
 # characters that Apple's plist writer emits happily but Python's XML parser
 # rejects. Reading/writing binary sidesteps XML entirely, and plutil does the
 # final conversion using Apple's own (lenient) writer.
+#
+# Only do this when iTerm2 is NOT already managing the folder itself. Once
+# "Load settings from a custom folder" is on, iTerm2 writes this file directly
+# and curates it better than we can -- it drops Sparkle updater state, crash
+# reporter timestamps, Secure Input and similar runtime junk that `defaults
+# export` happily includes. Regenerating on top of that re-adds ~89 lines of
+# noise on every sync and fights the app for ownership of the file.
+if $MANAGED; then
+  echo "iTerm2 manages this folder directly -- committing its file as-is."
+else
+  echo "custom folder not enabled on this machine -- exporting from defaults."
+
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
@@ -53,6 +73,7 @@ with open(p, "wb") as f:
 ' "$TMP"
 plutil -convert xml1 -o "$PLIST" "$TMP"
 plutil -lint "$PLIST" >/dev/null
+fi
 
 cd "$FOLDER"
 # --porcelain rather than `git diff --quiet` so a not-yet-tracked plist
