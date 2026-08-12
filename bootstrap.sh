@@ -155,14 +155,41 @@ check_file() {
   fi
 }
 
+# The two programs this whole setup exists to configure. Checked first and
+# explicitly: the manual steps below tell you to run `nvim` and `tmux`, so
+# failing to verify them means the script can report success on a machine where
+# neither is installed.
+say "-- editors and shell --"
+check      nvim   "brew install neovim  -- THE editor; .vim naming is historical"
+check      tmux   "brew install tmux"
 check      brew   "https://brew.sh"
 check      go     "brew install go"
-check      gitmux "go install github.com/arl/gitmux@latest  -- tmux status line git section"
+
+say "-- version managers --"
 check      fzf    "brew install fzf"
 check      pyenv  "brew install pyenv"
 check      rbenv  "brew install rbenv"
 check_file nvm    "${NVM_DIR:-$HOME/.nvm}/nvm.sh" "brew install nvm"
 
+# Plugins shell out to these at runtime. Each fails quietly when absent -- the
+# plugin loads, then simply does nothing.
+say "-- plugin runtime deps --"
+check      gitmux       "go install github.com/arl/gitmux@latest  -- tmux status line git section"
+check      node         "brew install node  -- coc.nvim runtime"
+check      ctags        "brew install universal-ctags  -- vim-autotag; ~/.ctags is linked"
+check      rg           "brew install ripgrep  -- vim-ripgrep"
+check      code-minimap "brew install code-minimap  -- minimap.vim"
+check      dig          "ships with macOS  -- tmux status line"
+
+# Needed BEFORE :PlugInstall, not after. Three plugins compile on install and
+# fail partway through if the toolchain is absent, leaving a half-installed
+# plugin set that looks like a network problem.
+say "-- build toolchain (needed before :PlugInstall) --"
+check      make   "xcode-select --install  -- vim-hexokinase"
+check      cc     "xcode-select --install  -- nvim-treesitter :TSUpdate"
+check      cargo  "brew install rust  -- codesnap.nvim"
+
+say "-- python packages --"
 # tmux-window-name is a Python plugin: without libtmux it fails silently and
 # windows just never get renamed, which reads as "the plugin didn't install"
 # rather than "a dependency is missing".
@@ -173,6 +200,7 @@ else
   missing+=("libtmux")
 fi
 
+say "-- fonts --"
 # The three fonts the terminals reference, matched on PostScript name (which is
 # not the filename: FiraMonoNF-Regular lives in FiraMonoNerdFont-Regular.otf).
 # Missing ones fall back silently to a default face, so powerline separators and
@@ -202,16 +230,21 @@ say "linked: $created   already ok: $skipped   backed up: $backed_up"
 [[ $backed_up -gt 0 ]] && say "backups: $BACKUP_DIR"
 say
 say "Remaining manual steps:"
-say "  1. nvim +PlugInstall +qall         # install neovim plugins"
-say "  2. tmux, then prefix + I           # install tmux plugins via TPM"
-say "  3. terminal/iterm2/setup.sh        # iTerm2 settings (quit iTerm2 first)"
+# Counted rather than hardcoded: the font and missing-tools steps are
+# conditional, so fixed numbers skip a digit whenever one does not apply.
+step=0
+next_step() { step=$((step + 1)); say "  $step. $1"; }
+
+next_step "nvim +PlugInstall +qall         # install neovim plugins"
+next_step "tmux, then prefix + I           # install tmux plugins via TPM"
+next_step "terminal/iterm2/setup.sh        # iTerm2 settings (quit iTerm2 first)"
 
 # Fonts have their own installer; everything else is left to you deliberately.
 fonts_missing=false
 for m in ${missing[@]+"${missing[@]}"}; do
   case "$m" in font:*) fonts_missing=true;; esac
 done
-$fonts_missing && say "  4. ./install-fonts.sh              # install the missing fonts"
-[[ ${#missing[@]} -gt 0 ]] && say "  5. install missing tools: ${missing[*]}"
+$fonts_missing && next_step "./install-fonts.sh              # install the missing fonts"
+[[ ${#missing[@]} -gt 0 ]] && next_step "install missing tools: ${missing[*]}"
 say
 say "See SETUP.md for details."
