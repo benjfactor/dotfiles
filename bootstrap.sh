@@ -72,6 +72,9 @@ say
 # ---------------------------------------------------------------------------
 say "== shell, git, tmux, vim =="
 link .bash_profile                     "$HOME/.bash_profile"
+# readline config: case-insensitive completion and arrow-key history search.
+# Small file, easy to forget, and its absence is felt immediately.
+link .inputrc                          "$HOME/.inputrc"
 link gitfiles/.gitconfig               "$HOME/.gitconfig"
 link gitfiles/.githooks                "$HOME/.githooks"
 link gitfiles/.git-templates           "$HOME/.git-templates"
