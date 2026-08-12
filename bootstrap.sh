@@ -225,6 +225,21 @@ else
   say "?     fonts  (cannot verify -- fc-list not installed; brew install fontconfig)"
 fi
 
+say "-- macos defaults --"
+# AppKit keys that iTerm2 keeps in its preference domain but refuses to write
+# into its own settings file, so they cannot be tracked in the plist at all.
+# appkit-defaults.sh explains why; the sharp one is ApplePressAndHoldEnabled,
+# without which holding a key in vim opens the accent picker instead of
+# repeating. Deliberately not added to `missing`: these are not installable
+# tools, they are settings, and they have their own script.
+appkit_missing=false
+if "$DOTFILES/terminal/iterm2/appkit-defaults.sh" --check >/dev/null 2>&1; then
+  say "ok    iterm2 appkit defaults"
+else
+  say "MISS  iterm2 appkit defaults  (terminal/iterm2/appkit-defaults.sh)"
+  appkit_missing=true
+fi
+
 # ---------------------------------------------------------------------------
 say
 say "-------------------------------------------------------------"
@@ -247,6 +262,7 @@ for m in ${missing[@]+"${missing[@]}"}; do
   case "$m" in font:*) fonts_missing=true;; esac
 done
 $fonts_missing && next_step "./install-fonts.sh              # install the missing fonts"
+$appkit_missing && next_step "terminal/iterm2/appkit-defaults.sh  # AppKit keys iTerm2 will not store"
 [[ ${#missing[@]} -gt 0 ]] && next_step "install missing tools: ${missing[*]}"
 say
 say "See SETUP.md for details."

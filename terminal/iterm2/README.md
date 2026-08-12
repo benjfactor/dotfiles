@@ -89,6 +89,28 @@ machine-local state (recent directories and hosts, command history flags,
 per-window geometry, "don't remind me again" dismissals). `sync.sh` strips
 these on export. This is deliberate on iTerm2's part, not a workaround.
 
+**Also not synced, for a different reason:** five AppKit keys that live in
+iTerm2's preference domain without being iTerm2 settings. In managed mode the
+app writes back only keys it owns, so it deletes these from the plist every time
+it saves:
+
+| Key | Value |
+|---|---|
+| `AppleAntiAliasingThreshold` | `1` |
+| `ApplePressAndHoldEnabled` | `false` — hold-to-repeat instead of the accent picker |
+| `AppleScrollAnimationEnabled` | `0` |
+| `AppleSmoothFixedFontsSizeThreshold` | `1` |
+| `AppleWindowTabbingMode` | `manual` |
+
+Tracking them here does not survive: they provision a machine once, then vanish
+on the next save and show up as a phantom deletion that `sync.sh` will
+eventually commit away. Use `./appkit-defaults.sh` instead, which applies them
+with `defaults write` where the app leaves them alone. `bootstrap.sh` verifies
+them, and SETUP.md carries the long version.
+
+So a deletion of those five keys in a `sync.sh` diff is **expected** — commit it
+and let the script own them.
+
 ## Note on this being a public repo
 
 `benjfactor/dotfiles` is public. iTerm2 profiles can accumulate hostnames,
