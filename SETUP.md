@@ -141,6 +141,81 @@ Neither plugin set belongs in git: they are third-party repos with their own
 history, and committing them is what produced the phantom-submodule problem
 this setup previously had.
 
+## Fonts
+
+Font *files* are not in this repo, but the font *names* are — they live in the
+iTerm2 settings that `terminal/iterm2/` tracks. Extract them any time with:
+
+```bash
+plutil -convert binary1 -o /tmp/i.plist terminal/iterm2/com.googlecode.iterm2.plist
+python3 -c "import plistlib;[print(b.get('Name'),'|',b.get('Normal Font'),'|',b.get('Non Ascii Font')) for b in plistlib.load(open('/tmp/i.plist','rb'))['New Bookmarks']]"
+```
+
+What is currently set:
+
+| Where | Font | Size |
+|---|---|---|
+| iTerm2 *Default* — main | `DejaVuSansMonoPowerline` | 14 |
+| iTerm2 *quickie* — main | `DejaVuSansMonoPowerline` | 12 |
+| iTerm2 both — non-ASCII | `FiraMonoNF-Regular` | 14 |
+| Terminal.app *Homebrew* | `LiterationMonoPowerline` | — |
+
+The non-ASCII font is the one drawing powerline separators, git symbols in the
+tmux status line, and NERDTree/airline glyphs. If it is missing you get boxes
+and tofu, not an error.
+
+Those are **PostScript** names, not filenames — `FiraMonoNF-Regular` ships in a
+file called `FiraMonoNerdFont-Regular.otf`. Match on the PostScript name:
+
+```bash
+fc-list --format='%{postscriptname}\n' | sort -u | grep -E 'Powerline|NF-'
+```
+
+### Installing them
+
+`FiraMonoNF-*` is a Nerd Font and has a cask:
+
+```bash
+brew install --cask font-fira-mono-nerd-font
+```
+
+`DejaVuSansMonoPowerline` and `LiterationMonoPowerline` come from
+[powerline/fonts](https://github.com/powerline/fonts), which has no equivalent
+cask — the similarly-named `font-dejavu-sans-mono-nerd-font` cask is the Nerd
+Font build and registers under a *different* PostScript name, so it will not
+satisfy the iTerm2 setting. Install the real ones with:
+
+```bash
+git clone --depth 1 https://github.com/powerline/fonts.git /tmp/powerline-fonts
+/tmp/powerline-fonts/install.sh
+rm -rf /tmp/powerline-fonts
+```
+
+`bootstrap.sh` verifies all three by PostScript name and reports any missing.
+
+## Terminal multiplexer and shell
+
+`.bash_profile` sources exactly one file from this repo,
+`bin/session-sauce.plugin.zsh`, and is otherwise self-contained. It hardcodes
+`$HOME/dotfiles`, so the clone must live there. Its one absolute path,
+`/usr/local/mysql/bin`, is a PATH entry that is harmless when absent.
+
+`.tmux.conf` uses only `~`-relative paths. Its status line shells out to
+`gitmux`, `curl`, `dig`, `ifconfig`, the bundled
+`tmux_battery_charge_indicator.sh`, and macOS's `airport` binary — the last of
+which Apple has deprecated, so expect that segment to stop working on some
+future macOS.
+
+**`tmux-window-name` needs the `libtmux` Python package.** Without it the
+plugin fails quietly and windows simply never get renamed, which looks like a
+failed install rather than a missing dependency:
+
+```bash
+pip3 install --user libtmux
+```
+
+`bootstrap.sh` checks for it.
+
 ## iTerm2
 
 Covered separately in [`terminal/iterm2/README.md`](terminal/iterm2/README.md).

@@ -163,6 +163,38 @@ check      pyenv  "brew install pyenv"
 check      rbenv  "brew install rbenv"
 check_file nvm    "${NVM_DIR:-$HOME/.nvm}/nvm.sh" "brew install nvm"
 
+# tmux-window-name is a Python plugin: without libtmux it fails silently and
+# windows just never get renamed, which reads as "the plugin didn't install"
+# rather than "a dependency is missing".
+if python3 -c 'import libtmux' >/dev/null 2>&1; then
+  say "ok    libtmux"
+else
+  say "MISS  libtmux  (pip3 install --user libtmux  -- needed by tmux-window-name)"
+  missing+=("libtmux")
+fi
+
+# The three fonts the terminals reference, matched on PostScript name (which is
+# not the filename: FiraMonoNF-Regular lives in FiraMonoNerdFont-Regular.otf).
+# Missing ones fall back silently to a default face, so powerline separators and
+# glyphs render as boxes rather than erroring.
+#
+# Collected once into a variable and matched with bash rather than piping into
+# `grep -q`: under `set -o pipefail`, grep exits on the first match and SIGPIPEs
+# fc-list, so the pipeline reports failure for any font found early in the list.
+if command -v fc-list >/dev/null 2>&1; then
+  font_names="$(fc-list --format='%{postscriptname}\n' 2>/dev/null || true)"
+  for f in DejaVuSansMonoPowerline FiraMonoNF-Regular LiterationMonoPowerline; do
+    if [[ $'\n'"$font_names"$'\n' == *$'\n'"$f"$'\n'* ]]; then
+      say "ok    font $f"
+    else
+      say "MISS  font $f  (see SETUP.md -- Fonts)"
+      missing+=("font:$f")
+    fi
+  done
+else
+  say "?     fonts  (cannot verify -- fc-list not installed; brew install fontconfig)"
+fi
+
 # ---------------------------------------------------------------------------
 say
 say "-------------------------------------------------------------"
