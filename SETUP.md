@@ -222,19 +222,11 @@ Two traps worth knowing:
 which Apple has deprecated, so expect that segment to stop working on some
 future macOS.
 
-**`reattach-to-user-namespace` is required, not optional.** `.tmux.conf` sets
-it as `default-command`, so it runs for every new pane — without it tmux panes
-die the moment they are created, rather than degrading quietly like the rest of
-this list. It also backs the `copy-mode-vi` `y` clipboard binding.
-
-```bash
-brew install reattach-to-user-namespace
-```
-
-Worth knowing: this wrapper has been largely unnecessary since tmux 2.6, which
-talks to the macOS pasteboard directly. The config predates that and still
-hardcodes it, so it remains a hard dependency until those two lines
-(`.tmux.conf` 95 and 188) are updated.
+**`reattach-to-user-namespace` is no longer used.** tmux has reached the macOS
+pasteboard directly since 2.6, so the wrapper was removed along with the
+`default-command` line that required it. `default-command` is now unset, which
+makes tmux start `default-shell` as a login shell — the same result the wrapper
+produced. Nothing to install; if you see it referenced anywhere, it is stale.
 
 **`tmux-window-name` needs the `libtmux` Python package.** Without it the
 plugin fails quietly and windows simply never get renamed, which looks like a

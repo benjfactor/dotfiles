@@ -180,11 +180,8 @@ check      ctags        "brew install universal-ctags  -- vim-autotag; ~/.ctags 
 check      rg           "brew install ripgrep  -- vim-ripgrep"
 check      code-minimap "brew install code-minimap  -- minimap.vim"
 check      dig          "ships with macOS  -- tmux status line"
-# The one hard failure in this list. .tmux.conf sets it as `default-command`,
-# so it runs for every new pane -- if it is missing, panes die the instant they
-# are created rather than degrading quietly. Also backs the copy-mode-vi 'y'
-# clipboard binding.
-check      reattach-to-user-namespace "brew install reattach-to-user-namespace  -- tmux default-command; panes will not open without it"
+# No reattach-to-user-namespace check: .tmux.conf no longer uses it. tmux has
+# reached the macOS pasteboard directly since 2.6.
 
 # Needed BEFORE :PlugInstall, not after. Three plugins compile on install and
 # fail partway through if the toolchain is absent, leaving a half-installed
