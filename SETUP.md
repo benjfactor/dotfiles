@@ -34,6 +34,7 @@ first; it never deletes. `--dry-run` prints the plan and touches nothing.
 | Link | Target in repo |
 |---|---|
 | `~/.bash_profile` | `.bash_profile` |
+| `~/.inputrc` | `.inputrc` (readline: case-insensitive completion, history search) |
 | `~/.gitconfig` | `gitfiles/.gitconfig` |
 | `~/.githooks` | `gitfiles/.githooks` |
 | `~/.git-templates` | `gitfiles/.git-templates` |
