@@ -15,7 +15,7 @@ cd ~/dotfiles
 Then the four things `bootstrap.sh` deliberately does not do for you:
 
 ```bash
-vim +PlugInstall +qall                 # 1. vim plugins
+nvim +PlugInstall +qall                # 1. neovim plugins
 tmux                                   # 2. then press: prefix + I  (capital i)
 ./terminal/iterm2/setup.sh             # 3. iTerm2 settings -- QUIT iTerm2 first
                                        # 4. install anything it reported as MISS
@@ -43,6 +43,7 @@ first; it never deletes. `--dry-run` prints the plan and touches nothing.
 | `~/tmux_battery_charge_indicator.sh` | `tmux_battery_charge_indicator.sh` |
 | `~/.vimrc` | `vimide/.vimrc` |
 | `~/.vim` | `vimide/.vim` |
+| `~/.config/nvim` | `vimide/.vim` (Neovim runtimepath — see Plugins) |
 | `~/.ctags` | `vimide/.ctags` |
 | `~/.claude` | `.claude` (see below) |
 
@@ -95,9 +96,42 @@ never tracked, so new machines do without it. `bootstrap.sh` handles either.
 
 ## Plugins
 
-**vim** — vim-plug is vendored in this repo at `vimide/.vim/autoload/plug.vim`,
-so it needs no install. The plugins themselves are not tracked; run
-`vim +PlugInstall +qall` and vim-plug fetches them into `vimide/.vim/plugged/`.
+**The editor is Neovim**, despite everything being named `.vim`. That matters
+more than it looks:
+
+- `~/.config/nvim` → `vimide/.vim` supplies the **runtimepath**. Without it
+  nvim cannot find `autoload/plug.vim`, so `plug#begin` is undefined and every
+  `Plug` line in `.vimrc` errors — no plugin loads at all.
+- `.vimrc` is found by a different route entirely: `.bash_profile` exports
+  `VIMINIT='source $MYVIMRC'` and `MYVIMRC='~/dotfiles/vimide/.vimrc'`.
+
+Because those two paths are independent, a machine missing the `~/.config/nvim`
+link still *looks* configured — the vimrc loads and then throws 30+ errors.
+`bootstrap.sh` creates both links.
+
+`MYVIMRC` hardcodes `~/dotfiles`, so the clone must live there.
+
+vim-plug itself is vendored at `vimide/.vim/autoload/plug.vim` and needs no
+install. Plugins are not tracked; run `nvim +PlugInstall +qall` to fetch them
+into `vimide/.vim/plugged/`.
+
+Five plugins compile or download on install, so a fresh machine needs a
+toolchain before `PlugInstall`:
+
+| Plugin | Hook | Needs |
+|---|---|---|
+| `fatih/vim-go` | `:GoUpdateBinaries` | `go` |
+| `rrethy/vim-hexokinase` | `make hexokinase` | `make`, `go` |
+| `mistricky/codesnap.nvim` | `make` | `cargo` (Rust) |
+| `nvim-treesitter` | `:TSUpdate` | C compiler (Xcode CLT) |
+| `junegunn/fzf` | `fzf#install()` | downloads its own binary |
+
+`coc.nvim` pins `{'branch': 'release'}`, which is prebuilt — no Node build step,
+though Node is needed at runtime.
+
+**`vim-wakatime` needs `~/.wakatime.cfg`**, which is deliberately *not* in this
+repo because it holds an API key. Copy it across by hand or re-authenticate, or
+the plugin nags on every startup.
 
 **tmux** — TPM is *not* tracked. `bootstrap.sh` clones it into
 `.tmux/plugins/tpm`, after which `prefix + I` inside tmux installs the rest

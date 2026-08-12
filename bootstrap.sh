@@ -83,6 +83,15 @@ link vimide/.vimrc                     "$HOME/.vimrc"
 link vimide/.vim                       "$HOME/.vim"
 link vimide/.ctags                     "$HOME/.ctags"
 
+# Neovim is the real editor here (see SETUP.md) and reads its runtimepath from
+# the XDG config dir, not ~/.vim. Without this link nvim cannot find
+# autoload/plug.vim, so `plug#begin` is undefined and every single Plug line in
+# .vimrc errors out -- vim-plug never loads and no plugin works at all.
+#
+# .vimrc itself is found separately, via VIMINIT/MYVIMRC exported by
+# .bash_profile, so a broken editor here still *looks* configured.
+link vimide/.vim                       "$HOME/.config/nvim"
+
 # ---------------------------------------------------------------------------
 # ~/.claude is Claude Code's own runtime directory: sessions, jobs, history,
 # daemon state. This script never moves or replaces it. Doing so would tear a
@@ -161,7 +170,7 @@ say "linked: $created   already ok: $skipped   backed up: $backed_up"
 [[ $backed_up -gt 0 ]] && say "backups: $BACKUP_DIR"
 say
 say "Remaining manual steps:"
-say "  1. vim +PlugInstall +qall          # install vim plugins"
+say "  1. nvim +PlugInstall +qall         # install neovim plugins"
 say "  2. tmux, then prefix + I           # install tmux plugins via TPM"
 say "  3. terminal/iterm2/setup.sh        # iTerm2 settings (quit iTerm2 first)"
 [[ ${#missing[@]} -gt 0 ]] && say "  4. install missing tools: ${missing[*]}"
