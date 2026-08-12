@@ -173,25 +173,41 @@ fc-list --format='%{postscriptname}\n' | sort -u | grep -E 'Powerline|NF-'
 
 ### Installing them
 
-`FiraMonoNF-*` is a Nerd Font and has a cask:
-
 ```bash
-brew install --cask font-fira-mono-nerd-font
+./install-fonts.sh
 ```
 
-`DejaVuSansMonoPowerline` and `LiterationMonoPowerline` come from
-[powerline/fonts](https://github.com/powerline/fonts), which has no equivalent
-cask — the similarly-named `font-dejavu-sans-mono-nerd-font` cask is the Nerd
-Font build and registers under a *different* PostScript name, so it will not
-satisfy the iTerm2 setting. Install the real ones with:
+Downloads exactly these three families into `~/Library/Fonts`. Idempotent —
+families already registered under the right PostScript name are skipped; pass
+`--force` to reinstall. Restart the terminal app afterwards.
 
-```bash
-git clone --depth 1 https://github.com/powerline/fonts.git /tmp/powerline-fonts
-/tmp/powerline-fonts/install.sh
-rm -rf /tmp/powerline-fonts
-```
+`bootstrap.sh` verifies all three by PostScript name and reports any missing,
+but does not install them.
 
-`bootstrap.sh` verifies all three by PostScript name and reports any missing.
+#### Where they come from
+
+Direct links, if you would rather fetch them by hand:
+
+| Font | Source |
+|---|---|
+| `DejaVuSansMonoPowerline` | [DejaVu Sans Mono for Powerline.ttf](https://github.com/powerline/fonts/raw/master/DejaVuSansMono/DejaVu%20Sans%20Mono%20for%20Powerline.ttf) — [folder](https://github.com/powerline/fonts/tree/master/DejaVuSansMono) |
+| `LiterationMonoPowerline` | [Literation Mono Powerline.ttf](https://github.com/powerline/fonts/raw/master/LiberationMono/Literation%20Mono%20Powerline.ttf) — [folder](https://github.com/powerline/fonts/tree/master/LiberationMono) |
+| `FiraMonoNF-Regular` | [FiraMono.zip](https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraMono.zip) (~13MB) — [Nerd Fonts downloads](https://www.nerdfonts.com/font-downloads) |
+
+Note *Literation* lives in the **`LiberationMono`** folder — powerline renamed
+the faces but not the directory, so searching for "Literation" in the repo tree
+finds nothing.
+
+Two traps worth knowing:
+
+- `brew install --cask font-fira-mono-nerd-font` works for Fira, but there is
+  **no cask for the powerline faces**. The similarly-named
+  `font-dejavu-sans-mono-nerd-font` is the Nerd Font build and registers a
+  *different* PostScript name, so it will not satisfy the iTerm2 setting even
+  though it looks like the right thing.
+- `FiraMono.zip` contains three builds. Only `FiraMonoNerdFont-*.otf` carries
+  the `FiraMonoNF-` PostScript prefix; the Mono and Propo builds register as
+  `FiraMonoNFM-` and `FiraMonoNFP-` and will not match.
 
 ## Terminal multiplexer and shell
 

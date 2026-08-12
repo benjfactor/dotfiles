@@ -205,6 +205,13 @@ say "Remaining manual steps:"
 say "  1. nvim +PlugInstall +qall         # install neovim plugins"
 say "  2. tmux, then prefix + I           # install tmux plugins via TPM"
 say "  3. terminal/iterm2/setup.sh        # iTerm2 settings (quit iTerm2 first)"
-[[ ${#missing[@]} -gt 0 ]] && say "  4. install missing tools: ${missing[*]}"
+
+# Fonts have their own installer; everything else is left to you deliberately.
+fonts_missing=false
+for m in ${missing[@]+"${missing[@]}"}; do
+  case "$m" in font:*) fonts_missing=true;; esac
+done
+$fonts_missing && say "  4. ./install-fonts.sh              # install the missing fonts"
+[[ ${#missing[@]} -gt 0 ]] && say "  5. install missing tools: ${missing[*]}"
 say
 say "See SETUP.md for details."
