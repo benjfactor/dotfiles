@@ -180,6 +180,10 @@ check      ctags        "brew install universal-ctags  -- vim-autotag; ~/.ctags 
 check      rg           "brew install ripgrep  -- vim-ripgrep"
 check      code-minimap "brew install code-minimap  -- minimap.vim"
 check      dig          "ships with macOS  -- tmux status line"
+# Claude Code plugins install themselves from settings.json (enabledPlugins +
+# extraKnownMarketplaces), but LSP plugins do not install their language server.
+# gopls-lsp loads fine without gopls and then silently provides no diagnostics.
+check      gopls        "go install golang.org/x/tools/gopls@latest  -- gopls-lsp plugin"
 # No reattach-to-user-namespace check: .tmux.conf no longer uses it. tmux has
 # reached the macOS pasteboard directly since 2.6.
 
