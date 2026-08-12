@@ -55,25 +55,43 @@ from a fresh clone.
 state, hundreds of megabytes that change constantly. It is gitignored, so a
 clone does not contain it at all.
 
-What *is* tracked is `claude/` (no dot). Five entries are linked from inside
-the ignored runtime directory back out to the tracked one:
+What *is* tracked is `claude/` (no dot). Five entries inside `~/.claude` are
+symlinks out to it:
 
 ```
-~/.claude  ->  dotfiles/.claude/          (gitignored runtime dir)
-                 ├── CLAUDE.md             -> dotfiles/claude/CLAUDE.md
-                 ├── settings.json         -> dotfiles/claude/settings.json
-                 ├── hooks                 -> dotfiles/claude/hooks
-                 ├── skills                -> dotfiles/claude/skills
-                 ├── statusline-command.sh -> dotfiles/claude/statusline-command.sh
-                 └── (everything else: runtime state, not tracked)
+~/.claude/                                 (runtime dir -- NOT tracked)
+  ├── CLAUDE.md             -> dotfiles/claude/CLAUDE.md
+  ├── settings.json         -> dotfiles/claude/settings.json
+  ├── hooks                 -> dotfiles/claude/hooks
+  ├── skills                -> dotfiles/claude/skills
+  ├── statusline-command.sh -> dotfiles/claude/statusline-command.sh
+  └── sessions/ jobs/ projects/ history.jsonl ...   (runtime state)
 ```
 
-So config is version-controlled while runtime noise is not. `bootstrap.sh`
-builds this in the right order: create the ignored directory, link the five
-tracked entries into it, then point `~/.claude` at the whole thing.
+Config is version-controlled; runtime noise is not. Note the exceptions are
+**not** gitignore negations — nothing under the runtime directory is tracked at
+all. Versioning comes entirely from those five children pointing at a sibling
+directory that differs by one dot.
 
-**Do not** replace `~/.claude` with a link straight to `claude/` — you would
-lose the runtime directory and Claude Code would recreate it somewhere else.
+**`bootstrap.sh` never moves or replaces `~/.claude`.** It only links the five
+entries into whatever is already there. That directory holds live session
+state — `sessions/`, `jobs/`, `history.jsonl`, `daemon/` — and you are quite
+likely running the script from inside a Claude Code session, so moving it would
+pull the floor out from under yourself.
+
+It *will* replace `~/.claude/settings.json` if Claude Code auto-created one,
+backing the original up first.
+
+### Two layouts exist, both fine
+
+This machine's original setup has an extra hop: `~/.claude` is itself a symlink
+to `dotfiles/.claude`, a gitignored directory holding the runtime state inside
+the repo. New machines skip that — `~/.claude` is simply the real directory
+Claude Code made.
+
+Both end up identical where it matters: the same five links resolve to the same
+tracked files. The indirection bought nothing, since `dotfiles/.claude` was
+never tracked, so new machines do without it. `bootstrap.sh` handles either.
 
 ## Plugins
 

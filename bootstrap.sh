@@ -84,26 +84,29 @@ link vimide/.vim                       "$HOME/.vim"
 link vimide/.ctags                     "$HOME/.ctags"
 
 # ---------------------------------------------------------------------------
-# The Claude layer needs explaining. ~/.claude is a live runtime directory --
-# logs, history, caches, hundreds of megabytes -- so it is gitignored and does
-# NOT arrive with a clone. What IS tracked is claude/, and the five config
-# entries below are linked from inside the runtime directory back out to it.
+# ~/.claude is Claude Code's own runtime directory: sessions, jobs, history,
+# daemon state. This script never moves or replaces it. Doing so would tear a
+# live session's state out from under it -- and you are quite likely running
+# this script from inside exactly such a session.
 #
-# So: create the ignored runtime dir, populate it with links to tracked files,
-# and only then point ~/.claude at the whole thing.
+# Only the five tracked config entries get linked in. It does not matter
+# whether ~/.claude is a real directory (new machines) or itself a symlink into
+# this repo (the older layout, see SETUP.md): the links resolve to the same
+# place either way, so this is correct and idempotent on both.
 say
 say "== claude =="
-if $DRY_RUN; then
-  say "    would: mkdir -p $DOTFILES/.claude"
+CLAUDE_DIR="$HOME/.claude"
+if [[ -e "$CLAUDE_DIR" ]]; then
+  say "ok    ~/.claude exists (left alone)"
 else
-  mkdir -p "$DOTFILES/.claude"
+  say "MKDIR ~/.claude"
+  run mkdir -p "$CLAUDE_DIR"
 fi
-link claude/CLAUDE.md             "$DOTFILES/.claude/CLAUDE.md"
-link claude/settings.json         "$DOTFILES/.claude/settings.json"
-link claude/hooks                 "$DOTFILES/.claude/hooks"
-link claude/skills                "$DOTFILES/.claude/skills"
-link claude/statusline-command.sh "$DOTFILES/.claude/statusline-command.sh"
-link .claude                      "$HOME/.claude"
+link claude/CLAUDE.md             "$CLAUDE_DIR/CLAUDE.md"
+link claude/settings.json         "$CLAUDE_DIR/settings.json"
+link claude/hooks                 "$CLAUDE_DIR/hooks"
+link claude/skills                "$CLAUDE_DIR/skills"
+link claude/statusline-command.sh "$CLAUDE_DIR/statusline-command.sh"
 
 # ---------------------------------------------------------------------------
 # tmux plugins are managed by TPM, which is itself a plugin fetched by git.
