@@ -120,6 +120,15 @@ link claude/hooks                 "$CLAUDE_DIR/hooks"
 link claude/skills                "$CLAUDE_DIR/skills"
 link claude/statusline-command.sh "$CLAUDE_DIR/statusline-command.sh"
 
+# PR Studio reads its global review preferences from a nested path, so the
+# directory has to exist before the link can go in. Everything else under
+# ~/.claude/pr-studio is per-review runtime state and stays local.
+if [[ ! -d "$CLAUDE_DIR/pr-studio" ]]; then
+  say "MKDIR ~/.claude/pr-studio"
+  run mkdir -p "$CLAUDE_DIR/pr-studio"
+fi
+link claude/pr-studio/preferences.md "$CLAUDE_DIR/pr-studio/preferences.md"
+
 # ---------------------------------------------------------------------------
 # tmux plugins are managed by TPM, which is itself a plugin fetched by git.
 # It is deliberately not tracked in this repo, so a fresh clone has no TPM and

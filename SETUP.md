@@ -67,8 +67,20 @@ symlinks out to it:
   ├── hooks                 -> dotfiles/claude/hooks
   ├── skills                -> dotfiles/claude/skills
   ├── statusline-command.sh -> dotfiles/claude/statusline-command.sh
+  ├── pr-studio/
+  │     └── preferences.md  -> dotfiles/claude/pr-studio/preferences.md
   └── sessions/ jobs/ projects/ history.jsonl ...   (runtime state)
 ```
+
+`pr-studio/preferences.md` is PR Studio's **global** review config — reviewer
+choice, comment style, severity labels. Everything else under `pr-studio/`, and
+every `<repo>/.pr-studio/` directory, is per-review runtime state (diffs,
+sessions, fetched comments) and deliberately stays local.
+
+Permissions live in the tracked `claude/settings.json`. A separate
+`~/.claude/settings.local.json` may exist for machine-local overrides; it is
+Claude Code's own local-override file and is intentionally not tracked, so
+check it if a permission seems missing after a rebuild.
 
 Config is version-controlled; runtime noise is not. Note the exceptions are
 **not** gitignore negations — nothing under the runtime directory is tracked at
