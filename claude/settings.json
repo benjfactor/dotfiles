@@ -41,7 +41,8 @@
       "Bash(mkdir -p ~/.claude/wsu*)",
       "Bash(echo * >> ~/.claude/wsu/*)",
       "Bash(cat ~/.claude/wsu/*)",
-      "Bash(tail * ~/.claude/wsu/*)"
+      "Bash(tail * ~/.claude/wsu/*)",
+      "WebFetch(domain:github.com)"
     ],
     "additionalDirectories": [
       "~/Projects/"
