@@ -258,6 +258,35 @@ Short version: iTerm2 loads its settings directly from `terminal/iterm2/`, and
 you must quit iTerm2 before running that setup script. Never symlink a macOS
 preference plist — `cfprefsd` will clobber it.
 
+### Five settings the plist cannot carry
+
+```bash
+./terminal/iterm2/appkit-defaults.sh          # apply
+./terminal/iterm2/appkit-defaults.sh --check  # report only
+```
+
+`AppleAntiAliasingThreshold`, `ApplePressAndHoldEnabled`,
+`AppleScrollAnimationEnabled`, `AppleSmoothFixedFontsSizeThreshold` and
+`AppleWindowTabbingMode` are **AppKit** keys. They sit in iTerm2's preference
+domain, but they are not iTerm2's settings, and in managed mode iTerm2 writes
+back only the keys it owns — so every time it saves, it deletes all five from
+`com.googlecode.iterm2.plist`.
+
+That makes the plist the wrong home for them. Tracked there they provision a new
+machine exactly once, then disappear on the first save, leaving a phantom
+deletion in the diff that `sync.sh` will eventually commit away for good. This
+script applies them with `defaults write` instead, where iTerm2 leaves them
+alone — demonstrably, since the tracked plist no longer contains them while
+`defaults read` still returns every one.
+
+The one worth caring about is **`ApplePressAndHoldEnabled = false`**: without it,
+holding a key opens the accent picker instead of repeating the character, which
+is immediately obvious in vim.
+
+`bootstrap.sh` verifies all five. A running iTerm2 gets a cached copy of its
+domain from `cfprefsd`, so changes land on disk immediately but only take effect
+after you quit and reopen it.
+
 ## ObinsKit (Anne Pro keyboard)
 
 `obinskit/` is the one directory here that `bootstrap.sh` does **not** touch,
