@@ -26,8 +26,8 @@
 ## Dev Environment
 - Galaxy dev server: `PID=VUNI NODE_OPTIONS=--max_old_space_size=12000 npm run start business-center-client` (run from galaxy worktree)
 - Auth tokens: `mscli auth session --env {demo|prod} --skip-version-check`
-- **Two Homebrews on this M1 Pro** — Intel at `/usr/local` (~162 formulae, the main one) and native arm64 at `/opt/homebrew` (colima, lima, docker, docker-buildx only).
-  - Claude Code's bash runs under Rosetta, so a bare `brew install X` silently installs the **x86_64** build. To target the arm64 brew: `arch -arm64 /bin/bash -c '/opt/homebrew/bin/brew install <formula>'`
-  - Verify with `brew config` — the arm64 one reports `macOS: <ver>-arm64` and `Rosetta 2: false`.
-  - `/etc/paths` puts `/usr/local/bin` first, so Intel wins ties. Don't add `brew shellenv` to `~/.bash_profile` — it symlinks into `~/dotfiles` and PATH is already handled by `/etc/paths.d/homebrew`.
-- Container runtime is **colima**, not Docker Desktop. Start with `colima start --vm-type vz --vz-rosetta --cpu 4 --memory 8`. Health-check the full Docker surface mscli needs with `bash ~/Projects/colima-doctor.sh`.
+- **This machine is an Apple M5 Pro (arm64) and Claude Code's bash runs natively arm64** — `uname -m`, `arch`, and `sysctl sysctl.proc_translated` (=0) all confirm no Rosetta. Earlier notes describing an Intel-cloned M1 Pro under Rosetta were stale; do not add `arch -arm64` wrappers.
+- **One Homebrew: native arm64 at `/opt/homebrew`** (~34 formulae, incl. bash, go, git, gh, neovim, tmux, python@3.12, nvm, fzf). The old Intel Homebrew at `/usr/local` is **fully gone** — no `/usr/local/Homebrew`, no `/usr/local/Cellar`. A bare `brew install X` is correct and installs an arm64 build.
+  - `/etc/paths` still lists `/usr/local/bin` first, but nothing Homebrew-related lives there anymore, so it no longer shadows brew. `/opt/homebrew/bin` comes from `/etc/paths.d/homebrew`. Don't add `brew shellenv` to `~/.bash_profile` — it symlinks into `~/dotfiles` and PATH is already handled.
+- **No container runtime is installed.** colima, lima, docker, and docker-buildx are all absent (not in Cellar, not on PATH), there is no Docker Desktop/OrbStack/Rancher app, and no `~/.colima`/`~/.lima`/`~/.docker`. The old `~/Projects/colima-doctor.sh` no longer exists. If a task genuinely needs Docker, install a runtime first and tell Benj — don't assume one is running.
+- **gcloud is installed outside Homebrew**: Google Cloud SDK 581.0.0 at `~/google-cloud-sdk`, put on PATH by `~/.bash_profile:76`. `mscli` is a Go binary at `~/go/bin/mscli` (via `GOBIN`).
