@@ -6,5 +6,5 @@
 # resumed sessions instead of frozen at session start.
 set +e
 cat >/dev/null 2>&1   # drain hook JSON on stdin; we don't need any of it
-date '+⏱ %A %d %B %Y · %H:%M:%S %Z'
+date '+⏱ %d %b %Y · %-I:%M %p %Z'
 exit 0
