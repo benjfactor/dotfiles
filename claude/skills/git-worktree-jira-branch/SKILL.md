@@ -12,9 +12,10 @@ Use this skill when starting new work that should live in its own worktree and b
 - **Worktree path (all lowercase kebab):** `{repo}-{jira-ticket-lower}-{work-description}` — the entire path must be **lowercase** (ticket id lower too).
   - ✅ Correct: `email-kat-1376-use-immutable-ids`, `email-kat-1384-outlook-reply-is-contact`
   - ❌ Wrong: `email-KAT-1376-use-immutable-ids`, `email-KAT-1384-outlook-reply-is-contact` (uppercase ticket in path)
-- **Branch (slash, not hyphen):** `{JIRA-TICKET}/{work-description}` — use a **slash** between ticket and description. Required for the git commit prehook (XXX-0000/description shape).
+- **Branch (uppercase ticket, slash before the description):** `{JIRA-TICKET}/{work-description}` — the **uppercase ticket is the part the hook needs**: `prepare-commit-msg` greps `[A-Z]+-[0-9]+` off the branch name to append the Jira ID, so a lowercase ticket matches nothing and every commit silently gets no ID. The slash is house style, not a hook requirement.
   - ✅ Correct: `KAT-1376/use-immutable-ids`, `KAT-1384/outlook-reply-is-contact`
-  - ❌ Wrong: `KAT-1376-use-immutable-ids`, `KAT-1384-outlook-reply-is-contact` (hyphens instead of slash)
+  - ❌ Wrong: `kat-1376/use-immutable-ids`, `kat-1384/outlook-reply-is-contact` (lowercase ticket — hook appends no Jira ID)
+  - ⚠️ Works, but off-style: `KAT-1376-use-immutable-ids` (the hook accepts it; prefer the slash)
 - **Base:** Create the branch from `origin/master`. The branch must **not** track `origin/master`; it should track `origin/{TICKET}/{description}` so pushes go to the feature branch (see Remote tracking below).
 
 ## When to use
@@ -31,7 +32,7 @@ Use this skill when starting new work that should live in its own worktree and b
    - Example: repo at `/Users/you/Projects/email` → worktree at `/Users/you/Projects/email-kat-1376-use-immutable-ids`
    - ❌ Wrong: `../email-KAT-1376-use-immutable-ids` (uppercase in path)
 
-3. **Branch name:** Always `{TICKET}/{description}` with a **slash** (never hyphen). Matches prehook expectation XXX-0000/description.
+3. **Branch name:** Always `{TICKET}/{description}` — ticket **uppercase**, because the hook greps `[A-Z]+-[0-9]+` and a lowercase ticket silently yields no Jira ID. Slash before the description is house style, not a hook requirement.
    - Example: `KAT-1376/use-immutable-ids`, `KAT-1318/create-trkd-msg-evnt`
 
 4. **Create worktree and branch:** Use the slash-form branch name and a **lowercase** worktree path. Do **not** create the branch with a hyphenated name and rename later. Do **not** use uppercase in the worktree path (e.g. use `email-kat-1384-outlook-reply-is-contact`, not `email-KAT-1384-outlook-reply-is-contact`).
@@ -41,9 +42,9 @@ Use this skill when starting new work that should live in its own worktree and b
    # worktree-name must be all lowercase, e.g. email-kat-1384-outlook-reply-is-contact
    git worktree add ../{worktree-name} -b {TICKET}/{description} origin/master
    ```
-   The new branch has no upstream yet. That is correct: the remote branch will be created on first push.
+   This **sets the new branch's upstream to `origin/master`** — `branch.autoSetupMerge` defaults to tracking when you branch from a remote-tracking ref. Unset it before doing any work: `git -C ../{worktree-name} branch --unset-upstream`. With `push.default = simple` a bare `git push` refuses rather than pushing to master, but it suggests `git push origin HEAD:master` — do not paste that. The remote branch is created on first push (step 5).
 
-5. **Remote tracking (first push):** The worktree branch should track `origin/{TICKET}/{description}`, not `origin/master`. Do **not** set upstream in the create step (the remote branch does not exist yet). Tell the user: on first push from the worktree, run:
+5. **Remote tracking (first push):** The worktree branch should track `origin/{TICKET}/{description}`, not `origin/master`. Do **not** try to set it in the create step (the remote branch does not exist yet) — just unset the `origin/master` upstream git added, per step 4. Tell the user: on first push from the worktree, run:
    ```bash
    git push -u origin '{TICKET}/{description}'
    ```
