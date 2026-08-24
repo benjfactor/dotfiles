@@ -23,6 +23,8 @@ DRY_RUN=0
 FORCE=0
 DEEP=0
 WITH_JOBS=1
+ENCRYPT=0
+MERGE_SESSIONS=0
 
 say()  { printf '%s\n' "$*"; }
 warn() { printf 'warn  %s\n' "$*" >&2; }
@@ -62,25 +64,77 @@ CARRY_JOBS=(jobs)
 usage() {
   cat <<'USAGE'
 usage:
-  migrate-sessions.sh export [--out FILE] [--no-jobs] [--dry-run]
-  migrate-sessions.sh import ARCHIVE [--force] [--deep] [--dry-run]
+  migrate-sessions.sh export [--out FILE] [--encrypt] [--no-jobs] [--dry-run]
+  migrate-sessions.sh import ARCHIVE [--merge-sessions] [--deep] [--force] [--dry-run]
   migrate-sessions.sh inspect ARCHIVE
 
-export   Package this machine's Claude session state into a .tgz + .sha256.
+export   Package this machine's Claude session state into an archive.
+         --encrypt    passphrase-encrypt it, so it can travel by any route --
+                      AirDrop, USB, a shared drive -- without being readable
+                      in transit. Uses gpg if present, else openssl.
          --out FILE   archive path (default ~/claude-sessions-<host>-<date>.tgz)
          --no-jobs    skip jobs/ (background job transcripts, usually the bulk)
 
-import   Merge an archive into this machine's ~/.claude.
-         --force      overwrite files that already exist (default: skip them)
-         --deep       also rewrite home paths inside message bodies, not just
-                      the structural cwd fields. Changes the historical record;
-                      only useful if you want old transcripts to read as if
-                      they had always run on this machine.
+import   Merge an archive into this machine's ~/.claude. Encrypted archives
+         are detected by extension and decrypted on the way in.
+
+         Sessions are unioned. Sessions only the archive has are added, ones
+         only this machine has are kept, and ones both have are left exactly as
+         they are here -- {a,b,c,d} merged into {b,d,e} gives {a,b,c,d,e}.
+         Nothing is ever clobbered.
+
+         --merge-sessions  additionally union the LINES of sessions both
+                      machines have, recovering turns added on the other
+                      machine after an earlier import. Off by default: it
+                      rewrites transcripts you already have, which is only
+                      worth doing if you actually work on both machines.
+         --deep       rewrite home paths inside message bodies too, not just
+                      the structural cwd fields. Only matters when the two
+                      machines have different home paths.
+         --force      overwrite non-session files that already exist. Never
+                      applies to transcripts.
 
 inspect  Print an archive's manifest and contents without extracting it.
 
 Both commands accept --dry-run, which prints the plan and touches nothing.
 USAGE
+}
+
+# ---------------------------------------------------------------------------
+# Encryption. Optional, and the point of it is transport freedom: an encrypted
+# archive can travel by any route you like -- USB stick, AirDrop, a shared
+# drive -- without the contents being readable if it goes astray or lingers.
+# Symmetric (passphrase) rather than key-based, because the sender and the
+# receiver are the same person and key material is one more thing to migrate.
+
+encrypt_file() {
+  local src="$1"
+  if command -v gpg >/dev/null 2>&1; then
+    gpg --symmetric --cipher-algo AES256 --output "$src.gpg" "$src" >&2 || return 1
+    printf '%s' "$src.gpg"
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+            -in "$src" -out "$src.enc" >&2 || return 1
+    printf '%s' "$src.enc"
+  else
+    return 1
+  fi
+}
+
+# Import calls this when the archive looks encrypted. The extension records
+# which tool wrote it, since the receiving machine has to have the same one.
+decrypt_file() {
+  local src="$1" out="$2"
+  case "$src" in
+    *.gpg)
+      command -v gpg >/dev/null 2>&1 || die "this archive needs gpg to open, and gpg is not installed"
+      gpg --output "$out" --decrypt "$src" >&2 || return 1 ;;
+    *.enc)
+      command -v openssl >/dev/null 2>&1 || die "this archive needs openssl to open"
+      openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
+              -in "$src" -out "$out" >&2 || return 1 ;;
+    *) return 1 ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -92,6 +146,7 @@ cmd_export() {
     case "$1" in
       --out)      out="${2:?--out needs a path}"; shift 2 ;;
       --no-jobs)  WITH_JOBS=0; shift ;;
+      --encrypt)  ENCRYPT=1; shift ;;
       --dry-run)  DRY_RUN=1; shift ;;
       -h|--help)  usage; exit 0 ;;
       *)          die "unknown flag for export: $1" ;;
@@ -183,19 +238,45 @@ PY
     -C "$staging" manifest.json \
     -C "$CLAUDE_DIR" "${present[@]}"
 
-  shasum -a 256 "$out" > "$out.sha256"
+  local artifact="$out"
+  if [ "$ENCRYPT" = 1 ]; then
+    say ""
+    say "== encrypting =="
+    artifact="$(encrypt_file "$out")" \
+      || die "encryption failed -- the plaintext archive is still at $out"
+    rm -f "$out"
+  fi
+
+  # Checksum the artifact that actually travels, so the check on the far side
+  # catches a truncated copy before anything is unpacked.
+  shasum -a 256 "$artifact" > "$artifact.sha256"
 
   say ""
-  say "wrote  $out  ($(du -h "$out" | cut -f1))"
-  say "       $out.sha256"
+  say "wrote  $artifact  ($(du -h "$artifact" | cut -f1))"
+  say "       $artifact.sha256"
   say ""
-  say "These transcripts contain whatever you pasted into Claude -- tokens,"
-  say "internal code, customer data. Move the file directly; do not put it in"
-  say "cloud storage or a bucket."
+  if [ "$ENCRYPT" = 1 ]; then
+    say "Encrypted, so move it however is convenient -- AirDrop, a USB stick, a"
+    say "shared drive. Keep the passphrase somewhere other than the archive."
+  else
+    say "NOT encrypted, and transcripts hold whatever you ever pasted into Claude"
+    say "-- tokens, internal code, customer data. Keep it to a direct transfer, or"
+    say "re-run with --encrypt if it has to sit anywhere in between."
+  fi
   say ""
-  say "  scp '$out'{,.sha256} NEWMACHINE:~/"
-  say "  # then, on the new machine, from its dotfiles clone:"
-  say "  ./claude/migrate-sessions.sh import ~/$(basename "$out")"
+  say "Move both files across, whichever way suits:"
+  say ""
+  say "  AirDrop      Finder -> select both -> Share -> AirDrop   (Mac to Mac, no setup)"
+  say "  USB          cp '$artifact'{,.sha256} /Volumes/YOURSTICK/"
+  say "  Local net    rsync -P '$artifact'{,.sha256} NEWMACHINE:~/"
+  if [ "$ENCRYPT" = 1 ]; then
+    say "  Cloud        fine for this one -- it is encrypted"
+  else
+    say "  Cloud        not with this archive; re-run with --encrypt first"
+  fi
+  say ""
+  say "Then, on the new machine, from its dotfiles clone:"
+  say "  ./claude/migrate-sessions.sh import ~/$(basename "$artifact")"
 }
 
 # ---------------------------------------------------------------------------
@@ -228,6 +309,7 @@ cmd_import() {
     case "$1" in
       --force)   FORCE=1; shift ;;
       --deep)    DEEP=1; shift ;;
+      --merge-sessions) MERGE_SESSIONS=1; shift ;;
       --dry-run) DRY_RUN=1; shift ;;
       -h|--help) usage; exit 0 ;;
       *)         die "unknown flag for import: $1" ;;
@@ -247,7 +329,19 @@ cmd_import() {
   staging="$(mktemp -d "${TMPDIR:-/tmp}/claude-import.XXXXXX")"
   # shellcheck disable=SC2064
   trap "rm -rf '$staging'" EXIT
-  tar -xzf "$archive" -C "$staging"
+  # An encrypted archive is decrypted into the staging directory, which is a
+  # mktemp dir removed on exit -- the plaintext never lands anywhere permanent.
+  local payload="$archive"
+  case "$archive" in
+    *.gpg|*.enc)
+      say "== decrypting =="
+      payload="$staging/archive.tgz"
+      decrypt_file "$archive" "$payload" || die "decryption failed -- wrong passphrase?"
+      ;;
+  esac
+
+  tar -xzf "$payload" -C "$staging"
+  [ "$payload" = "$archive" ] || rm -f "$payload"
   [ -f "$staging/manifest.json" ] || die "no manifest.json -- not an archive from this script"
 
   local src_home src_host
@@ -278,11 +372,13 @@ cmd_import() {
   local backup="$CLAUDE_DIR/migrate-backups/$(date +%Y%m%d-%H%M%S)"
 
   python3 - "$staging" "$CLAUDE_DIR" "$src_home" "$HOME" "$backup" \
-           "$DRY_RUN" "$FORCE" "$DEEP" <<'PY'
+           "$DRY_RUN" "$FORCE" "$DEEP" "$MERGE_SESSIONS" <<'PY'
 import json, os, shutil, sys
+from collections import Counter
 
-staging, dest, src_home, dst_home, backup, dry, force, deep = sys.argv[1:]
+staging, dest, src_home, dst_home, backup, dry, force, deep, merge_sessions = sys.argv[1:]
 dry, force, deep = dry == "1", force == "1", deep == "1"
+merge_sessions = merge_sessions == "1"
 rewrite = src_home != dst_home
 
 def encoded(p):
@@ -291,7 +387,9 @@ def encoded(p):
 
 src_tag, dst_tag = encoded(src_home), encoded(dst_home)
 
-stats = {"copied": 0, "skipped": 0, "overwritten": 0, "rewritten": 0, "renamed": 0}
+stats = {"copied": 0, "skipped": 0, "overwritten": 0, "rewritten": 0,
+         "renamed": 0, "merged": 0, "unchanged": 0, "lines": 0,
+         "copied_jsonl": 0}
 
 def backup_of(path):
     rel = os.path.relpath(path, dest)
@@ -299,24 +397,28 @@ def backup_of(path):
     os.makedirs(os.path.dirname(target), exist_ok=True)
     shutil.copy2(path, target)
 
-def rewrite_jsonl(path):
-    """Retarget a transcript at this machine.
+def transform(path):
+    """Read a transcript and return its lines as they should look on THIS machine.
 
-    Only `cwd` is structural -- it is what Claude Code reads back. Paths inside
-    message bodies are a record of what actually happened on the old machine
-    and are left alone unless --deep is given.
+    Pure -- it writes nothing. Merging needs the retargeted text in hand before
+    it can compare against what is already here, so the rewrite has to be
+    separable from the copy.
+
+    Only `cwd` is structural; paths inside message bodies are the record of what
+    actually ran where and are left alone unless --deep is given. A line that
+    needs no change is passed through byte-for-byte, which matters for dedup:
+    reserialising an untouched line would make it compare unequal to the copy
+    already on disk.
     """
-    out, changed = [], False
+    out = []
     with open(path, "r", encoding="utf-8", errors="surrogateescape") as fh:
         for line in fh:
             stripped = line.strip()
-            if not stripped:
+            if not rewrite or not stripped:
                 out.append(line)
                 continue
             if deep and src_home in line:
-                line = line.replace(src_home, dst_home)
-                changed = True
-                out.append(line)
+                out.append(line.replace(src_home, dst_home))
                 continue
             try:
                 obj = json.loads(stripped)
@@ -327,14 +429,76 @@ def rewrite_jsonl(path):
                and obj["cwd"].startswith(src_home):
                 obj["cwd"] = dst_home + obj["cwd"][len(src_home):]
                 out.append(json.dumps(obj, ensure_ascii=False) + "\n")
-                changed = True
             else:
                 out.append(line)
-    if changed and not dry:
-        with open(path, "w", encoding="utf-8", errors="surrogateescape") as fh:
-            fh.writelines(out)
-    if changed:
-        stats["rewritten"] += 1
+    return out
+
+def line_id(line):
+    """Identity of one transcript line, for deduping a merge.
+
+    Returns a (kind, value) pair because the two kinds dedup differently. Most
+    lines carry a uuid, which survives reformatting and is a true identity.
+    The rest -- mode markers, agent settings -- carry nothing unique and repeat
+    verbatim by design, so they are identified by their text and counted rather
+    than collapsed. Treating those as a set silently drops the repeats.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return None
+    try:
+        obj = json.loads(stripped)
+    except (ValueError, TypeError):
+        return ("text", stripped)
+    if isinstance(obj, dict) and isinstance(obj.get("uuid"), str):
+        return ("uuid", obj["uuid"])
+    return ("text", stripped)
+
+def merge_jsonl(src, target):
+    """Union an incoming transcript into the one already here.
+
+    A transcript is an append-only log, so the union of both copies is the
+    correct merge and neither machine loses anything: keep working on the old
+    laptop after a migration, re-export, and the new turns land in the session
+    they belong to instead of being skipped as "already there".
+
+    New lines are appended rather than interleaved by timestamp. Claude Code
+    reconstructs the conversation from the parentUuid chain, not from file
+    order, and reordering an existing log is a far bigger risk than a tail that
+    is out of chronological sequence.
+    """
+    incoming = transform(src)
+    with open(target, "r", encoding="utf-8", errors="surrogateescape") as fh:
+        existing = fh.readlines()
+    ids = [line_id(l) for l in existing]
+    seen_uuid = {v for k, v in (i for i in ids if i) if k == "uuid"}
+    # Multiset, not a set: keep whichever copy has MORE of an identical
+    # repeated line, so nothing is lost in either direction.
+    have_text = Counter(v for k, v in (i for i in ids if i) if k == "text")
+
+    added = []
+    for line in incoming:
+        ident = line_id(line)
+        if ident is None:
+            continue
+        kind, value = ident
+        if kind == "uuid":
+            if value in seen_uuid:
+                continue
+            seen_uuid.add(value)
+        else:
+            if have_text[value] > 0:
+                have_text[value] -= 1   # this occurrence is already here
+                continue
+        added.append(line)
+    if not added:
+        stats["unchanged"] += 1
+        return
+    if not dry:
+        backup_of(target)
+        with open(target, "a", encoding="utf-8", errors="surrogateescape") as fh:
+            fh.writelines(added)
+    stats["merged"] += 1
+    stats["lines"] += len(added)
 
 def rewrite_text(path):
     """--deep only: swap the old home out of a non-transcript sidecar file.
@@ -357,25 +521,44 @@ def rewrite_text(path):
     stats["rewritten"] += 1
 
 def place(src, rel):
-    """Copy one file into ~/.claude at `rel`, honouring the no-clobber rule."""
+    """Land one file in ~/.claude, without ever destroying what is already there."""
     target = os.path.join(dest, rel)
-    if os.path.exists(target):
+    exists = os.path.exists(target)
+
+    # A session already on this machine is left untouched. Import is a union
+    # over sessions: the ones only the source has are added, the ones only this
+    # machine has are kept, and the ones both have are not rewritten. --force
+    # deliberately does not reach transcripts.
+    if exists and target.endswith(".jsonl"):
+        if merge_sessions:
+            merge_jsonl(src, target)    # opt-in: union the LINES too
+        else:
+            stats["unchanged"] += 1
+        return
+
+    if exists:
         if not force:
             stats["skipped"] += 1
             return
         if not dry:
             backup_of(target)
         stats["overwritten"] += 1
+    elif target.endswith(".jsonl"):
+        stats["copied_jsonl"] += 1
     else:
         stats["copied"] += 1
     if dry:
         return
+
     os.makedirs(os.path.dirname(target), exist_ok=True)
-    shutil.copy2(src, target)
-    if rewrite:
-        if target.endswith(".jsonl"):
-            rewrite_jsonl(target)
-        elif deep:
+    if rewrite and target.endswith(".jsonl"):
+        with open(target, "w", encoding="utf-8", errors="surrogateescape") as fh:
+            fh.writelines(transform(src))
+        shutil.copystat(src, target)
+        stats["rewritten"] += 1
+    else:
+        shutil.copy2(src, target)
+        if rewrite and deep:
             rewrite_text(target)
 
 # -- projects/: the transcripts. Directory names encode the old home. ---------
@@ -432,7 +615,13 @@ for item in sorted(os.listdir(staging)):
     else:
         place(path, item)
 
-print(f"  files          {stats['copied']} new, {stats['skipped']} already there, "
+if merge_sessions:
+    print(f"  sessions       {stats['copied_jsonl']} added, {stats['merged']} line-merged "
+          f"(+{stats['lines']} lines), {stats['unchanged']} unchanged")
+else:
+    print(f"  sessions       {stats['copied_jsonl']} added, "
+          f"{stats['unchanged']} already here (left as they are)")
+print(f"  other files    {stats['copied']} new, {stats['skipped']} left alone, "
       f"{stats['overwritten']} overwritten")
 if rewrite:
     print(f"  retargeted     {stats['renamed']} project dirs, "

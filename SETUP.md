@@ -117,10 +117,21 @@ skills but no memory of any work you have ever done — no transcripts, no
 `claude/migrate-sessions.sh` moves that across:
 
 ```bash
-./claude/migrate-sessions.sh export            # on the old machine
-scp ~/claude-sessions-*.tgz{,.sha256} NEWMACHINE:~/
-./claude/migrate-sessions.sh import ~/claude-sessions-<...>.tgz   # on the new one
+./claude/migrate-sessions.sh export --encrypt   # on the old machine
+#   ...move the two files across, any way you like...
+./claude/migrate-sessions.sh import ~/claude-sessions-<...>.tgz.enc
 ```
+
+It writes a file and reads a file; **how the file travels is up to you.** For
+two Macs, AirDrop is the least-friction option and needs no setup at all —
+select the archive and its `.sha256` in Finder, Share, AirDrop. A USB stick or
+`rsync` over the local network work equally well, and `--encrypt` makes even a
+shared drive fine, since the contents are unreadable without the passphrase.
+`export` prints these options with the paths filled in when it finishes.
+
+Encryption is passphrase-based (`gpg` if installed, otherwise `openssl`, which
+every Mac has). Import spots an encrypted archive by its extension and asks for
+the passphrase on the way in.
 
 Run `import` *after* `bootstrap.sh`, and with Claude Code closed — it is
 writing to the same files while it runs.
@@ -158,20 +169,37 @@ message bodies as the historical record of what actually ran where. Pass
 homes differ, since Claude reads memory files back as current fact and stale
 paths in them are actively misleading.
 
-#### Safety
+#### Sessions are unioned, never clobbered
 
-Import is a merge that **never overwrites**: a file already on the destination
-is skipped, so re-running is a no-op and interrupting it costs nothing.
-`--force` overwrites, and snapshots whatever it replaces into
-`~/.claude/migrate-backups/<timestamp>/` first. `history.jsonl` is appended and
-deduped rather than replaced. Both commands take `--dry-run`; `inspect ARCHIVE`
-prints the manifest without extracting.
+The destination is not assumed to be empty, because after the first migration
+it usually is not. Import takes the **union of the two machines' sessions**:
+
+> machine 1 has `a b c d`, machine 2 has `b d e` → after importing 1 into 2,
+> machine 2 has `a b c d e`
+
+Sessions only the archive has are added. Sessions only this machine has are
+left completely alone. Sessions both have are kept **as they are here** — the
+incoming copy does not overwrite yours. Re-running is a no-op, and interrupting
+it costs nothing.
+
+`--force` exists for the non-session files (memory notes, tool results) and
+snapshots anything it replaces into `~/.claude/migrate-backups/<timestamp>/`
+first. It deliberately has no effect on transcripts at all.
+
+If you genuinely work on *both* machines, the same session can gain new turns
+in two places. `--merge-sessions` handles that: it unions the transcripts
+line-by-line, deduping on each line's uuid, so neither machine's turns are
+lost. It is off by default because it rewrites transcripts you already have,
+which is not worth doing unless that situation is real for you.
+
+`history.jsonl` is appended and deduped rather than replaced. Both commands
+take `--dry-run`; `inspect ARCHIVE` prints the manifest without extracting.
 
 #### The archive never goes through git
 
 Worth being explicit, because this repo is public: **nothing about this syncs
 through the repo.** The archive is written to `$HOME` by default, travels
-machine-to-machine over `scp`, and is deleted afterwards. Git is not involved at
+by whatever means you choose, and is deleted afterwards. Git is not involved at
 any point, and the runtime directory it reads from is gitignored even on the
 layout where it physically sits inside the clone.
 
@@ -182,10 +210,11 @@ that refusal also covers `~/.claude/...`, since it resolves inside the clone;
 write to `$HOME` or anywhere outside a checkout instead.
 
 Transcripts contain everything you ever pasted into Claude — tokens, internal
-source, customer data. The archive is unencrypted, so move it directly between
-machines and delete it afterwards. Do not stage it in cloud storage, and do not
-be tempted to "just commit it somewhere private" — a private repo is still a
-copy you have to remember to delete.
+source, customer data. Without `--encrypt` the archive is plaintext, so keep it
+to a direct transfer and delete it afterwards; with `--encrypt` it is safe to
+let it sit somewhere in between. Either way, do not be tempted to "just commit
+it somewhere private" — a private repo is still a copy you have to remember to
+delete.
 
 ## Plugins
 
