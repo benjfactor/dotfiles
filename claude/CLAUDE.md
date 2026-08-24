@@ -8,6 +8,7 @@
 - Always use git worktrees for feature branches. Never work directly on master/main.
 - Worktree dir naming — **all lowercase**, hyphens: `{repo}-{ticket-lower}-{description}` (e.g. `atlas-kat-1309-simple-templates-nav`)
 - Branch naming — **uppercase ticket, slash** before the description: `{TICKET}/{description}` (e.g. `KAT-1309/simple-templates-nav`). Not hyphenated: the global `prepare-commit-msg` hook greps `[A-Z]+-[0-9]+` off the branch name to append the Jira ID, so a lowercase branch silently gets no ID. See the `git-worktree-jira-branch` skill.
+- A new worktree's branch must **not** track `origin/master` (`git worktree add -b` sets that by default — unset it), or a bare `git push` targets master. Create the remote on first push: `git push -u origin '{TICKET}/{description}'`
 - Start with a draft PR, mark ready only when explicitly asked.
 - Small, focused commits. Use conventional commits (`feat`, `fix`, `docs`, `chore`).
 - Commit messages focus on WHY, not what changed.
