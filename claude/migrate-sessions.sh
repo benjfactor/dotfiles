@@ -46,6 +46,18 @@ CARRY=(
 # Carried only with --jobs (default on): background job transcripts + state.
 CARRY_JOBS=(jobs)
 
+# Two things Claude Code needs that are NOT plain files under ~/.claude, and
+# that a sessions-only migration silently leaves behind:
+#
+#   ~/.claude.json      lives beside the directory, not in it. Holds the
+#                       per-project state that makes Claude feel already set
+#                       up: trust decisions, tool allowlists, MCP enablement,
+#                       editor and theme prefs. Without it every project
+#                       re-prompts for trust and forgets its permissions.
+#   plugins/*.json      which plugins and marketplaces are installed. The
+#                       700MB of plugin code is re-downloadable; the list of
+#                       what to download is not.
+
 # Left behind, and why -- each of these is either machine-bound or regenerated:
 #
 #   plugins/          700MB+, re-downloaded on first launch
@@ -74,6 +86,12 @@ export   Package this machine's Claude session state into an archive.
                       in transit. Uses gpg if present, else openssl.
          --out FILE   archive path (default ~/claude-sessions-<host>-<date>.tgz)
          --no-jobs    skip jobs/ (background job transcripts, usually the bulk)
+         Carried by default: every transcript and its memory/ dir, prompt
+         history, WSU notes, file history, background jobs, the per-project
+         settings from ~/.claude.json (trust, tool allowlists), and the list of
+         installed plugins. NOT carried: plugin code (re-downloadable, and
+         import prints the commands), and your login, which lives in the
+         Keychain -- sign in once on the new machine.
 
 import   Merge an archive into this machine's ~/.claude. Encrypted archives
          are detected by extension and decrypted on the way in.
@@ -222,6 +240,53 @@ json.dump({
 }, open(path, "w"), indent=2)
 PY
 
+  # ~/.claude.json is mostly caches and telemetry. Carry the durable parts:
+  # per-project settings and a couple of prefs, with the noise left behind.
+  local staged=(manifest.json)
+  if [ -f "$HOME/.claude.json" ]; then
+    if python3 - "$HOME/.claude.json" "$staging/claude.json" <<'PY'
+import json, sys
+
+KEEP_TOP = {"theme", "editorMode", "githubRepoPaths"}
+# Per project: settings you chose, not metrics Claude recorded. Everything
+# named last* is telemetry from the previous run and is deliberately dropped.
+KEEP_PROJECT = {
+    "allowedTools", "hasTrustDialogAccepted", "hasCompletedProjectOnboarding",
+    "enabledMcpjsonServers", "disabledMcpjsonServers", "mcpServers",
+    "mcpContextUris", "hasClaudeMdExternalIncludesApproved",
+}
+
+src, dst = sys.argv[1], sys.argv[2]
+try:
+    data = json.load(open(src))
+except (OSError, ValueError):
+    sys.exit(1)
+
+out = {k: v for k, v in data.items() if k in KEEP_TOP}
+projects = {}
+for path, cfg in (data.get("projects") or {}).items():
+    if not isinstance(cfg, dict):
+        continue
+    kept = {k: v for k, v in cfg.items() if k in KEEP_PROJECT and v not in (None, [], {})}
+    if kept:
+        projects[path] = kept
+if projects:
+    out["projects"] = projects
+json.dump(out, open(dst, "w"), indent=2)
+print(f"  claude.json    {len(projects)} projects (trust, tool allowlists, prefs)")
+PY
+    then staged+=(claude.json); fi
+  fi
+
+  # The manifests, not the plugin code -- see the note by CARRY above.
+  if [ -f "$CLAUDE_DIR/plugins/installed_plugins.json" ]; then
+    mkdir -p "$staging/plugins"
+    cp "$CLAUDE_DIR/plugins/installed_plugins.json" "$staging/plugins/" 2>/dev/null || true
+    cp "$CLAUDE_DIR/plugins/known_marketplaces.json" "$staging/plugins/" 2>/dev/null || true
+    staged+=(plugins)
+    say "  plugins        $(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['plugins']))" "$CLAUDE_DIR/plugins/installed_plugins.json" 2>/dev/null || echo '?') installed (manifest only, code re-downloads)"
+  fi
+
   if [ "$DRY_RUN" = 1 ]; then
     say ""
     say "would  write $out"
@@ -235,7 +300,7 @@ PY
     --exclude='jobs/*/tmp' \
     --exclude='*.sock' \
     --exclude='.DS_Store' \
-    -C "$staging" manifest.json \
+    -C "$staging" "${staged[@]}" \
     -C "$CLAUDE_DIR" "${present[@]}"
 
   local artifact="$out"
@@ -600,9 +665,69 @@ if os.path.isfile(hist_src):
     print(f"  history.jsonl  +{len(added)} entries "
           f"({len(incoming) - len(added)} already present)")
 
+# -- ~/.claude.json: the settings that live BESIDE the directory -------------
+# Same rule as everywhere else here: fill gaps, never overrule what this
+# machine already decided.
+cj_src = os.path.join(staging, "claude.json")
+cj_dst = os.path.join(os.path.dirname(os.path.abspath(dest)), ".claude.json")
+
+def retarget(path):
+    if rewrite and isinstance(path, str) and path.startswith(src_home):
+        return dst_home + path[len(src_home):]
+    return path
+
+if os.path.isfile(cj_src):
+    incoming_cfg = json.load(open(cj_src))
+    try:
+        current = json.load(open(cj_dst))
+    except (OSError, ValueError):
+        current = {}
+
+    # Prefs are filled in only if unset -- a machine you have already themed
+    # should not be restyled by an import.
+    for key in ("theme", "editorMode"):
+        if key in incoming_cfg and key not in current:
+            current[key] = incoming_cfg[key]
+
+    if incoming_cfg.get("githubRepoPaths"):
+        repos = current.setdefault("githubRepoPaths", {})
+        for k, v in incoming_cfg["githubRepoPaths"].items():
+            repos.setdefault(retarget(k), v)
+
+    projects = current.setdefault("projects", {})
+    added = extended = 0
+    for path, cfg in (incoming_cfg.get("projects") or {}).items():
+        path = retarget(path)
+        if path not in projects:
+            projects[path] = cfg
+            added += 1
+            continue
+        # Known to both: keep this machine's settings, but union the
+        # allowlists, since a permission granted anywhere was still granted.
+        here = projects[path]
+        for field in ("allowedTools", "enabledMcpjsonServers",
+                      "disabledMcpjsonServers"):
+            incoming_list = cfg.get(field) or []
+            if not incoming_list:
+                continue
+            have = here.get(field) or []
+            fresh = [x for x in incoming_list if x not in have]
+            if fresh:
+                here[field] = have + fresh
+                extended += 1
+
+    if not dry:
+        if os.path.isfile(cj_dst):
+            shutil.copy2(cj_dst, cj_dst + ".migrate-backup")
+        with open(cj_dst, "w") as fh:
+            json.dump(current, fh, indent=2)
+    print(f"  settings       {added} projects added, {extended} allowlists extended "
+          f"(trust + permissions)")
+
 # -- everything else: straight merge ------------------------------------------
 for item in sorted(os.listdir(staging)):
-    if item in ("manifest.json", "projects", "history.jsonl"):
+    if item in ("manifest.json", "projects", "history.jsonl",
+                "claude.json", "plugins"):
         continue
     path = os.path.join(staging, item)
     if os.path.isdir(path):
@@ -637,12 +762,56 @@ PY
     say "  settings       source copy left at settings.local.json.imported (not applied)"
   fi
 
+  # Plugin code is not carried -- only the list of what to reinstall. Print it
+  # as commands rather than writing the manifest, because a manifest pointing
+  # at plugin directories that do not exist yet is worse than no manifest.
+  if [ -f "$staging/plugins/installed_plugins.json" ]; then
+    python3 - "$staging/plugins" "$CLAUDE_DIR/plugins" <<'PY'
+import json, os, sys
+
+src, dst = sys.argv[1], sys.argv[2]
+
+def load(base, name):
+    try:
+        return json.load(open(os.path.join(base, name)))
+    except (OSError, ValueError):
+        return {}
+
+want_m = load(src, "known_marketplaces.json")
+have_m = load(dst, "known_marketplaces.json")
+want_p = (load(src, "installed_plugins.json") or {}).get("plugins", {})
+have_p = (load(dst, "installed_plugins.json") or {}).get("plugins", {})
+
+cmds = []
+for name, cfg in want_m.items():
+    if name in have_m:
+        continue
+    source = cfg.get("source", {})
+    ref = source.get("repo") or source.get("url") or source.get("path")
+    if ref:
+        cmds.append(f"claude plugin marketplace add {ref}")
+for name in want_p:
+    if name not in have_p:
+        cmds.append(f"claude plugin install {name}")
+
+if cmds:
+    print("")
+    print("  Plugins are not carried (700MB of re-downloadable code). To put the")
+    print(f"  same {len(want_p)} back, run:")
+    print("")
+    for c in cmds:
+        print(f"    {c}")
+PY
+  fi
+
   say ""
   if [ "$DRY_RUN" = 1 ]; then
     say "dry run -- nothing was written"
   else
-    say "done. Start Claude Code and check /resume, or:"
-    say "  ls $CLAUDE_DIR/projects"
+    say "One thing no file can carry: your login. Run \`claude\` and sign in --"
+    say "the credentials live in the macOS Keychain, not in ~/.claude."
+    say ""
+    say "Then check /resume, or:  ls $CLAUDE_DIR/projects"
   fi
 }
 

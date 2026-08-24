@@ -136,19 +136,45 @@ the passphrase on the way in.
 Run `import` *after* `bootstrap.sh`, and with Claude Code closed — it is
 writing to the same files while it runs.
 
-**What travels:** `projects/` (every transcript, plus the per-project
-`memory/` directories), `history.jsonl`, `wsu/`, `file-history/`, and `jobs/`.
-Roughly 90MB of state compresses to about 18MB.
+#### What is actually covered
 
-**What does not, and why it should not:** `plugins/` is 700MB that
-re-downloads itself; `worktrees/` holds live git worktrees whose gitdir
-pointers are absolute; `sessions/`, `daemon*`, `session-env/` and
-`shell-snapshots/` are all bound to the machine that made them. The five
-tracked symlinks are excluded too — `bootstrap.sh` recreates them, and copying
-them would just carry over links into the old machine's clone path.
+Not just transcripts — the aim is a machine that behaves like the one you left.
+
+| | Where it lives | Carried |
+|---|---|---|
+| Transcripts, `/resume` | `~/.claude/projects/` | yes |
+| Per-project memory | `projects/*/memory/` | yes |
+| Prompt history | `history.jsonl` | yes, appended + deduped |
+| WSU notes | `~/.claude/wsu/` | yes |
+| File edit history | `file-history/` | yes |
+| Background jobs | `jobs/` | yes (`--no-jobs` to skip) |
+| Trust + tool allowlists | **`~/.claude.json`** | yes, merged |
+| Theme, editor mode | `~/.claude.json` | yes, only if unset here |
+| CLAUDE.md, settings, hooks, skills | this repo | via `bootstrap.sh` |
+| Which plugins you use | `plugins/*.json` | commands printed to reinstall |
+| Plugin code (700MB) | `plugins/cache/` | no — re-downloads |
+| Login | macOS Keychain | **no — sign in once** |
+
+The one that is easy to miss is `~/.claude.json`. It sits *beside* the
+directory rather than in it, so anything that copies `~/.claude` misses it
+entirely — and it holds the per-project trust decisions and tool allowlists.
+Without it every project re-prompts for trust and forgets its permissions,
+which feels like nothing migrated even though every session is there.
+
+Plugin *code* is not carried, because 700MB that re-downloads itself is not
+worth moving. What is carried is the list, and import prints the exact
+`claude plugin marketplace add` / `claude plugin install` commands to restore
+it. Writing the manifest directly would be worse: it would claim plugins are
+installed at paths that do not exist yet.
+
+**Deliberately left behind:** `worktrees/` holds live git worktrees whose
+gitdir pointers are absolute; `sessions/`, `daemon*`, `session-env/` and
+`shell-snapshots/` are bound to the machine that made them. The five tracked
+symlinks are excluded too — `bootstrap.sh` recreates them, and copying them
+would carry over links into the old machine's clone path.
 `settings.local.json` lands as `settings.local.json.imported` for you to diff,
-never applied on its own, because machine-local overrides are the one thing
-that genuinely should not follow you.
+never applied, because machine-local overrides are the one thing that
+genuinely should not follow you.
 
 #### The part that is easy to get wrong
 
