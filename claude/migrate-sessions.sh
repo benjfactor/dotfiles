@@ -106,6 +106,22 @@ cmd_export() {
   date_stamp="$(date +%Y%m%d-%H%M%S)"
   : "${out:=$HOME/claude-sessions-${host}-${date_stamp}.tgz}"
 
+  # The archive is unencrypted transcripts. Writing one inside a work tree puts
+  # every conversation ever had one `git add .` away from being published, and
+  # the repo this script ships in is public. Refuse rather than warn: the whole
+  # cost of being wrong is unrecoverable, and the fix is a different --out.
+  local out_dir repo_root
+  out_dir="$(cd "$(dirname "$out")" 2>/dev/null && pwd)" \
+    || die "cannot resolve the directory for --out $out"
+  if repo_root="$(git -C "$out_dir" rev-parse --show-toplevel 2>/dev/null)"; then
+    die "refusing to write the archive inside the git work tree at $repo_root
+
+  $out
+
+  It contains every transcript in plain text. Pick somewhere outside any
+  checkout:  --out \$HOME/$(basename "$out")"
+  fi
+
   local items=("${CARRY[@]}")
   [ "$WITH_JOBS" = 1 ] && items+=("${CARRY_JOBS[@]}")
 

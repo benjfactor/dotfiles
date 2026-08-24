@@ -167,10 +167,25 @@ is skipped, so re-running is a no-op and interrupting it costs nothing.
 deduped rather than replaced. Both commands take `--dry-run`; `inspect ARCHIVE`
 prints the manifest without extracting.
 
-One caution: transcripts contain everything you ever pasted into Claude —
-tokens, internal source, customer data. The archive is unencrypted. Move it
-directly between machines and delete it afterwards; do not stage it in cloud
-storage.
+#### The archive never goes through git
+
+Worth being explicit, because this repo is public: **nothing about this syncs
+through the repo.** The archive is written to `$HOME` by default, travels
+machine-to-machine over `scp`, and is deleted afterwards. Git is not involved at
+any point, and the runtime directory it reads from is gitignored even on the
+layout where it physically sits inside the clone.
+
+Two rails keep it that way. `export` refuses outright to write an archive
+anywhere inside a git work tree — one `git add .` is all it would take — and
+`claude-sessions-*.tgz` is gitignored as a second layer. On the symlink layout
+that refusal also covers `~/.claude/...`, since it resolves inside the clone;
+write to `$HOME` or anywhere outside a checkout instead.
+
+Transcripts contain everything you ever pasted into Claude — tokens, internal
+source, customer data. The archive is unencrypted, so move it directly between
+machines and delete it afterwards. Do not stage it in cloud storage, and do not
+be tempted to "just commit it somewhere private" — a private repo is still a
+copy you have to remember to delete.
 
 ## Plugins
 
