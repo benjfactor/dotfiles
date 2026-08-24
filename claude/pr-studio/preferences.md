@@ -47,3 +47,13 @@ Use judgment within each tier — NIT for stylistic, FYI for informational; CONS
 - **Approve** — All comments are suggestions only, regardless of prefix. The PR is ready to merge as-is; findings are offered for the author's consideration.
 - **Comment** — One or more findings feel important enough that I'm not comfortable saying the PR is merge-ready, but I don't need a discussion before the author proceeds.
 - **Request Changes** — I'd like to discuss one or more findings before this merges.
+
+## Discovery sources
+
+chat: tagged
+github: teams
+
+## Watched chat spaces
+
+# Meerkats team PR channel
+AAAAIj8WMWc
