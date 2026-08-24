@@ -11,3 +11,7 @@ vimide/.vim/plugged/*
 Session.vim
 .claude/
 __pycache__/
+
+# Session archives from claude/migrate-sessions.sh: unencrypted transcripts.
+claude-sessions-*.tgz
+claude-sessions-*.tgz.sha256

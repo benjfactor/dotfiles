@@ -107,6 +107,141 @@ Both end up identical where it matters: the same five links resolve to the same
 tracked files. The indirection bought nothing, since `dotfiles/.claude` was
 never tracked, so new machines do without it. `bootstrap.sh` handles either.
 
+### Moving your sessions to a new machine
+
+`bootstrap.sh` gets you the *config*. It deliberately does nothing about the
+runtime directory, so a freshly bootstrapped machine has your settings and
+skills but no memory of any work you have ever done — no transcripts, no
+`/resume`, no prompt history, no `memory/` files, no WSU notes.
+
+`claude/migrate-sessions.sh` moves that across:
+
+```bash
+./claude/migrate-sessions.sh export --encrypt   # on the old machine
+#   ...move the two files across, any way you like...
+./claude/migrate-sessions.sh import ~/claude-sessions-<...>.tgz.enc
+```
+
+It writes a file and reads a file; **how the file travels is up to you.** For
+two Macs, AirDrop is the least-friction option and needs no setup at all —
+select the archive and its `.sha256` in Finder, Share, AirDrop. A USB stick or
+`rsync` over the local network work equally well, and `--encrypt` makes even a
+shared drive fine, since the contents are unreadable without the passphrase.
+`export` prints these options with the paths filled in when it finishes.
+
+Encryption is passphrase-based (`gpg` if installed, otherwise `openssl`, which
+every Mac has). Import spots an encrypted archive by its extension and asks for
+the passphrase on the way in.
+
+Run `import` *after* `bootstrap.sh`, and with Claude Code closed — it is
+writing to the same files while it runs.
+
+#### What is actually covered
+
+Not just transcripts — the aim is a machine that behaves like the one you left.
+
+| | Where it lives | Carried |
+|---|---|---|
+| Transcripts, `/resume` | `~/.claude/projects/` | yes |
+| Per-project memory | `projects/*/memory/` | yes |
+| Prompt history | `history.jsonl` | yes, appended + deduped |
+| WSU notes | `~/.claude/wsu/` | yes |
+| File edit history | `file-history/` | yes |
+| Background jobs | `jobs/` | yes (`--no-jobs` to skip) |
+| Trust + tool allowlists | **`~/.claude.json`** | yes, merged |
+| Theme, editor mode | `~/.claude.json` | yes, only if unset here |
+| CLAUDE.md, settings, hooks, skills | this repo | via `bootstrap.sh` |
+| Which plugins you use | `plugins/*.json` | commands printed to reinstall |
+| Plugin code (700MB) | `plugins/cache/` | no — re-downloads |
+| Login | macOS Keychain | **no — sign in once** |
+
+The one that is easy to miss is `~/.claude.json`. It sits *beside* the
+directory rather than in it, so anything that copies `~/.claude` misses it
+entirely — and it holds the per-project trust decisions and tool allowlists.
+Without it every project re-prompts for trust and forgets its permissions,
+which feels like nothing migrated even though every session is there.
+
+Plugin *code* is not carried, because 700MB that re-downloads itself is not
+worth moving. What is carried is the list, and import prints the exact
+`claude plugin marketplace add` / `claude plugin install` commands to restore
+it. Writing the manifest directly would be worse: it would claim plugins are
+installed at paths that do not exist yet.
+
+**Deliberately left behind:** `worktrees/` holds live git worktrees whose
+gitdir pointers are absolute; `sessions/`, `daemon*`, `session-env/` and
+`shell-snapshots/` are bound to the machine that made them. The five tracked
+symlinks are excluded too — `bootstrap.sh` recreates them, and copying them
+would carry over links into the old machine's clone path.
+`settings.local.json` lands as `settings.local.json.imported` for you to diff,
+never applied, because machine-local overrides are the one thing that
+genuinely should not follow you.
+
+#### The part that is easy to get wrong
+
+Claude Code locates a project's transcripts by **encoding the working
+directory into the directory name** — `~/Projects/galaxy` is stored as
+`projects/-Users-bhingston-Projects-galaxy` — and it stamps a `cwd` on every
+line inside. So a plain `rsync ~/.claude` only works if the new machine's home
+path is character-for-character identical. Different username, and every
+session is still on disk but invisible to `/resume`.
+
+`import` reads the source home out of the archive manifest, compares it to
+`$HOME`, and renames the project directories and rewrites the `cwd` fields when
+they differ. Same home path, and it skips all of that and plain merges.
+
+By default it rewrites *only* those structural fields, leaving paths inside
+message bodies as the historical record of what actually ran where. Pass
+`--deep` to rewrite everything, including `memory/*.md` — worth doing when the
+homes differ, since Claude reads memory files back as current fact and stale
+paths in them are actively misleading.
+
+#### Sessions are unioned, never clobbered
+
+The destination is not assumed to be empty, because after the first migration
+it usually is not. Import takes the **union of the two machines' sessions**:
+
+> machine 1 has `a b c d`, machine 2 has `b d e` → after importing 1 into 2,
+> machine 2 has `a b c d e`
+
+Sessions only the archive has are added. Sessions only this machine has are
+left completely alone. Sessions both have are kept **as they are here** — the
+incoming copy does not overwrite yours. Re-running is a no-op, and interrupting
+it costs nothing.
+
+`--force` exists for the non-session files (memory notes, tool results) and
+snapshots anything it replaces into `~/.claude/migrate-backups/<timestamp>/`
+first. It deliberately has no effect on transcripts at all.
+
+If you genuinely work on *both* machines, the same session can gain new turns
+in two places. `--merge-sessions` handles that: it unions the transcripts
+line-by-line, deduping on each line's uuid, so neither machine's turns are
+lost. It is off by default because it rewrites transcripts you already have,
+which is not worth doing unless that situation is real for you.
+
+`history.jsonl` is appended and deduped rather than replaced. Both commands
+take `--dry-run`; `inspect ARCHIVE` prints the manifest without extracting.
+
+#### The archive never goes through git
+
+Worth being explicit, because this repo is public: **nothing about this syncs
+through the repo.** The archive is written to `$HOME` by default, travels
+by whatever means you choose, and is deleted afterwards. Git is not involved at
+any point, and the runtime directory it reads from is gitignored even on the
+layout where it physically sits inside the clone.
+
+Two rails keep it that way. `export` refuses outright to write an archive
+anywhere inside a git work tree — one `git add .` is all it would take — and
+`claude-sessions-*.tgz` is gitignored as a second layer. On the symlink layout
+that refusal also covers `~/.claude/...`, since it resolves inside the clone;
+write to `$HOME` or anywhere outside a checkout instead.
+
+Transcripts contain everything you ever pasted into Claude — tokens, internal
+source, customer data. Without `--encrypt` the archive is plaintext, so keep it
+to a direct transfer and delete it afterwards; with `--encrypt` it is safe to
+let it sit somewhere in between. Either way, do not be tempted to "just commit
+it somewhere private" — a private repo is still a copy you have to remember to
+delete.
+
 ## Plugins
 
 **The editor is Neovim**, despite everything being named `.vim`. That matters
