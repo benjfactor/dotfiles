@@ -107,6 +107,71 @@ Both end up identical where it matters: the same five links resolve to the same
 tracked files. The indirection bought nothing, since `dotfiles/.claude` was
 never tracked, so new machines do without it. `bootstrap.sh` handles either.
 
+### Moving your sessions to a new machine
+
+`bootstrap.sh` gets you the *config*. It deliberately does nothing about the
+runtime directory, so a freshly bootstrapped machine has your settings and
+skills but no memory of any work you have ever done — no transcripts, no
+`/resume`, no prompt history, no `memory/` files, no WSU notes.
+
+`claude/migrate-sessions.sh` moves that across:
+
+```bash
+./claude/migrate-sessions.sh export            # on the old machine
+scp ~/claude-sessions-*.tgz{,.sha256} NEWMACHINE:~/
+./claude/migrate-sessions.sh import ~/claude-sessions-<...>.tgz   # on the new one
+```
+
+Run `import` *after* `bootstrap.sh`, and with Claude Code closed — it is
+writing to the same files while it runs.
+
+**What travels:** `projects/` (every transcript, plus the per-project
+`memory/` directories), `history.jsonl`, `wsu/`, `file-history/`, and `jobs/`.
+Roughly 90MB of state compresses to about 18MB.
+
+**What does not, and why it should not:** `plugins/` is 700MB that
+re-downloads itself; `worktrees/` holds live git worktrees whose gitdir
+pointers are absolute; `sessions/`, `daemon*`, `session-env/` and
+`shell-snapshots/` are all bound to the machine that made them. The five
+tracked symlinks are excluded too — `bootstrap.sh` recreates them, and copying
+them would just carry over links into the old machine's clone path.
+`settings.local.json` lands as `settings.local.json.imported` for you to diff,
+never applied on its own, because machine-local overrides are the one thing
+that genuinely should not follow you.
+
+#### The part that is easy to get wrong
+
+Claude Code locates a project's transcripts by **encoding the working
+directory into the directory name** — `~/Projects/galaxy` is stored as
+`projects/-Users-bhingston-Projects-galaxy` — and it stamps a `cwd` on every
+line inside. So a plain `rsync ~/.claude` only works if the new machine's home
+path is character-for-character identical. Different username, and every
+session is still on disk but invisible to `/resume`.
+
+`import` reads the source home out of the archive manifest, compares it to
+`$HOME`, and renames the project directories and rewrites the `cwd` fields when
+they differ. Same home path, and it skips all of that and plain merges.
+
+By default it rewrites *only* those structural fields, leaving paths inside
+message bodies as the historical record of what actually ran where. Pass
+`--deep` to rewrite everything, including `memory/*.md` — worth doing when the
+homes differ, since Claude reads memory files back as current fact and stale
+paths in them are actively misleading.
+
+#### Safety
+
+Import is a merge that **never overwrites**: a file already on the destination
+is skipped, so re-running is a no-op and interrupting it costs nothing.
+`--force` overwrites, and snapshots whatever it replaces into
+`~/.claude/migrate-backups/<timestamp>/` first. `history.jsonl` is appended and
+deduped rather than replaced. Both commands take `--dry-run`; `inspect ARCHIVE`
+prints the manifest without extracting.
+
+One caution: transcripts contain everything you ever pasted into Claude —
+tokens, internal source, customer data. The archive is unencrypted. Move it
+directly between machines and delete it afterwards; do not stage it in cloud
+storage.
+
 ## Plugins
 
 **The editor is Neovim**, despite everything being named `.vim`. That matters
