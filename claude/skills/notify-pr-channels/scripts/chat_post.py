@@ -53,12 +53,19 @@ def main():
     ok, err = send_gchat.post_message(token, TEAM_SPACE, team_msg)
     print(f"{'Posted to' if ok else 'Error posting to'} team ({TEAM_SPACE})" + (f": {err}" if err else ''))
 
-    # Post to any external team channels mentioned in the PR body.
+    # Post to any external team channels mentioned in the PR body. Deduped by space id, not by team
+    # name: a team whose channel *is* the personal team channel (meerkats) would otherwise be posted
+    # twice, and two different mentions can resolve to the same space.
+    posted_spaces = {TEAM_SPACE}
     for team in re.findall(r'@vendasta/([\w-]+)', get_pr_body(pr_url)):
         space_id, how = send_gchat.resolve_target(team, token)
         if not space_id:
             print(f"Skipping @vendasta/{team}: no channel found ({how})")
             continue
+        if space_id in posted_spaces:
+            print(f"Skipping @vendasta/{team}: already posted to that channel ({space_id})")
+            continue
+        posted_spaces.add(space_id)
         print(f"Found @vendasta/{team} in PR body — posting to their channel ({space_id})")
         ok, err = send_gchat.post_message(token, space_id, f'{prefix}{pr_title}\n{pr_url}')
         print(f"{'Posted to' if ok else 'Error posting to'} {team} ({space_id})" + (f": {err}" if err else ''))
