@@ -130,6 +130,33 @@ fi
 link claude/pr-studio/preferences.md "$CLAUDE_DIR/pr-studio/preferences.md"
 
 # ---------------------------------------------------------------------------
+# Packages/User is a live runtime directory, not a config folder: Package
+# Control writes its own settings into it and Sublime rewrites files there
+# whenever the preferences UI is touched. So the tracked files are linked in
+# individually and the directory itself is left alone -- same reasoning as
+# ~/.claude above.
+#
+# The symlink is the point. Left as a plain file, Sublime will overwrite
+# Preferences.sublime-settings with its built-in defaults the first time the
+# theme picker runs, silently reverting the colour scheme to Mariana. Linked,
+# that same write lands in this repo, where it is diffable and recoverable.
+say
+say "== sublime text =="
+ST_APP="/Applications/Sublime Text.app"
+ST_USER="$HOME/Library/Application Support/Sublime Text/Packages/User"
+if [[ -d "$ST_APP" ]]; then
+  if [[ ! -d "$ST_USER" ]]; then
+    say "MKDIR ~/Library/Application Support/Sublime Text/Packages/User"
+    run mkdir -p "$ST_USER"
+  fi
+  link sublime/Preferences.sublime-settings "$ST_USER/Preferences.sublime-settings"
+  link sublime/FireCode.tmTheme             "$ST_USER/FireCode.tmTheme"
+else
+  say "SKIP  sublime text  (not installed)"
+  skipped=$((skipped + 1))
+fi
+
+# ---------------------------------------------------------------------------
 # tmux plugins are managed by TPM, which is itself a plugin fetched by git.
 # It is deliberately not tracked in this repo, so a fresh clone has no TPM and
 # .tmux.conf's `run '~/.tmux/plugins/tpm/tpm'` silently does nothing.
