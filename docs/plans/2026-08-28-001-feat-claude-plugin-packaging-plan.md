@@ -109,6 +109,11 @@ flowchart TD
 - R18. Level records composition depth only — what builds on what. Publishability is a separate per-plugin property, so an org-specific plugin sits at whatever depth its dependencies put it at rather than being pushed to the org level.
 - R19. Skill-to-plugin membership is settled before the first publish. A plugin rename is migratable through `renames`, but a skill moving between plugins has no migration path and silently removes the skill from anyone who installed the old plugin.
 
+**Packaging scope**
+
+- R20. Packaging every skill is not a goal. A skill with no distribution need stays unpackaged as a local skill symlinked from `claude/skills/`, and that is a settled outcome rather than an unfilled gap.
+- R21. A skill stays unpackaged only when no packaged skill delegates to it, since a plugin that ships a delegation to a local skill hands consumers a reference they cannot resolve.
+
 ### Key Flows
 
 - **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `gchat-send`, and configure their own space ID via `userConfig`. Outcome: no workflow plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
@@ -169,17 +174,16 @@ Plugin names below are provisional; naming is deferred per Outstanding Questions
 | gchat | capability | send-gchat-message | 96 | — |
 | arc | capability | open-in-arc | 87 | — |
 | cloud-build | capability | gcp-ci-watch | 63 | — |
-| rest-console | capability | vim-rest | 58 | — |
-| git-commit-flow | workflow | green-commits, commit-preferences, plan-implementation-commits | 268 | — |
-| go-checks | workflow | golang-pre-commit-tests, user-preferences | 127 | — |
+| git-commit-flow | workflow | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
 | gh-pr-flow | workflow | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | git-commit-flow; optionally cloud-build, arc |
-| pr-notify | workflow | notify-pr-channels, pr-ready | 126 | gchat, gh-pr-flow |
+| pr-notify | workflow | notify-pr-channels, pr-ready | 126 | gchat |
 | jira-branch | workflow | git-worktree-jira-branch | 56 | — |
-| triage-flow | orchestration | regression-triage | 147 | gh-pr-flow, pr-notify, go-checks, jira-branch; optionally arc |
-| feats-of-merit | orchestration | wsu, wsu-note | 118 | gh-pr-flow |
-| plan-flow | orchestration | plan-commit-to-worktree | 143 | gh-pr-flow, jira-branch, compound-engineering; optionally arc |
+| triage-flow | orchestration | regression-triage | 147 | gh-pr-flow, pr-notify, git-commit-flow, jira-branch; optionally arc |
+| feats-of-merit | orchestration | wsu, wsu-note | 118 | — |
 
-`temporal-activities` and `pr-studio-open-in-arc` are omitted: both duplicate plugins already installed from the Vendasta marketplace, and belong upstream rather than here.
+Nine plugins covering 18 skills. Verified against the delegation graph: zero upward dependencies, zero unresolvable references, and no cross-marketplace dependency, since the two skills that carried them stay local.
+
+**Unpackaged, per R20.** `vim-rest`, `user-preferences`, `plan-commit-to-worktree`, and `temporal-activities` stay symlinked local skills — none has a distribution need, and R21 holds for all four because none is the target of a delegation from a packaged skill. `pr-studio-open-in-arc` is also unpackaged; it belongs upstream in `vendasta-pr-studio`, and `temporal-activities` similarly duplicates `vendasta-dev-agent-toolkit:temporal-workflows`.
 
 ### Surface matrix
 

@@ -434,6 +434,15 @@
     color: var(--ink-faint);
   }
   .tray-empty { font-size: 0.85rem; color: var(--ink-faint); font-style: italic; }
+  .leak-warn {
+    font-size: 0.78rem;
+    color: var(--alarm);
+    background: var(--alarm-wash);
+    border-radius: 2px;
+    padding: 0.2rem 0.4rem;
+    margin-top: 0.3rem;
+  }
+  .leak-ok { font-size: 0.78rem; color: var(--ink-faint); margin-top: 0.2rem; }
 
   .panels {
     display: grid;
@@ -539,14 +548,20 @@
     <div class="hint">Click a <b>skill</b>, then the plugin that should own it. <b>Description</b> is published to consumers; <b>notes</b> are private scratch for briefing me. The <b>surface roll-up</b> is the fit check: a surface on only one skill usually means that skill belongs elsewhere.</div>
     <button type="button" id="btn-brief">Copy brief for Claude</button>
     <button type="button" id="btn-copy">Copy manifest</button>
+    <button type="button" id="btn-revision">Load Claude&rsquo;s revision</button>
+    <button type="button" id="btn-undo" hidden>Undo load</button>
     <button type="button" id="btn-reset">Reset to proposal</button>
   </div>
 
   <div class="bands" id="bands"></div>
 
   <div class="tray" id="tray">
-    <div class="tray-label">Unassigned</div>
+    <div class="field-label">
+      <span>Stays a local skill &mdash; not packaged</span>
+      <span class="qualifier">symlinked from dotfiles, never installed by anyone else</span>
+    </div>
     <div class="chips" id="tray-chips"></div>
+    <div id="tray-warn"></div>
   </div>
 
   <div class="worksheet-notes">
@@ -694,11 +709,74 @@
     "temporal-activities": "p-org"
   };
 
+  // The restructure proposed in the plan: resolves the three upward
+  // dependencies, and leaves the four low-need skills unpackaged.
+  var CLAUDE_REVISION = {
+    plugins: [
+      { key: "p-gchat",  name: "gchat",           level: 1, pub: "public",
+        desc: "Post a message to a Chat space, resolving team handles and slugs to space IDs. Needs Chat API access.",
+        notes: "Narrowed from 'read and write' — send-gchat-message only sends. Reading lives in vendasta-dev-agent-toolkit:google-chat-fetcher." },
+      { key: "p-arc",    name: "arc",             level: 1, pub: "public",
+        desc: "Open a URL in Arc, optionally targeting a named Space. Needs Arc on macOS.",
+        notes: "Per-browser beats a generic browser plugin: a skill is prose the model reads, and branching four ways dilutes both the match and the instructions." },
+      { key: "p-cb",     name: "cloud-build",     level: 1, pub: "public",
+        desc: "Read and watch Cloud Build status for a branch or PR. Needs gcloud auth.",
+        notes: "" },
+      { key: "p-commit", name: "git-commit-flow", level: 2, pub: "public",
+        desc: "Small, green, conventional commits pushed as you go. Git only, no GitHub.",
+        notes: "golang-pre-commit-tests moved here — it is a pre-commit gate, which is commit discipline rather than PR mechanics." },
+      { key: "p-pr",     name: "gh-pr-flow",      level: 2, pub: "public",
+        desc: "Draft PR through review, CI and merge. Needs the gh CLI.",
+        notes: "Carved down to gh-on-git. Chat moved to pr-notify, Jira naming to jira-branch, so the Arc and Chat outliers are gone." },
+      { key: "p-notify", name: "pr-notify",       level: 2, pub: "internal",
+        desc: "Announce a PR to the right team channels when it is ready for review. Needs the gchat capability.",
+        notes: "This is the separation you asked for: gchat is the capability, this is the convention on it. Internal until the space IDs move behind userConfig." },
+      { key: "p-jira",   name: "jira-branch",     level: 2, pub: "public",
+        desc: "Name worktrees and branches so a ticket id is picked up by the commit hook. Git only.",
+        notes: "No Jira API call — this is a naming convention, which is why it is publishable." },
+      { key: "p-triage", name: "triage-flow",     level: 3, pub: "internal",
+        desc: "Triage a bug found while monitoring recent work: fix it under the current work item when related, or track it separately when not. Needs the gh CLI.",
+        notes: "Rewritten from the dictated description. Full agnosticism to tracker and comms is a skill-content change, best done after the split." },
+      { key: "p-merit",  name: "feats-of-merit",  level: 3, pub: "internal",
+        desc: "Capture work as it happens and compile it into weekly, monthly and quarterly summaries you can point at in a review. Needs Confluence.",
+        notes: "Drafted from your note. Internal only while it assumes Confluence and your space." }
+    ],
+    assign: {
+      "send-gchat-message": "p-gchat",
+      "open-in-arc": "p-arc",
+      "gcp-ci-watch": "p-cb",
+      "green-commits": "p-commit",
+      "commit-preferences": "p-commit",
+      "plan-implementation-commits": "p-commit",
+      "golang-pre-commit-tests": "p-commit",
+      "open-pr": "p-pr",
+      "merge-pr": "p-pr",
+      "pr-feedback-watcher": "p-pr",
+      "sync-base": "p-pr",
+      "worktree-cleanup": "p-pr",
+      "notify-pr-channels": "p-notify",
+      "pr-ready": "p-notify",
+      "git-worktree-jira-branch": "p-jira",
+      "regression-triage": "p-triage",
+      "wsu": "p-merit",
+      "wsu-note": "p-merit",
+      // Stay local: no packaged skill delegates to any of these.
+      "vim-rest": null,
+      "user-preferences": null,
+      "plan-commit-to-worktree": null,
+      "temporal-activities": null,
+      // Belongs upstream in vendasta-pr-studio rather than here.
+      "pr-studio-open-in-arc": null
+    },
+    globalNotes: "Claude's revision. Resolves all three upward dependencies by putting notify-pr-channels and git-worktree-jira-branch at their real depth (level 2) instead of treating org-specificity as a level. Four low-need skills stay symlinked, plus pr-studio-open-in-arc which belongs upstream."
+  };
+
   var ORIGINAL_NAME = {};
   PROPOSAL_PLUGINS.forEach(function (p) { ORIGINAL_NAME[p.key] = p.name; });
 
   var KEY = "plugin-strata-v2";
   var LEGACY_KEY = "plugin-strata-v1";
+  var UNDO_KEY = "plugin-strata-undo";
   var plugins = [];
   var assign = {};
   var globalNotes = "";
@@ -789,6 +867,54 @@
     } catch (e) { reset(); }
   }
 
+  function serialize() {
+    return JSON.stringify({
+      plugins: plugins, assign: assign, globalNotes: globalNotes, nextKey: nextKey
+    });
+  }
+
+  function snapshot() {
+    try { window.localStorage.setItem(UNDO_KEY, serialize()); } catch (e) { /* ignore */ }
+  }
+
+  function hasUndo() {
+    try { return !!window.localStorage.getItem(UNDO_KEY); } catch (e) { return false; }
+  }
+
+  function applyRevision() {
+    snapshot();
+    plugins = CLAUDE_REVISION.plugins.map(function (p) {
+      return { key: p.key, name: p.name, level: p.level, desc: p.desc, notes: p.notes, pub: p.pub };
+    });
+    assign = {};
+    SKILLS.forEach(function (s) {
+      var v = CLAUDE_REVISION.assign[s.id];
+      assign[s.id] = (typeof v === "string" && pluginByKey(v)) ? v : null;
+    });
+    globalNotes = CLAUDE_REVISION.globalNotes;
+    nextKey = 1;
+  }
+
+  function restoreUndo() {
+    var raw = null;
+    try { raw = window.localStorage.getItem(UNDO_KEY); } catch (e) { return false; }
+    if (!raw) { return false; }
+    try {
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.plugins)) { return false; }
+      plugins = d.plugins;
+      assign = {};
+      SKILLS.forEach(function (s) {
+        var v = d.assign[s.id];
+        assign[s.id] = (typeof v === "string" && pluginByKey(v)) ? v : null;
+      });
+      globalNotes = typeof d.globalNotes === "string" ? d.globalNotes : "";
+      nextKey = typeof d.nextKey === "number" ? d.nextKey : 1;
+    } catch (e) { return false; }
+    try { window.localStorage.removeItem(UNDO_KEY); } catch (e) { /* ignore */ }
+    return true;
+  }
+
   function save() {
     try {
       window.localStorage.setItem(KEY, JSON.stringify({
@@ -829,6 +955,16 @@
       if (violation) { b.violation = true; }
     });
 
+    // A skill can only stay local if nothing packaged delegates to it —
+    // otherwise the plugin ships a reference a consumer cannot resolve.
+    var leaks = [];
+    EDGES.forEach(function (e) {
+      var kf = assign[e.from], kt = assign[e.to];
+      if (kf && !kt) {
+        leaks.push({ from: e.from, to: e.to, plugin: pluginByKey(kf), opt: e.opt });
+      }
+    });
+
     var ext = [];
     Object.keys(EXTERNAL).forEach(function (sk) {
       var k = assign[sk];
@@ -841,7 +977,7 @@
       nameCount[n] = (nameCount[n] || 0) + 1;
     });
 
-    return { info: info, unassigned: unassigned, rows: rows, ext: ext, nameCount: nameCount };
+    return { info: info, unassigned: unassigned, rows: rows, ext: ext, leaks: leaks, nameCount: nameCount };
   }
 
   function el(tag, cls, text) {
@@ -898,7 +1034,8 @@
     ro.textContent = "";
     [
       { k: "Plugins in use", v: String(live), cls: "" },
-      { k: "Unassigned", v: String(a.unassigned.length), cls: a.unassigned.length ? "warn" : "" },
+      { k: "Stays local", v: String(a.unassigned.length), cls: "" },
+      { k: "Unresolvable refs", v: String(a.leaks.length), cls: a.leaks.length ? "bad" : "" },
       { k: "Cross-plugin deps", v: String(a.rows.length), cls: "" },
       { k: "Optional edges", v: String(optCount), cls: optCount ? "warn" : "" },
       { k: "Level violations", v: String(viol), cls: viol ? "bad" : "" },
@@ -953,13 +1090,28 @@
     trayChips.textContent = "";
     if (selected) { tray.classList.add("target"); } else { tray.classList.remove("target"); }
     if (!a.unassigned.length) {
-      trayChips.appendChild(el("span", "tray-empty", "Every skill is placed."));
+      trayChips.appendChild(el("span", "tray-empty", "Every skill is packaged."));
     } else {
       a.unassigned.forEach(function (s) { trayChips.appendChild(chip(s)); });
     }
 
+    var warn = document.getElementById("tray-warn");
+    warn.textContent = "";
+    if (a.leaks.length) {
+      a.leaks.forEach(function (k) {
+        warn.appendChild(el("div", "leak-warn",
+          k.plugin.name + " ships " + k.from + ", which delegates to " + k.to
+          + " — a local skill a consumer will not have"
+          + (k.opt ? " (optional, so it degrades rather than breaks)" : "")));
+      });
+    } else if (a.unassigned.length) {
+      warn.appendChild(el("div", "leak-ok",
+        "Safe to leave local: no packaged skill delegates to any of these."));
+    }
+
     renderDeps(a);
     document.getElementById("manifest").textContent = manifest(a);
+    document.getElementById("btn-undo").hidden = !hasUndo();
 
     if (focusKey) {
       var back = document.querySelector('[data-focus="' + focusKey + '"]');
@@ -1280,12 +1432,16 @@
     });
 
     if (a.unassigned.length) {
-      L.push("## Unassigned");
+      L.push("## Stays local — not packaged");
       L.push(a.unassigned.join(", "));
       L.push("");
     }
 
     var flags = [];
+    a.leaks.forEach(function (k) {
+      flags.push("unresolvable ref: " + k.plugin.name + " ships " + k.from
+        + " which delegates to local skill " + k.to + (k.opt ? " (optional)" : ""));
+    });
     var viol = a.rows.filter(function (r) { return r.violation; });
     viol.forEach(function (r) {
       flags.push("level violation: " + r.pf.name + " depends upward on " + r.pt.name
@@ -1338,6 +1494,25 @@
 
   document.getElementById("btn-brief").addEventListener("click", function (ev) {
     copyTo(ev.currentTarget, brief(analyse()), "Copy brief for Claude");
+  });
+
+  document.getElementById("btn-revision").addEventListener("click", function () {
+    if (!window.confirm("Load Claude's revision? Your current board is saved — Undo load brings it back.")) {
+      return;
+    }
+    applyRevision();
+    selected = null;
+    gnBox.value = globalNotes;
+    save();
+    render();
+  });
+
+  document.getElementById("btn-undo").addEventListener("click", function () {
+    if (!restoreUndo()) { return; }
+    selected = null;
+    gnBox.value = globalNotes;
+    save();
+    render();
   });
 
   document.getElementById("tray").addEventListener("click", function () {
