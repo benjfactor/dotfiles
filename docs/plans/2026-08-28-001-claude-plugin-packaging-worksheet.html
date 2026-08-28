@@ -289,6 +289,69 @@
   textarea.desc::placeholder { color: var(--ink-faint); font-style: italic; }
   textarea.desc.missing { border-color: var(--signal); }
 
+  .field-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.57rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    gap: 0.4rem;
+    margin-bottom: -0.3rem;
+  }
+  .field-label .qualifier { font-style: italic; letter-spacing: 0.05em; text-transform: none; }
+
+  textarea.notes {
+    width: 100%;
+    resize: vertical;
+    min-height: 2.4rem;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    background: var(--surface-sunk);
+    border: 1px dashed var(--rule-firm);
+    border-left: 3px solid var(--rule-firm);
+    border-radius: 2px;
+    padding: 0.25rem 0.35rem;
+  }
+  textarea.notes:hover { border-left-color: var(--ink-faint); }
+  textarea.notes:focus {
+    outline: none;
+    border-color: var(--ink-faint);
+    border-left-color: var(--sel);
+    color: var(--ink);
+  }
+  textarea.notes::placeholder { color: var(--ink-faint); font-style: italic; }
+  textarea.notes.filled { border-left-color: var(--sel); }
+
+  .worksheet-notes {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--rule-firm);
+    border-radius: 3px;
+    background: var(--surface);
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .worksheet-notes textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 4rem;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px dashed var(--rule-firm);
+    border-radius: 2px;
+    padding: 0.4rem 0.5rem;
+  }
+  .worksheet-notes textarea:focus { outline: none; border-color: var(--sel); border-style: solid; }
+  .worksheet-notes textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+
   .surfaces {
     display: flex;
     flex-wrap: wrap;
@@ -472,9 +535,10 @@
   <div class="readout" id="readout"></div>
 
   <div class="toolbar">
-    <div class="hint">Click a <b>skill</b>, then the plugin that should own it. Rename plugins and write descriptions in place &mdash; the <b>surface roll-up</b> under each one is the fit check: a surface on only one skill is flagged, which usually means that skill belongs elsewhere.</div>
-    <button type="button" id="btn-reset">Reset to proposal</button>
+    <div class="hint">Click a <b>skill</b>, then the plugin that should own it. <b>Description</b> is published to consumers; <b>notes</b> are private scratch for briefing me. The <b>surface roll-up</b> is the fit check: a surface on only one skill usually means that skill belongs elsewhere.</div>
+    <button type="button" id="btn-brief">Copy brief for Claude</button>
     <button type="button" id="btn-copy">Copy manifest</button>
+    <button type="button" id="btn-reset">Reset to proposal</button>
   </div>
 
   <div class="bands" id="bands"></div>
@@ -482,6 +546,14 @@
   <div class="tray" id="tray">
     <div class="tray-label">Unassigned</div>
     <div class="chips" id="tray-chips"></div>
+  </div>
+
+  <div class="worksheet-notes">
+    <div class="field-label">
+      <span>Notes for Claude &mdash; whole worksheet</span>
+      <span class="qualifier">private, never published</span>
+    </div>
+    <textarea id="global-notes" rows="3" aria-label="Notes for Claude about the whole worksheet" placeholder="What you want me to do next, what you are unsure about, constraints I do not know yet. Copy brief for Claude picks this up along with every plugin note."></textarea>
   </div>
 
   <div class="panels">
@@ -505,7 +577,8 @@
   <footer>
     <div>Optional edges are orange. Claude Code has no <code>peerDependencies</code> &mdash; the validator reports it as an unknown field ignored at load time &mdash; so every orange edge is either an over-requiring hard dependency or unenforced prose.</div>
     <div>A renamed plugin emits a <code>renames</code> entry in the manifest below, since a rename target must resolve to a name in <code>plugins[]</code>, another <code>renames</code> key, or <code>null</code>.</div>
-    <div>Token figures are always-on cost measured from each skill&rsquo;s frontmatter at roughly 4 characters per token. Your grouping, names and descriptions are saved in this browser only.</div>
+    <div><b>Description</b> is published &mdash; it becomes the plugin&rsquo;s <code>description</code> in the manifest and is what a consumer reads when choosing to install. <b>Notes</b> are never published and never reach the manifest; they exist only to brief Claude, and <em>Copy brief for Claude</em> collects them along with the current grouping.</div>
+    <div>Token figures are always-on cost measured from each skill&rsquo;s frontmatter at roughly 4 characters per token. Your grouping, names, descriptions and notes are saved in this browser only &mdash; they never reach Claude unless you paste the brief.</div>
   </footer>
 
 </div>
@@ -621,8 +694,10 @@
   PROPOSAL_PLUGINS.forEach(function (p) { ORIGINAL_NAME[p.key] = p.name; });
 
   var KEY = "plugin-strata-v2";
+  var LEGACY_KEY = "plugin-strata-v1";
   var plugins = [];
   var assign = {};
+  var globalNotes = "";
   var selected = null;
   var nextKey = 1;
 
@@ -636,17 +711,54 @@
 
   function reset() {
     plugins = PROPOSAL_PLUGINS.map(function (p) {
-      return { key: p.key, name: p.name, level: p.level, desc: p.desc };
+      return { key: p.key, name: p.name, level: p.level, desc: p.desc, notes: "" };
     });
     assign = {};
     SKILLS.forEach(function (s) { assign[s.id] = PROPOSAL_ASSIGN[s.id]; });
+    globalNotes = "";
     nextKey = 1;
+  }
+
+  // One-time recovery: the first version of this worksheet stored a flat
+  // { skillId: pluginName } map under a different key. Import it only when no
+  // current state exists, so live edits are never clobbered.
+  function importLegacy() {
+    var raw = null;
+    try { raw = window.localStorage.getItem(LEGACY_KEY); } catch (e) { return false; }
+    if (!raw) { return false; }
+    var old;
+    try { old = JSON.parse(raw); } catch (e) { return false; }
+    if (!old || typeof old !== "object") { return false; }
+
+    var byName = {};
+    PROPOSAL_PLUGINS.forEach(function (p) { byName[p.name] = p.key; });
+    // v1 used these names for the same seven plugins.
+    byName["gchat-send"] = "p-gchat";
+    byName["arc-open"] = "p-arc";
+    byName["cloudbuild-status"] = "p-cb";
+
+    var touched = false;
+    SKILLS.forEach(function (s) {
+      if (!Object.prototype.hasOwnProperty.call(old, s.id)) { return; }
+      var v = old[s.id];
+      if (v === null) { assign[s.id] = null; touched = true; return; }
+      var k = byName[v];
+      if (k) { assign[s.id] = k; touched = true; }
+    });
+    return touched;
   }
 
   function load() {
     var raw = null;
     try { raw = window.localStorage.getItem(KEY); } catch (e) { raw = null; }
-    if (!raw) { reset(); return; }
+
+    if (!raw) {
+      // No current state. Seed the proposal, then try to recover a v1 grouping.
+      reset();
+      if (importLegacy()) { save(); }
+      return;
+    }
+
     try {
       var d = JSON.parse(raw);
       if (!d || !Array.isArray(d.plugins) || !d.assign) { reset(); return; }
@@ -657,7 +769,8 @@
           key: p.key,
           name: p.name,
           level: (p.level === 1 || p.level === 2 || p.level === 3) ? p.level : 1,
-          desc: typeof p.desc === "string" ? p.desc : ""
+          desc: typeof p.desc === "string" ? p.desc : "",
+          notes: typeof p.notes === "string" ? p.notes : ""
         };
       });
       if (!plugins.length) { reset(); return; }
@@ -666,6 +779,7 @@
         var v = d.assign[s.id];
         assign[s.id] = (typeof v === "string" && pluginByKey(v)) ? v : null;
       });
+      globalNotes = typeof d.globalNotes === "string" ? d.globalNotes : "";
       nextKey = typeof d.nextKey === "number" ? d.nextKey : 1;
     } catch (e) { reset(); }
   }
@@ -673,7 +787,7 @@
   function save() {
     try {
       window.localStorage.setItem(KEY, JSON.stringify({
-        plugins: plugins, assign: assign, nextKey: nextKey
+        plugins: plugins, assign: assign, globalNotes: globalNotes, nextKey: nextKey
       }));
     } catch (e) { /* ignore */ }
   }
@@ -811,7 +925,8 @@
           key: "u-" + nextKey,
           name: "new-plugin-" + nextKey,
           level: lv.n,
-          desc: ""
+          desc: "",
+          notes: ""
         });
         nextKey += 1;
         save();
@@ -876,12 +991,17 @@
     nameRow.appendChild(el("span", "tok", "~" + info.tok + " tok"));
     c.appendChild(nameRow);
 
+    var descLabel = el("div", "field-label");
+    descLabel.appendChild(el("span", "", "Description"));
+    descLabel.appendChild(el("span", "qualifier", "published"));
+    c.appendChild(descLabel);
+
     var desc = document.createElement("textarea");
     desc.className = "desc";
     desc.rows = 2;
     desc.value = p.desc;
     desc.placeholder = "What a consumer gets — and what they must already have.";
-    desc.setAttribute("aria-label", "Plugin description");
+    desc.setAttribute("aria-label", "Plugin description, published to consumers");
     desc.setAttribute("data-focus", "desc-" + p.key);
     if (info.skills.length && !p.desc.trim()) { desc.classList.add("missing"); }
     desc.addEventListener("click", function (ev) { ev.stopPropagation(); });
@@ -891,6 +1011,27 @@
       render();
     });
     c.appendChild(desc);
+
+    var noteLabel = el("div", "field-label");
+    noteLabel.appendChild(el("span", "", "Notes for Claude"));
+    noteLabel.appendChild(el("span", "qualifier", "private"));
+    c.appendChild(noteLabel);
+
+    var notes = document.createElement("textarea");
+    notes.className = "notes" + (p.notes && p.notes.trim() ? " filled" : "");
+    notes.rows = 2;
+    notes.value = p.notes || "";
+    notes.placeholder = "Unsure about this one? Tell me why.";
+    notes.setAttribute("aria-label", "Private notes for Claude, never published");
+    notes.setAttribute("data-focus", "notes-" + p.key);
+    notes.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    notes.addEventListener("input", function () {
+      p.notes = notes.value;
+      save();
+      // Nothing derived depends on notes, so avoid a full re-render while typing.
+      notes.classList.toggle("filled", !!notes.value.trim());
+    });
+    c.appendChild(notes);
 
     if (info.skills.length) {
       var chips = el("div", "chips");
@@ -1067,6 +1208,110 @@
     return out.join("\n");
   }
 
+  // A pasteable digest of the whole worksheet: grouping, names, published
+  // descriptions, and the private notes. This is the channel back to Claude.
+  function brief(a) {
+    var L = [];
+    L.push("# Plugin Strata — working state");
+    L.push("");
+
+    var gn = globalNotes.trim();
+    L.push("## Notes for Claude — whole worksheet");
+    L.push(gn ? gn : "(none)");
+    L.push("");
+
+    LEVELS.forEach(function (lv) {
+      var inLevel = plugins.filter(function (p) { return p.level === lv.n; });
+      if (!inLevel.length) { return; }
+      L.push("## Level " + lv.n + " — " + lv.name);
+      L.push("");
+      inLevel.forEach(function (p) {
+        var info = a.info[p.key];
+        L.push("### " + p.name.trim() + "  (~" + info.tok + " tok, " + info.skills.length + " skills)");
+        L.push("description: " + (p.desc.trim() || "(none)"));
+        var n = (p.notes || "").trim();
+        if (n) { L.push("notes: " + n); }
+        L.push("skills: " + (info.skills.length ? info.skills.join(", ") : "(none)"));
+
+        var sk = Object.keys(info.surf).sort(function (x, y) { return info.surf[y] - info.surf[x]; });
+        if (sk.length) {
+          var outliers = sk.filter(function (k) { return info.skills.length >= 3 && info.surf[k] === 1; });
+          L.push("surfaces: " + sk.map(function (k) { return k + "×" + info.surf[k]; }).join(", ")
+            + (outliers.length ? "   [outlier: " + outliers.join(", ") + "]" : ""));
+        }
+
+        var dk = Object.keys(info.deps);
+        if (dk.length) {
+          L.push("deps: " + dk.map(function (k) {
+            var t = pluginByKey(k), b = info.deps[k];
+            return (t ? t.name : k) + (b.violation ? " (DEPENDS UPWARD)" : (b.opt ? " (optional)" : ""));
+          }).join(", "));
+        }
+        L.push("");
+      });
+    });
+
+    if (a.unassigned.length) {
+      L.push("## Unassigned");
+      L.push(a.unassigned.join(", "));
+      L.push("");
+    }
+
+    var flags = [];
+    var viol = a.rows.filter(function (r) { return r.violation; });
+    viol.forEach(function (r) {
+      flags.push("level violation: " + r.pf.name + " depends upward on " + r.pt.name
+        + " (" + r.from + " → " + r.to + ")");
+    });
+    a.rows.filter(function (r) { return r.opt && !r.violation; }).forEach(function (r) {
+      flags.push("optional edge, not expressible: " + r.pf.name + " → " + r.pt.name
+        + " (" + r.from + " → " + r.to + ")");
+    });
+    plugins.forEach(function (p) {
+      if (a.info[p.key].skills.length && !p.desc.trim()) {
+        flags.push("no description: " + p.name.trim());
+      }
+    });
+    Object.keys(a.nameCount).forEach(function (n) {
+      if (a.nameCount[n] > 1) { flags.push("duplicate name: " + n); }
+    });
+    var renamed = plugins.filter(function (p) {
+      var o = ORIGINAL_NAME[p.key];
+      return o && o !== p.name.trim();
+    });
+    renamed.forEach(function (p) {
+      flags.push("renamed: " + ORIGINAL_NAME[p.key] + " → " + p.name.trim());
+    });
+
+    if (flags.length) {
+      L.push("## Flags");
+      flags.forEach(function (f) { L.push("- " + f); });
+      L.push("");
+    }
+
+    return L.join("\n");
+  }
+
+  function copyTo(btn, text, label) {
+    var done = function (ok) {
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      window.setTimeout(function () { btn.textContent = label; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else { done(false); }
+  }
+
+  var gnBox = document.getElementById("global-notes");
+  gnBox.addEventListener("input", function () {
+    globalNotes = gnBox.value;
+    save();
+  });
+
+  document.getElementById("btn-brief").addEventListener("click", function (ev) {
+    copyTo(ev.currentTarget, brief(analyse()), "Copy brief for Claude");
+  });
+
   document.getElementById("tray").addEventListener("click", function () {
     if (!selected) { return; }
     assign[selected] = null;
@@ -1076,22 +1321,19 @@
   });
 
   document.getElementById("btn-reset").addEventListener("click", function () {
+    var written = globalNotes.trim() || plugins.some(function (p) { return (p.notes || "").trim(); });
+    if (written && !window.confirm("Reset discards your notes as well as the grouping. Continue?")) {
+      return;
+    }
     reset();
     selected = null;
+    gnBox.value = globalNotes;
     save();
     render();
   });
 
   document.getElementById("btn-copy").addEventListener("click", function (ev) {
-    var btn = ev.currentTarget;
-    var text = document.getElementById("manifest").textContent;
-    var done = function (ok) {
-      btn.textContent = ok ? "Copied" : "Copy failed";
-      window.setTimeout(function () { btn.textContent = "Copy manifest"; }, 1600);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
-    } else { done(false); }
+    copyTo(ev.currentTarget, document.getElementById("manifest").textContent, "Copy manifest");
   });
 
   document.addEventListener("keydown", function (e) {
@@ -1099,6 +1341,7 @@
   });
 
   load();
+  gnBox.value = globalNotes;
   render();
 })();
 </script>
