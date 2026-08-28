@@ -1,0 +1,13 @@
+{
+	"added_words":
+	[
+		"behaviour"
+	],
+	"color_scheme": "Packages/Colorsublime - Themes/FireCode.tmTheme",
+	"font_size": 18,
+	"ignored_packages":
+	[
+		"Vintage"
+	],
+	"theme": "Adaptive.sublime-theme",
+}

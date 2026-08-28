@@ -47,6 +47,8 @@ first; it never deletes. `--dry-run` prints the plan and touches nothing.
 | `~/.config/nvim` | `vimide/.vim` (Neovim runtimepath — see Plugins) |
 | `~/.ctags` | `vimide/.ctags` |
 | `~/.claude` | `.claude` (see below) |
+| `<sublime-data-dir>/Packages/User` | `sublime/User` (dir is probed — see Sublime Text) |
+| `<sublime-data-dir>/Packages/Colorsublime - Themes/FireCode.tmTheme` | `sublime/themes/FireCode.tmTheme` |
 
 ## The `.claude` layer — read this before touching it
 
@@ -286,6 +288,63 @@ is immediately obvious in vim.
 `bootstrap.sh` verifies all five. A running iTerm2 gets a cached copy of its
 domain from `cfprefsd`, so changes land on disk immediately but only take effect
 after you quit and reopen it.
+
+## Sublime Text
+
+**The data directory does not follow the version number.** Sublime 4 uses:
+
+```
+~/Library/Application Support/Sublime Text/
+```
+
+but only on a clean install. When it finds a Sublime 3 directory it adopts it
+and keeps writing there. This machine runs **build 4200** entirely out of
+`Sublime Text 3/` — the ST4 markers are all in it (`Lib/python38`, a new
+`Log/`, and `~/Library/Caches/com.sublimetext.4/`), and no un-suffixed
+directory was ever created.
+
+The app bundle is named `Sublime Text.app` in both versions, so the app name
+tells you nothing either. Check `CFBundleVersion` for the build and check which
+directory has recent mtimes for the data. There is also a stale
+`Sublime Text 2/` here that is not read by anything.
+
+`bootstrap.sh` therefore **probes** rather than hardcoding: legacy directory if
+it exists, modern path otherwise. Hardcoding either one links into a directory
+Sublime never opens — the settings are present, correct, and simply never load.
+
+It links the whole `Packages/User` directory rather than the individual
+settings files in it. Sublime writes every new keymap, snippet and per-plugin
+settings file into that directory, so file-by-file links would leave each new
+one untracked — settings would look synced until the first time you added one.
+
+### The colour scheme has to be tracked
+
+`Package Control.sublime-settings` lists the installed packages, and Package
+Control reinstalls them from that list on a new machine. That covers plugins.
+It does **not** cover the themes those plugins downloaded.
+
+`Preferences.sublime-settings` sets:
+
+```json
+"color_scheme": "Packages/Colorsublime - Themes/FireCode.tmTheme"
+```
+
+Colorsublime fetched `FireCode.tmTheme` on demand and dropped it loose in its
+package directory. Nothing reinstalls it — restore only the settings files and
+Package Control reports success while Sublime opens on default colours, which
+reads as "the theme package broke" rather than "a file is missing". So the
+`.tmTheme` itself is committed to `sublime/themes/` and linked into place.
+
+This also decouples the scheme from the plugin: Sublime loads any directory
+under `Packages/` whether or not a plugin manages it, so the theme survives
+Colorsublime going unmaintained or not being ST4-compatible.
+
+Not tracked, deliberately: `Colorsublime - Themes/cache/` (5.7 MB clone of the
+upstream themes repo, re-fetched on demand),
+`Installed Packages/*.sublime-package` (Package Control reinstalls these; note
+the ones here are ST3-era, so expect to install Package Control fresh on ST4),
+and everything under `Local/` — which on ST4 now includes
+`Auto Save Session.sublime_session` and its backups.
 
 ## ObinsKit (Anne Pro keyboard)
 
