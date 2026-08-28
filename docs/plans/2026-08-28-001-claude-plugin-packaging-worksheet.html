@@ -1,0 +1,912 @@
+<title>Plugin Strata</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #F7F8F7;
+    --surface: #FFFFFF;
+    --surface-sunk: #EFF2F1;
+    --ink: #16211F;
+    --ink-soft: #46544F;
+    --ink-faint: #6E7A76;
+    --rule: #D9DFDD;
+    --rule-firm: #BFC8C5;
+
+    --l1: #0F5C55;
+    --l2: #2E8B7F;
+    --l3: #7FB3A8;
+    --l1-wash: #E4EEEC;
+    --l2-wash: #E9F2F0;
+    --l3-wash: #EFF5F3;
+
+    --signal: #C9622F;
+    --signal-wash: #FAEDE5;
+    --alarm: #A32E2E;
+    --alarm-wash: #F8E9E9;
+
+    --sel: #0F5C55;
+    --sel-wash: #DCEBE8;
+
+    --fs-display: clamp(1.9rem, 4.2vw, 2.9rem);
+    --sp: 0.75rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1413;
+      --surface: #161E1C;
+      --surface-sunk: #111917;
+      --ink: #E6EDEA;
+      --ink-soft: #AFBCB7;
+      --ink-faint: #7E8C87;
+      --rule: #263230;
+      --rule-firm: #374744;
+
+      --l1: #6FC2B4;
+      --l2: #55A899;
+      --l3: #3F8377;
+      --l1-wash: #16302C;
+      --l2-wash: #142A27;
+      --l3-wash: #122522;
+
+      --signal: #E8894F;
+      --signal-wash: #33200F;
+      --alarm: #E07070;
+      --alarm-wash: #331616;
+
+      --sel: #6FC2B4;
+      --sel-wash: #1B3B36;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0E1413;
+    --surface: #161E1C;
+    --surface-sunk: #111917;
+    --ink: #E6EDEA;
+    --ink-soft: #AFBCB7;
+    --ink-faint: #7E8C87;
+    --rule: #263230;
+    --rule-firm: #374744;
+
+    --l1: #6FC2B4;
+    --l2: #55A899;
+    --l3: #3F8377;
+    --l1-wash: #16302C;
+    --l2-wash: #142A27;
+    --l3-wash: #122522;
+
+    --signal: #E8894F;
+    --signal-wash: #33200F;
+    --alarm: #E07070;
+    --alarm-wash: #331616;
+
+    --sel: #6FC2B4;
+    --sel-wash: #1B3B36;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead { display: flex; flex-direction: column; gap: 0.6rem; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  h1 {
+    font-family: Spectral, Georgia, "Times New Roman", serif;
+    font-size: var(--fs-display);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-family: Spectral, Georgia, serif;
+    font-size: 1.05rem;
+    font-style: italic;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  /* ---------- readout strip ---------- */
+  .readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .stat {
+    flex: 1 1 8rem;
+    padding: 0.7rem 0.95rem;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat .k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.64rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .stat .v {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.15rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .v.warn { color: var(--signal); }
+  .stat .v.bad { color: var(--alarm); }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .hint {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    flex: 1 1 20rem;
+  }
+  .hint b { color: var(--ink); font-weight: 600; }
+  button {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule-firm);
+    border-radius: 3px;
+    padding: 0.42rem 0.8rem;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  button:hover { background: var(--surface-sunk); border-color: var(--ink-faint); }
+  button:focus-visible { outline: 2px solid var(--sel); outline-offset: 2px; }
+
+  /* ---------- level bands ---------- */
+  .bands { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .band {
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--band);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .band[data-level="1"] { --band: var(--l1); --band-wash: var(--l1-wash); }
+  .band[data-level="2"] { --band: var(--l2); --band-wash: var(--l2-wash); }
+  .band[data-level="3"] { --band: var(--l3); --band-wash: var(--l3-wash); }
+
+  .band-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    padding: 0.6rem 1rem;
+    background: var(--band-wash);
+    border-bottom: 1px solid var(--rule);
+    flex-wrap: wrap;
+  }
+  .band-num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--band);
+    text-transform: uppercase;
+  }
+  .band-name {
+    font-family: Spectral, Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .band-rule {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    flex: 1 1 16rem;
+  }
+
+  .band-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr));
+    gap: 1px;
+    background: var(--rule);
+  }
+
+  .plugin {
+    background: var(--surface);
+    padding: 0.8rem 0.9rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    cursor: pointer;
+    transition: background 120ms ease;
+    min-height: 8rem;
+  }
+  .plugin:hover { background: var(--surface-sunk); }
+  .plugin.target { background: var(--sel-wash); box-shadow: inset 0 0 0 2px var(--sel); }
+
+  .plugin-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  .plugin-name {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--band);
+  }
+  .plugin-tok {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-faint);
+  }
+  .plugin-deps {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.66rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    padding-top: 0.15rem;
+    border-top: 1px dotted var(--rule-firm);
+  }
+  .plugin-deps .opt { color: var(--signal); }
+  .plugin-deps .viol { color: var(--alarm); font-weight: 600; }
+  .plugin-deps .none { color: var(--ink-faint); font-style: italic; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    padding: 0.16rem 0.42rem;
+    border: 1px solid var(--rule-firm);
+    border-radius: 2px;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 100ms ease, border-color 100ms ease;
+  }
+  .chip:hover { border-color: var(--sel); }
+  .chip.sel {
+    background: var(--sel);
+    border-color: var(--sel);
+    color: var(--ground);
+    font-weight: 500;
+  }
+  .chip.linked { border-color: var(--signal); background: var(--signal-wash); }
+
+  /* ---------- tray ---------- */
+  .tray {
+    border: 1px dashed var(--rule-firm);
+    border-radius: 3px;
+    background: var(--surface-sunk);
+    padding: 0.8rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+  .tray.target { box-shadow: inset 0 0 0 2px var(--sel); }
+  .tray-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .tray-empty { font-size: 0.85rem; color: var(--ink-faint); font-style: italic; }
+
+  /* ---------- analysis ---------- */
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 1.1rem;
+  }
+  .panel {
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-head {
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-sunk);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .panel-title {
+    font-family: Spectral, Georgia, serif;
+    font-size: 0.98rem;
+    font-weight: 600;
+  }
+  .panel-note {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .panel-body { padding: 0.75rem 0.9rem; overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  th, td {
+    text-align: left;
+    padding: 0.3rem 0.45rem 0.3rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  td.mono, td .mono {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.73rem;
+  }
+  tr:last-child td { border-bottom: 0; }
+
+  .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.62rem;
+    padding: 0.05rem 0.3rem;
+    border-radius: 2px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .tag.req { color: var(--l1); }
+  .tag.opt { color: var(--signal); background: var(--signal-wash); }
+  .tag.ext { color: var(--ink-faint); }
+  .tag.viol { color: var(--alarm); background: var(--alarm-wash); font-weight: 600; }
+
+  pre {
+    margin: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: var(--ink);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .empty-note { font-size: 0.82rem; color: var(--ink-faint); font-style: italic; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  footer code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Packaging worksheet &middot; 23 skills &middot; 28 Aug 2026</div>
+    <h1>Plugin Strata</h1>
+    <p class="standfirst">Assigning personal skills across three levels &mdash; pure capability, personal workflow, org orchestration &mdash; so a consumer can take a primitive without inheriting the opinion built on top of it.</p>
+  </header>
+
+  <div class="readout" id="readout"></div>
+
+  <div class="toolbar">
+    <div class="hint">Click a <b>skill</b>, then click the plugin that should own it. Dependencies, level violations and the manifest all recompute live.</div>
+    <button type="button" id="btn-reset">Reset to proposal</button>
+    <button type="button" id="btn-copy">Copy manifest</button>
+  </div>
+
+  <div class="bands" id="bands"></div>
+
+  <div class="tray" id="tray" data-plugin="">
+    <div class="tray-label">Unassigned</div>
+    <div class="chips" id="tray-chips"></div>
+  </div>
+
+  <div class="panels">
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Cross-plugin dependencies</span>
+        <span class="panel-note" id="dep-count"></span>
+      </div>
+      <div class="panel-body" id="dep-body"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Generated manifest</span>
+        <span class="panel-note">plugin.json deps</span>
+      </div>
+      <div class="panel-body"><pre id="manifest"></pre></div>
+    </section>
+  </div>
+
+  <footer>
+    <div>Optional edges are shown in orange. Claude Code has no <code>peerDependencies</code> &mdash; the validator reports it as an unknown field ignored at load time &mdash; so every orange edge is either an over-requiring hard dependency or unenforced prose.</div>
+    <div>Token figures are always-on cost measured from each skill&rsquo;s frontmatter at roughly 4 characters per token. Grouping is saved in this browser only.</div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SKILLS = [
+    { id: "send-gchat-message",          tok: 96,  surf: "gcloud, Chat" },
+    { id: "open-in-arc",                 tok: 87,  surf: "Arc" },
+    { id: "gcp-ci-watch",                tok: 63,  surf: "gh, gcloud" },
+    { id: "vim-rest",                    tok: 58,  surf: "vim / rest.nvim" },
+    { id: "green-commits",               tok: 124, surf: "git, go" },
+    { id: "commit-preferences",          tok: 79,  surf: "git" },
+    { id: "plan-implementation-commits", tok: 65,  surf: "git" },
+    { id: "golang-pre-commit-tests",     tok: 72,  surf: "git, go" },
+    { id: "user-preferences",            tok: 55,  surf: "go" },
+    { id: "open-pr",                     tok: 44,  surf: "gh, git, Arc" },
+    { id: "pr-ready",                    tok: 59,  surf: "gh, git, Chat" },
+    { id: "merge-pr",                    tok: 60,  surf: "gh, git, gcloud" },
+    { id: "pr-feedback-watcher",         tok: 84,  surf: "gh, gcloud" },
+    { id: "sync-base",                   tok: 173, surf: "gh, git, go" },
+    { id: "worktree-cleanup",            tok: 46,  surf: "gh, git" },
+    { id: "git-worktree-jira-branch",    tok: 56,  surf: "git, Jira naming" },
+    { id: "notify-pr-channels",          tok: 67,  surf: "gh, Chat" },
+    { id: "regression-triage",           tok: 147, surf: "gh, Arc, Chat, Confluence, go" },
+    { id: "wsu",                         tok: 68,  surf: "gh, git, Confluence" },
+    { id: "wsu-note",                    tok: 50,  surf: "none" },
+    { id: "plan-commit-to-worktree",     tok: 143, surf: "gh, git, Arc, ce-plan" },
+    { id: "pr-studio-open-in-arc",       tok: 85,  surf: "Arc, pr-studio" },
+    { id: "temporal-activities",         tok: 54,  surf: "Temporal" }
+  ];
+
+  // Real delegations only. Backward mentions ("X delegates here") excluded.
+  var EDGES = [
+    { from: "notify-pr-channels",          to: "send-gchat-message",         opt: false },
+    { from: "pr-ready",                    to: "notify-pr-channels",         opt: false },
+    { from: "open-pr",                     to: "commit-preferences",         opt: false },
+    { from: "open-pr",                     to: "open-in-arc",                opt: true  },
+    { from: "merge-pr",                    to: "gcp-ci-watch",               opt: true  },
+    { from: "pr-feedback-watcher",         to: "gcp-ci-watch",               opt: true  },
+    { from: "pr-feedback-watcher",         to: "green-commits",              opt: false },
+    { from: "pr-feedback-watcher",         to: "merge-pr",                   opt: false },
+    { from: "plan-implementation-commits", to: "commit-preferences",         opt: false },
+    { from: "plan-implementation-commits", to: "green-commits",              opt: false },
+    { from: "plan-commit-to-worktree",     to: "git-worktree-jira-branch",   opt: false },
+    { from: "plan-commit-to-worktree",     to: "open-pr",                    opt: false },
+    { from: "plan-commit-to-worktree",     to: "open-in-arc",                opt: true  },
+    { from: "pr-studio-open-in-arc",       to: "open-in-arc",                opt: false },
+    { from: "wsu",                         to: "wsu-note",                   opt: false },
+    { from: "regression-triage",           to: "send-gchat-message",         opt: false },
+    { from: "regression-triage",           to: "notify-pr-channels",         opt: false },
+    { from: "regression-triage",           to: "pr-ready",                   opt: false },
+    { from: "regression-triage",           to: "open-pr",                    opt: false },
+    { from: "regression-triage",           to: "open-in-arc",                opt: true  },
+    { from: "regression-triage",           to: "merge-pr",                   opt: false },
+    { from: "regression-triage",           to: "pr-feedback-watcher",        opt: false },
+    { from: "regression-triage",           to: "green-commits",              opt: false },
+    { from: "regression-triage",           to: "plan-implementation-commits",opt: false },
+    { from: "regression-triage",           to: "golang-pre-commit-tests",    opt: false },
+    { from: "regression-triage",           to: "git-worktree-jira-branch",   opt: false }
+  ];
+
+  var EXTERNAL = {
+    "plan-commit-to-worktree": "compound-engineering@compound-engineering-plugin",
+    "pr-studio-open-in-arc":   "vendasta-pr-studio@vendasta-dev-agent-toolkit"
+  };
+
+  var LEVELS = [
+    { n: 1, name: "Capability", rule: "Wraps one external tool. No workflow opinion, no dependency on another personal plugin." },
+    { n: 2, name: "Workflow",   rule: "Personal conventions built on the capabilities below. Independently declinable." },
+    { n: 3, name: "Org",        rule: "Orchestrates across everything. Internal only, never published." }
+  ];
+
+  var PLUGINS = [
+    { id: "gchat-send",        level: 1 },
+    { id: "arc-open",          level: 1 },
+    { id: "cloudbuild-status", level: 1 },
+    { id: "rest-console",      level: 1 },
+    { id: "commit-flow",       level: 2 },
+    { id: "pr-flow",           level: 2 },
+    { id: "vendasta-flow",     level: 3 }
+  ];
+
+  var PROPOSAL = {
+    "send-gchat-message": "gchat-send",
+    "open-in-arc": "arc-open",
+    "gcp-ci-watch": "cloudbuild-status",
+    "vim-rest": "rest-console",
+    "green-commits": "commit-flow",
+    "commit-preferences": "commit-flow",
+    "plan-implementation-commits": "commit-flow",
+    "golang-pre-commit-tests": "commit-flow",
+    "user-preferences": "commit-flow",
+    "open-pr": "pr-flow",
+    "pr-ready": "pr-flow",
+    "merge-pr": "pr-flow",
+    "pr-feedback-watcher": "pr-flow",
+    "sync-base": "pr-flow",
+    "worktree-cleanup": "pr-flow",
+    "git-worktree-jira-branch": "pr-flow",
+    "notify-pr-channels": "pr-flow",
+    "regression-triage": "vendasta-flow",
+    "wsu": "vendasta-flow",
+    "wsu-note": "vendasta-flow",
+    "plan-commit-to-worktree": "vendasta-flow",
+    "pr-studio-open-in-arc": "vendasta-flow",
+    "temporal-activities": "vendasta-flow"
+  };
+
+  var KEY = "plugin-strata-v1";
+  var assign = {};
+  var selected = null;
+
+  var skillById = {};
+  SKILLS.forEach(function (s) { skillById[s.id] = s; });
+  var pluginById = {};
+  PLUGINS.forEach(function (p) { pluginById[p.id] = p; });
+
+  function load() {
+    var stored = null;
+    try { stored = window.localStorage.getItem(KEY); } catch (e) { stored = null; }
+    if (stored) {
+      try {
+        var parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === "object") {
+          SKILLS.forEach(function (s) {
+            var v = parsed[s.id];
+            assign[s.id] = (v && pluginById[v]) ? v : (v === null ? null : PROPOSAL[s.id]);
+          });
+          return;
+        }
+      } catch (e) { /* fall through to proposal */ }
+    }
+    reset(true);
+  }
+
+  function save() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(assign)); } catch (e) { /* ignore */ }
+  }
+
+  function reset(quiet) {
+    SKILLS.forEach(function (s) { assign[s.id] = PROPOSAL[s.id]; });
+    if (!quiet) { save(); render(); }
+  }
+
+  // ---- derived analysis ----
+
+  function analyse() {
+    var byPlugin = {};
+    PLUGINS.forEach(function (p) { byPlugin[p.id] = { tok: 0, skills: [], deps: {} }; });
+    var unassigned = [];
+
+    SKILLS.forEach(function (s) {
+      var p = assign[s.id];
+      if (p && byPlugin[p]) {
+        byPlugin[p].tok += s.tok;
+        byPlugin[p].skills.push(s.id);
+      } else {
+        unassigned.push(s.id);
+      }
+    });
+
+    var rows = [];
+    EDGES.forEach(function (e) {
+      var pf = assign[e.from], pt = assign[e.to];
+      if (!pf || !pt || pf === pt) { return; }
+      var lf = pluginById[pf].level, lt = pluginById[pt].level;
+      var violation = lt > lf;           // depending upward breaks the level rule
+      var sideways = lt === lf;
+      rows.push({
+        from: e.from, to: e.to, pf: pf, pt: pt,
+        opt: e.opt, violation: violation, sideways: sideways
+      });
+      var bucket = byPlugin[pf].deps[pt];
+      if (!bucket) { bucket = byPlugin[pf].deps[pt] = { opt: true, violation: false, sideways: sideways }; }
+      if (!e.opt) { bucket.opt = false; }
+      if (violation) { bucket.violation = true; }
+    });
+
+    var ext = [];
+    Object.keys(EXTERNAL).forEach(function (sk) {
+      if (assign[sk]) { ext.push({ plugin: assign[sk], skill: sk, dep: EXTERNAL[sk] }); }
+    });
+
+    return { byPlugin: byPlugin, unassigned: unassigned, rows: rows, ext: ext };
+  }
+
+  // ---- rendering ----
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (text !== undefined) { n.textContent = text; }
+    return n;
+  }
+
+  function neighbours(id) {
+    var set = {};
+    EDGES.forEach(function (e) {
+      if (e.from === id) { set[e.to] = true; }
+      if (e.to === id) { set[e.from] = true; }
+    });
+    return set;
+  }
+
+  function chip(id) {
+    var c = el("button", "chip", id);
+    c.type = "button";
+    c.setAttribute("data-skill", id);
+    if (selected === id) { c.classList.add("sel"); }
+    else if (selected && neighbours(selected)[id]) { c.classList.add("linked"); }
+    c.title = skillById[id].surf + " · ~" + skillById[id].tok + " tok";
+    c.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selected = (selected === id) ? null : id;
+      render();
+    });
+    return c;
+  }
+
+  function render() {
+    var a = analyse();
+
+    // readout
+    var totalTok = SKILLS.reduce(function (n, s) { return n + s.tok; }, 0);
+    var viol = a.rows.filter(function (r) { return r.violation; }).length;
+    var optCount = a.rows.filter(function (r) { return r.opt && !r.violation; }).length;
+    var live = PLUGINS.filter(function (p) { return a.byPlugin[p.id].skills.length > 0; }).length;
+
+    var ro = document.getElementById("readout");
+    ro.textContent = "";
+    [
+      { k: "Plugins in use", v: String(live), cls: "" },
+      { k: "Unassigned", v: String(a.unassigned.length), cls: a.unassigned.length ? "warn" : "" },
+      { k: "Cross-plugin deps", v: String(a.rows.length), cls: "" },
+      { k: "Optional edges", v: String(optCount), cls: optCount ? "warn" : "" },
+      { k: "Level violations", v: String(viol), cls: viol ? "bad" : "" },
+      { k: "Always-on tokens", v: String(totalTok), cls: "" }
+    ].forEach(function (s) {
+      var d = el("div", "stat");
+      d.appendChild(el("span", "k", s.k));
+      d.appendChild(el("span", "v " + s.cls, s.v));
+      ro.appendChild(d);
+    });
+
+    // bands
+    var bands = document.getElementById("bands");
+    bands.textContent = "";
+    LEVELS.forEach(function (lv) {
+      var band = el("div", "band");
+      band.setAttribute("data-level", String(lv.n));
+
+      var head = el("div", "band-head");
+      head.appendChild(el("span", "band-num", "Level " + lv.n));
+      head.appendChild(el("span", "band-name", lv.name));
+      head.appendChild(el("span", "band-rule", lv.rule));
+      band.appendChild(head);
+
+      var body = el("div", "band-body");
+      PLUGINS.filter(function (p) { return p.level === lv.n; }).forEach(function (p) {
+        var info = a.byPlugin[p.id];
+        var card = el("div", "plugin");
+        card.setAttribute("data-plugin", p.id);
+        if (selected) { card.classList.add("target"); }
+
+        var top = el("div", "plugin-top");
+        top.appendChild(el("span", "plugin-name", p.id));
+        top.appendChild(el("span", "plugin-tok", "~" + info.tok + " tok"));
+        card.appendChild(top);
+
+        var chips = el("div", "chips");
+        info.skills.forEach(function (s) { chips.appendChild(chip(s)); });
+        card.appendChild(chips);
+
+        var deps = el("div", "plugin-deps");
+        var names = Object.keys(info.deps);
+        if (!names.length) {
+          deps.appendChild(el("span", "none", "no dependencies"));
+        } else {
+          deps.appendChild(document.createTextNode("deps: "));
+          names.forEach(function (d, i) {
+            var b = info.deps[d];
+            var span = el("span", b.violation ? "viol" : (b.opt ? "opt" : ""), d + (b.opt ? " (optional)" : ""));
+            deps.appendChild(span);
+            if (i < names.length - 1) { deps.appendChild(document.createTextNode(", ")); }
+          });
+        }
+        card.appendChild(deps);
+
+        card.addEventListener("click", function () {
+          if (!selected) { return; }
+          assign[selected] = p.id;
+          selected = null;
+          save();
+          render();
+        });
+
+        body.appendChild(card);
+      });
+      band.appendChild(body);
+      bands.appendChild(band);
+    });
+
+    // tray
+    var tray = document.getElementById("tray");
+    var trayChips = document.getElementById("tray-chips");
+    trayChips.textContent = "";
+    if (selected) { tray.classList.add("target"); } else { tray.classList.remove("target"); }
+    if (!a.unassigned.length) {
+      trayChips.appendChild(el("span", "tray-empty", "Every skill is placed."));
+    } else {
+      a.unassigned.forEach(function (s) { trayChips.appendChild(chip(s)); });
+    }
+
+    // dependency panel
+    var depBody = document.getElementById("dep-body");
+    depBody.textContent = "";
+    document.getElementById("dep-count").textContent = a.rows.length + " edges";
+
+    if (!a.rows.length && !a.ext.length) {
+      depBody.appendChild(el("p", "empty-note", "No skill in one plugin delegates to a skill in another. Nothing needs a dependencies entry."));
+    } else {
+      var table = el("table");
+      var thead = el("thead");
+      var hr = el("tr");
+      ["Delegation", "Crosses", "Kind"].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+      thead.appendChild(hr);
+      table.appendChild(thead);
+
+      var tbody = el("tbody");
+      a.rows.forEach(function (r) {
+        var tr = el("tr");
+        var c1 = el("td", "mono");
+        c1.textContent = r.from + " → " + r.to;
+        tr.appendChild(c1);
+
+        var c2 = el("td", "mono");
+        c2.textContent = r.pf + " → " + r.pt;
+        tr.appendChild(c2);
+
+        var c3 = el("td");
+        if (r.violation) {
+          c3.appendChild(el("span", "tag viol", "depends upward"));
+        } else if (r.opt) {
+          c3.appendChild(el("span", "tag opt", "optional"));
+        } else {
+          c3.appendChild(el("span", "tag req", "required"));
+        }
+        tr.appendChild(c3);
+        tbody.appendChild(tr);
+      });
+
+      a.ext.forEach(function (e) {
+        var tr = el("tr");
+        var c1 = el("td", "mono");
+        c1.textContent = e.skill + " → " + e.dep;
+        tr.appendChild(c1);
+        var c2 = el("td", "mono");
+        c2.textContent = e.plugin + " → external";
+        tr.appendChild(c2);
+        var c3 = el("td");
+        c3.appendChild(el("span", "tag ext", "cross-marketplace"));
+        tr.appendChild(c3);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      depBody.appendChild(table);
+    }
+
+    document.getElementById("manifest").textContent = manifest(a);
+  }
+
+  function manifest(a) {
+    var out = [];
+    PLUGINS.forEach(function (p) {
+      var info = a.byPlugin[p.id];
+      if (!info.skills.length) { return; }
+      var hard = Object.keys(info.deps).filter(function (d) { return !info.deps[d].opt; });
+      info.skills.forEach(function (s) {
+        if (EXTERNAL[s]) { hard.push(EXTERNAL[s]); }
+      });
+      var soft = Object.keys(info.deps).filter(function (d) { return info.deps[d].opt; });
+
+      out.push("// " + p.id + "  · level " + p.level + "  · ~" + info.tok + " tok");
+      out.push("{");
+      out.push('  "name": "' + p.id + '",');
+      out.push('  "version": "0.1.0",');
+      if (hard.length) {
+        out.push('  "dependencies": [' + hard.map(function (d) { return '"' + d + '"'; }).join(", ") + "]");
+      } else {
+        out.push('  "dependencies": []');
+      }
+      out.push("}");
+      if (soft.length) {
+        out.push("// optional, not expressible: " + soft.join(", "));
+      }
+      out.push("");
+    });
+    if (!out.length) { return "// every skill is unassigned"; }
+    return out.join("\n");
+  }
+
+  document.getElementById("tray").addEventListener("click", function () {
+    if (!selected) { return; }
+    assign[selected] = null;
+    selected = null;
+    save();
+    render();
+  });
+
+  document.getElementById("btn-reset").addEventListener("click", function () { reset(false); });
+
+  document.getElementById("btn-copy").addEventListener("click", function (ev) {
+    var btn = ev.currentTarget;
+    var text = document.getElementById("manifest").textContent;
+    var done = function (ok) {
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      window.setTimeout(function () { btn.textContent = "Copy manifest"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else {
+      done(false);
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && selected) { selected = null; render(); }
+  });
+
+  load();
+  render();
+})();
+</script>
