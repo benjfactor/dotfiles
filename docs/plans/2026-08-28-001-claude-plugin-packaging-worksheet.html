@@ -181,6 +181,16 @@
   button:hover { background: var(--surface-sunk); border-color: var(--ink-faint); }
   button:focus-visible { outline: 2px solid var(--sel); outline-offset: 2px; }
 
+  .flash {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.75rem;
+    color: var(--l1);
+    background: var(--l1-wash);
+    border: 1px solid var(--l1);
+    border-radius: 3px;
+    padding: 0.45rem 0.7rem;
+  }
+
   .bands { display: flex; flex-direction: column; gap: 1.1rem; }
 
   .band {
@@ -552,6 +562,8 @@
     <button type="button" id="btn-undo" hidden>Undo load</button>
     <button type="button" id="btn-reset">Reset to proposal</button>
   </div>
+
+  <div class="flash" id="flash" hidden></div>
 
   <div class="bands" id="bands"></div>
 
@@ -1476,10 +1488,20 @@
     return L.join("\n");
   }
 
+  var flashTimer = null;
+  function flash(msg) {
+    var box = document.getElementById("flash");
+    box.textContent = msg;
+    box.hidden = false;
+    if (flashTimer) { window.clearTimeout(flashTimer); }
+    flashTimer = window.setTimeout(function () { box.hidden = true; }, 5000);
+  }
+
   function copyTo(btn, text, label) {
     var done = function (ok) {
       btn.textContent = ok ? "Copied" : "Copy failed";
       window.setTimeout(function () { btn.textContent = label; }, 1600);
+      if (!ok) { flash("Clipboard is blocked here — select the text in the panel below and copy it manually."); }
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
@@ -1496,23 +1518,29 @@
     copyTo(ev.currentTarget, brief(analyse()), "Copy brief for Claude");
   });
 
+  // No window.confirm anywhere: the artifact runs in a sandboxed iframe where
+  // modals can be blocked, and a blocked confirm() returns false, so the action
+  // silently never runs. Every destructive action snapshots first instead, and
+  // Undo load restores it.
   document.getElementById("btn-revision").addEventListener("click", function () {
-    if (!window.confirm("Load Claude's revision? Your current board is saved — Undo load brings it back.")) {
-      return;
-    }
     applyRevision();
     selected = null;
     gnBox.value = globalNotes;
     save();
     render();
+    flash("Loaded Claude's revision — your board is saved under Undo load.");
   });
 
   document.getElementById("btn-undo").addEventListener("click", function () {
-    if (!restoreUndo()) { return; }
+    if (!restoreUndo()) {
+      flash("Nothing to undo.");
+      return;
+    }
     selected = null;
     gnBox.value = globalNotes;
     save();
     render();
+    flash("Restored your previous board.");
   });
 
   document.getElementById("tray").addEventListener("click", function () {
@@ -1524,15 +1552,13 @@
   });
 
   document.getElementById("btn-reset").addEventListener("click", function () {
-    var written = globalNotes.trim() || plugins.some(function (p) { return (p.notes || "").trim(); });
-    if (written && !window.confirm("Reset discards your notes as well as the grouping. Continue?")) {
-      return;
-    }
+    snapshot();
     reset();
     selected = null;
     gnBox.value = globalNotes;
     save();
     render();
+    flash("Reset to the original proposal — your board is saved under Undo load.");
   });
 
   document.getElementById("btn-copy").addEventListener("click", function (ev) {
