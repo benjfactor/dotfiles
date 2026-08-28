@@ -16,7 +16,7 @@ product_contract_source: ce-brainstorm
 
 **Product authority.** This plan owns the packaging structure: how many marketplaces, what level each skill belongs to, how plugins depend on each other, and how org-specific configuration separates from portable skill logic. It does not own skill content; no skill body is rewritten beyond moving hard-coded identifiers behind configuration.
 
-**Open blockers.** Three items block planning: final skill-to-plugin membership within the settled level structure, whether the marketplace lives in `benjfactor/dotfiles` or a dedicated repo, and the naming scheme. See Outstanding Questions.
+**Open blockers.** Two items block planning: final skill-to-plugin membership within the settled level structure, and whether the marketplace lives in `benjfactor/dotfiles` or a dedicated repo. Naming is not a blocker — a marketplace `renames` map makes plugin names reversible. See Outstanding Questions.
 
 ## Product Contract
 
@@ -37,7 +37,9 @@ The skills are densely interlinked — 13 of 23 reference at least one other by 
 - **Level is the primary split; surface is secondary.** (session-settled: user-directed — chosen over slicing by integration surface alone: surface grouping put opinionated conventions next to the primitives they wrap, and a consumer who wants a primitive should not inherit the convention above it.) Governs R3, R4, R5.
 - **Token cost is not a splitting criterion.** Measured always-on cost across all 23 skills is ~1,840 tokens, roughly twice the ecosystem median for one plugin and below its 90th percentile. The split buys selective adoption and publishability, not weight.
 - **Optional surfaces stay optional in prose, not in manifests.** Claude Code has no peer or optional dependency, so a hard `dependencies` entry would over-require a consumer whose CI or browser differs. Governs R7.
-- **Descriptive plugin names over evocative ones.** Plugin names are the human-facing install decision; the model matches on skill names and descriptions. Governs R8.
+- **Descriptive plugin names over evocative ones.** Plugin names are the human-facing install decision; the model matches on skill names and descriptions. Governs R8, R15.
+- **Names are reversible, so naming does not block.** The marketplace `renames` map migrates an old name to a current one, supports multi-hop chains, and tombstones removals with `null`; the validator rejects dangling targets and cycles. Governs R14, R17.
+- **Capability grouping follows the consumer's need, not the vendor's catalog.** A `gcloud` plugin bundling BigQuery and logging would group by billing relationship rather than by anything a consumer wants together. Governs R16.
 
 The settled level structure, with dashed edges marking optional dependencies the manifest cannot express:
 
@@ -93,6 +95,13 @@ flowchart TD
 - R12. Skills stay editable in place during development, with no reinstall step between an edit and the next session using it.
 - R13. Marketplace and plugin manifests pass `claude plugin validate --strict` before release.
 
+**Naming and grouping**
+
+- R14. Plugin names are treated as reversible. When a name changes, the marketplace declares the old name in its `renames` map pointing at the current one; a removed plugin is tombstoned with `null` rather than dropped silently.
+- R15. Every plugin carries a marketplace-entry `description` stating what a consumer gets and what they must already have installed or authenticated, plus a `displayName` whenever the machine name is not the clearest human label.
+- R16. Capability plugins group by the capability a consumer wants, not by the vendor that supplies it. A single vendor's unrelated tools stay in separate plugins.
+- R17. Plugin names carry no `-skills` or `-plugin` suffix.
+
 ### Key Flows
 
 - **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `gchat-send`, and configure their own space ID via `userConfig`. Outcome: no workflow plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
@@ -109,6 +118,9 @@ flowchart TD
 
 - Claude Code 2.1.251 accepts `dependencies` in `plugin.json` as an array of strings, auto-installs them, and prunes orphans via `claude plugin prune`. Verified by schema probe against the installed binary.
 - `peerDependencies` is not supported; the validator reports it as an unknown field ignored at load time. This is why R7 exists.
+- `renames` in `marketplace.json` maps an old plugin name to a target that must be a name in `plugins[]`, another `renames` key, or `null`. Multi-hop chains and `null` tombstones validate clean; dangling targets fail as `target-missing` and cycles as `cycle`. Verified by schema probe. The official marketplace carries nine live rename entries, most stripping a `-skills` or `-plugin` suffix.
+- Verified for renames: schema and validation behavior only. Install-time migration — whether a rename rewrites `enabledPlugins` keys in an existing `settings.json` or migrates an already-installed copy — was not verified and needs a real publish to test. The skill invocation prefix does change with the plugin name.
+- `description`, `displayName`, `keywords`, `author`, and `version` are accepted in `plugin.json`; `category` is not and warns as belonging in the marketplace entry. All 291 official marketplace entries set `description`.
 - A dependency's marketplace must already be added before install; Claude Code will not add one on the user's behalf.
 - `plan-commit-to-worktree` depends on the `compound-engineering` plugin and `pr-studio-open-in-arc` on `vendasta-pr-studio`. Both are cross-marketplace, so both hit the constraint above.
 - Assumed but unverified: a bare dependency name without `@marketplace` resolves within the declaring plugin's own marketplace. The schema accepts the bare form; resolution was not confirmed.
@@ -121,9 +133,10 @@ flowchart TD
 
 - Final membership within the settled level structure. The working proposal is: `gchat-send`, `arc-open`, `cloudbuild-status`, `rest-console` at level 1; `commit-flow` and `pr-flow` at level 2; `vendasta-flow` at level 3. See Appendix for the full assignment.
 - Repo home: the marketplace in `benjfactor/dotfiles`, which is already public and preserves the symlink dev loop, or a dedicated repo with clean tags and history.
-- Whether plugin names carry a personal prefix, and the marketplace name.
 
 **Deferred to Planning**
+
+- Whether plugin names carry a personal prefix, and the marketplace name. Deferred rather than blocking because `renames` makes names reversible per R14.
 
 - Whether bare dependency names resolve same-marketplace; testable only by publishing.
 - Whether `wsu-note`, which invokes no external system and carries no org coupling, belongs in `vendasta-flow` with `wsu` or at a lower level.
@@ -141,6 +154,8 @@ flowchart TD
 ## Appendix
 
 ### Proposed level assignment
+
+Plugin names below are provisional; naming is deferred per Outstanding Questions and reversible per R14.
 
 | Plugin | Level | Skills | ~always-on tokens | Depends on |
 |---|---|---|---|---|
