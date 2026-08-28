@@ -130,25 +130,37 @@ fi
 link claude/pr-studio/preferences.md "$CLAUDE_DIR/pr-studio/preferences.md"
 
 # ---------------------------------------------------------------------------
-# The installed Sublime is build 3200, so its data directory is the
-# version-suffixed "Sublime Text 3" path. Sublime 4 dropped that suffix while
-# the app bundle stayed named "Sublime Text.app", so the app name is no guide
-# to which directory is live -- check the build before assuming.
-#
+# Which directory Sublime reads cannot be derived from the installed version.
+# Sublime 4 uses the un-suffixed "Sublime Text" path on a clean install, but
+# when it finds a Sublime 3 data directory it adopts it and keeps writing
+# there -- verified on this machine, where build 4200 runs entirely out of
+# "Sublime Text 3". So probe for the legacy directory first and only fall back
+# to the modern path. Hardcoding either one silently links into a directory
+# Sublime never opens, and settings simply do not take effect.
+say
+say "== sublime text =="
+ST_SUPPORT="$HOME/Library/Application Support"
+if [[ -d "$ST_SUPPORT/Sublime Text 3" ]]; then
+  ST_PACKAGES="$ST_SUPPORT/Sublime Text 3/Packages"
+  say "ok    using legacy data dir (Sublime Text 3)"
+else
+  ST_PACKAGES="$ST_SUPPORT/Sublime Text/Packages"
+  say "ok    using current data dir (Sublime Text)"
+fi
+
 # The whole User directory is linked rather than the settings files inside it.
 # Sublime writes every new keymap, snippet and per-plugin setting into that
 # directory, so linking files one by one would leave each new one untracked --
 # and settings would appear to sync right up until the day you add one.
-say
-say "== sublime text =="
-ST_PACKAGES="$HOME/Library/Application Support/Sublime Text 3/Packages"
 link sublime/User "$ST_PACKAGES/User"
 
 # Package Control restores the Colorsublime *plugin* from installed_packages,
 # but not the themes that plugin downloaded: those land loose in this directory
 # and exist nowhere else. Preferences.sublime-settings points color_scheme
 # straight at FireCode.tmTheme, so without this the restore looks complete and
-# Sublime still opens on the default colours.
+# Sublime still opens on the default colours. Tracking the .tmTheme also means
+# the scheme survives Colorsublime itself going unmaintained -- Sublime loads
+# any directory under Packages/ whether or not a plugin manages it.
 link "sublime/themes/FireCode.tmTheme" "$ST_PACKAGES/Colorsublime - Themes/FireCode.tmTheme"
 
 # ---------------------------------------------------------------------------
