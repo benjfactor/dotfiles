@@ -408,6 +408,7 @@
     border-radius: 2px;
     padding: 0.1rem 0.2rem;
   }
+  .card-foot select.internal { color: var(--signal); border-color: var(--signal); }
   .card-foot .kill {
     font-size: 0.7rem;
     padding: 0.1rem 0.4rem;
@@ -575,6 +576,7 @@
   </div>
 
   <footer>
+    <div><b>Level is composition depth only</b> &mdash; what builds on what. Whether a plugin is publishable is a separate axis, set per card. An org-specific plugin can sit at any level: <code>notify-pr-channels</code> is Vendasta-specific and still a level-2 workflow, because the PR flow depends on it rather than the other way round.</div>
     <div>Optional edges are orange. Claude Code has no <code>peerDependencies</code> &mdash; the validator reports it as an unknown field ignored at load time &mdash; so every orange edge is either an over-requiring hard dependency or unenforced prose.</div>
     <div>A renamed plugin emits a <code>renames</code> entry in the manifest below, since a rename target must resolve to a name in <code>plugins[]</code>, another <code>renames</code> key, or <code>null</code>.</div>
     <div><b>Description</b> is published &mdash; it becomes the plugin&rsquo;s <code>description</code> in the manifest and is what a consumer reads when choosing to install. <b>Notes</b> are never published and never reach the manifest; they exist only to brief Claude, and <em>Copy brief for Claude</em> collects them along with the current grouping.</div>
@@ -648,10 +650,12 @@
     "pr-studio-open-in-arc":   "vendasta-pr-studio@vendasta-dev-agent-toolkit"
   };
 
+  // Level is composition depth only — what builds on what. Whether a plugin is
+  // publishable is a separate axis, carried by the publishable flag per plugin.
   var LEVELS = [
-    { n: 1, name: "Capability", rule: "Wraps one capability a consumer wants. No workflow opinion, no dependency on another personal plugin." },
-    { n: 2, name: "Workflow",   rule: "Personal conventions built on the capabilities below. Independently declinable." },
-    { n: 3, name: "Org",        rule: "Orchestrates across everything. Internal only, never published." }
+    { n: 1, name: "Capability",    rule: "Wraps one capability a consumer wants. No workflow opinion, and depends on no other personal plugin." },
+    { n: 2, name: "Workflow",      rule: "A convention built on the capabilities below. May depend sideways on another workflow, never upward." },
+    { n: 3, name: "Orchestration", rule: "Composes workflows into an end-to-end run. Depends downward only." }
   ];
 
   var PROPOSAL_PLUGINS = [
@@ -711,7 +715,7 @@
 
   function reset() {
     plugins = PROPOSAL_PLUGINS.map(function (p) {
-      return { key: p.key, name: p.name, level: p.level, desc: p.desc, notes: "" };
+      return { key: p.key, name: p.name, level: p.level, desc: p.desc, notes: "", pub: p.pub || "" };
     });
     assign = {};
     SKILLS.forEach(function (s) { assign[s.id] = PROPOSAL_ASSIGN[s.id]; });
@@ -770,7 +774,8 @@
           name: p.name,
           level: (p.level === 1 || p.level === 2 || p.level === 3) ? p.level : 1,
           desc: typeof p.desc === "string" ? p.desc : "",
-          notes: typeof p.notes === "string" ? p.notes : ""
+          notes: typeof p.notes === "string" ? p.notes : "",
+          pub: (p.pub === "public" || p.pub === "internal") ? p.pub : ""
         };
       });
       if (!plugins.length) { reset(); return; }
@@ -1089,6 +1094,28 @@
     });
     foot.appendChild(sel);
 
+    var pub = document.createElement("select");
+    pub.setAttribute("aria-label", "Publishability");
+    [
+      { v: "", t: "publishability?" },
+      { v: "public", t: "publishable" },
+      { v: "internal", t: "internal only" }
+    ].forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.v;
+      opt.textContent = o.t;
+      if (o.v === (p.pub || "")) { opt.selected = true; }
+      pub.appendChild(opt);
+    });
+    if (p.pub === "internal") { pub.classList.add("internal"); }
+    pub.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    pub.addEventListener("change", function () {
+      p.pub = pub.value;
+      save();
+      render();
+    });
+    foot.appendChild(pub);
+
     if (!info.skills.length) {
       var kill = el("button", "kill", "remove");
       kill.type = "button";
@@ -1227,7 +1254,8 @@
       L.push("");
       inLevel.forEach(function (p) {
         var info = a.info[p.key];
-        L.push("### " + p.name.trim() + "  (~" + info.tok + " tok, " + info.skills.length + " skills)");
+        L.push("### " + p.name.trim() + "  (~" + info.tok + " tok, " + info.skills.length + " skills"
+          + (p.pub ? ", " + p.pub : "") + ")");
         L.push("description: " + (p.desc.trim() || "(none)"));
         var n = (p.notes || "").trim();
         if (n) { L.push("notes: " + n); }

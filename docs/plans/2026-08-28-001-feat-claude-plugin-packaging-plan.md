@@ -22,7 +22,7 @@ product_contract_source: ce-brainstorm
 
 ### Summary
 
-Publish the personal skills as seven plugins from a single marketplace, organized primarily by level rather than by topic: capability plugins wrap one external tool with no workflow opinion, workflow plugins carry personal conventions on top of them, and one org plugin orchestrates across everything. Org identifiers move behind `userConfig` so the lower layers become publishable without a restructure.
+Publish the personal skills as a set of small plugins from a single marketplace, organized primarily by level rather than by topic: capability plugins wrap one capability with no workflow opinion, workflow plugins carry personal conventions on top of them, and orchestration plugins compose those into end-to-end runs. Level records composition depth alone; whether a plugin is publishable is tracked separately, so org-specific work sits at its real depth. Org identifiers move behind `userConfig` so the lower layers become publishable without a restructure.
 
 ### Problem Frame
 
@@ -40,6 +40,8 @@ The skills are densely interlinked — 13 of 23 reference at least one other by 
 - **Descriptive plugin names over evocative ones.** Plugin names are the human-facing install decision; the model matches on skill names and descriptions. Governs R8, R15.
 - **Names are reversible, so naming does not block.** The marketplace `renames` map migrates an old name to a current one, supports multi-hop chains, and tombstones removals with `null`; the validator rejects dangling targets and cycles. Governs R14, R17.
 - **Capability grouping follows the consumer's need, not the vendor's catalog.** A `gcloud` plugin bundling BigQuery and logging would group by billing relationship rather than by anything a consumer wants together. Governs R16.
+- **Level is depth, not portability.** Fusing the two pushed org-specific level-2 workflows up to the org level and produced dependencies pointing upward: the PR flow calls `notify-pr-channels`, so that skill sits below it regardless of being Vendasta-specific. Governs R18.
+- **Membership is the one decision that hardens at first publish.** Names stay reversible through `renames`; skill moves do not, which is why membership is settled before anything ships rather than after. Governs R19.
 
 The settled level structure, with dashed edges marking optional dependencies the manifest cannot express:
 
@@ -102,6 +104,11 @@ flowchart TD
 - R16. Capability plugins group by the capability a consumer wants, not by the vendor that supplies it. A single vendor's unrelated tools stay in separate plugins.
 - R17. Plugin names carry no `-skills` or `-plugin` suffix.
 
+**Level semantics**
+
+- R18. Level records composition depth only — what builds on what. Publishability is a separate per-plugin property, so an org-specific plugin sits at whatever depth its dependencies put it at rather than being pushed to the org level.
+- R19. Skill-to-plugin membership is settled before the first publish. A plugin rename is migratable through `renames`, but a skill moving between plugins has no migration path and silently removes the skill from anyone who installed the old plugin.
+
 ### Key Flows
 
 - **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `gchat-send`, and configure their own space ID via `userConfig`. Outcome: no workflow plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
@@ -155,17 +162,24 @@ flowchart TD
 
 ### Proposed level assignment
 
-Plugin names below are provisional; naming is deferred per Outstanding Questions and reversible per R14.
+Plugin names below are provisional; naming is deferred per Outstanding Questions and reversible per R14. This revision resolves the three upward dependencies produced by treating org-specificity as a level, per R18.
 
 | Plugin | Level | Skills | ~always-on tokens | Depends on |
 |---|---|---|---|---|
-| gchat-send | capability | send-gchat-message | 96 | — |
-| arc-open | capability | open-in-arc | 87 | — |
-| cloudbuild-status | capability | gcp-ci-watch | 63 | — |
+| gchat | capability | send-gchat-message | 96 | — |
+| arc | capability | open-in-arc | 87 | — |
+| cloud-build | capability | gcp-ci-watch | 63 | — |
 | rest-console | capability | vim-rest | 58 | — |
-| commit-flow | workflow | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests, user-preferences | 395 | — |
-| pr-flow | workflow | open-pr, pr-ready, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup, git-worktree-jira-branch, notify-pr-channels | 589 | gchat-send; optionally cloudbuild-status, arc-open |
-| vendasta-flow | org | regression-triage, wsu, wsu-note, plan-commit-to-worktree, pr-studio-open-in-arc, temporal-activities | 547 | commit-flow, pr-flow, gchat-send, arc-open, compound-engineering, vendasta-pr-studio |
+| git-commit-flow | workflow | green-commits, commit-preferences, plan-implementation-commits | 268 | — |
+| go-checks | workflow | golang-pre-commit-tests, user-preferences | 127 | — |
+| gh-pr-flow | workflow | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | git-commit-flow; optionally cloud-build, arc |
+| pr-notify | workflow | notify-pr-channels, pr-ready | 126 | gchat, gh-pr-flow |
+| jira-branch | workflow | git-worktree-jira-branch | 56 | — |
+| triage-flow | orchestration | regression-triage | 147 | gh-pr-flow, pr-notify, go-checks, jira-branch; optionally arc |
+| feats-of-merit | orchestration | wsu, wsu-note | 118 | gh-pr-flow |
+| plan-flow | orchestration | plan-commit-to-worktree | 143 | gh-pr-flow, jira-branch, compound-engineering; optionally arc |
+
+`temporal-activities` and `pr-studio-open-in-arc` are omitted: both duplicate plugins already installed from the Vendasta marketplace, and belong upstream rather than here.
 
 ### Surface matrix
 
