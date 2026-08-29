@@ -61,27 +61,48 @@ flowchart TD
     subgraph policy["POLICY - portable judgement, names roles, declares nothing"]
         triage["triage-flow<br/>ignore / fold in / track / track and fix"]
     end
-    subgraph glue["GLUE - your wiring of parts into roles"]
-        notify["pr-notify"]
-        jira["jira-flow"]
-        merit["feats-of-merit"]
+    subgraph driver["DRIVER - your assembly: sequence, gates, bindings"]
+        cycle["dev-cycle"]
     end
-    theirs["someone else's glue"]
+    theirs["someone else's driver"]
+    merit["feats-of-merit<br/>separate cycle"]
 
-    notify --> gchat
-    notify --> ghpr
-    jira --> commit
+    cycle --> gchat
+    cycle --> ghpr
+    cycle --> commit
+    cycle --> arc
+    cycle --> triage
     merit --> ghpr
     ghpr -. degrades .-> cb
     ghpr -. degrades .-> arc
-    triage -. fills roles from .-> glue
-    triage -. or from .-> theirs
+    theirs -.-> triage
     theirs -.-> gchat
     theirs -.-> ghpr
     theirs -.-> commit
 ```
 
 Levels still record composition depth per R18 — capability, workflow, orchestration — and the diagram's arrows are exactly the downward edges that rule permits. Parts and glue is the sharper cut, so it is the one drawn.
+
+The target end state is one driver over parts anyone can use in isolation. The cycle it drives:
+
+```mermaid
+flowchart LR
+    T1["create tracking item<br/>optional"]
+    BR["brainstorm<br/>optional"]
+    G1{{"human gate"}}
+    PL["plan"]
+    G2{{"human gate<br/>draft PR in Arc"}}
+    WK["work"]
+    G3{{"human gate<br/>draft PR in Arc"}}
+    RDY["open PR, announce,<br/>watch reviews, address feedback"]
+    G4{{"2 approvals<br/>ping me"}}
+    MRG["human says merge"]
+    DEP["deploy watch"]
+    TRI["triage-flow<br/>ignore / fold in / track / track and fix"]
+
+    T1 --> BR --> G1 --> PL --> G2 --> WK --> G3 --> RDY --> G4 --> MRG --> DEP --> TRI
+    TRI -->|new work| T1
+```
 
 ### Requirements
 
@@ -131,6 +152,9 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 
 - R22. Plugins divide into parts, policy, and glue. A part declares no dependency on another personal plugin and degrades when an adjacent capability is absent. A policy plugin carries portable judgement, names the roles it needs rather than the plugins that fill them, and declares no dependency either. Only glue — the wiring of specific parts into those roles — declares dependencies.
 - R22a. A policy plugin's dependency count is the measure of whether it is portable. `triage-flow` carries the reusable judgement, so it ends with the fewest dependencies rather than the most.
+- R22b. Exactly one plugin is the driver. It owns the development cycle's sequence, its human gates, and the bindings from roles to specific parts, and it is the one plugin where hard dependencies — including cross-marketplace ones — are correct, because installing it means opting into that assembly.
+- R22c. The driver closes a loop rather than ending a chain: triage of what deploy surfaces feeds new work back to the start of the cycle. A design that terminates after deploy has lost the property the cycle exists for.
+- R22d. The driver's value is its gates and waits, not its steps. Steps already exist as skills; what exists nowhere is the sequencing, the human review points, and the event transitions between them.
 - R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Six existing cross-references are rewritten to this form.
 - R24. No skill references another skill by relative file path. `notify-pr-channels` and `pr-studio-open-in-arc` currently do, and those paths cannot resolve once the skills sit in different plugins.
 - R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Five skills currently hardcode the symlink path, which does not exist for an installed plugin.
@@ -139,8 +163,9 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 ### Key Flows
 
 - **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `gchat`, and configure their own space ID via `userConfig`. Outcome: no glue plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
-- **Adopting the full personal flow.** Trigger: a teammate wants the whole ship chain. Steps: they install `triage-flow`, which auto-installs the parts it composes per R2, and optionally add `cloud-build` and `arc`. Outcome: the chain works, and the two optional capabilities degrade in prose when absent. Covers R2, R7, R22.
-- **Composing your own glue over the parts.** Trigger: someone wants the commit and PR parts but their own notification and triage behaviour. Steps: they install `git-commit-flow` and `gh-pr`, which pull in nothing else, and write their own glue plugin against the outcomes those parts name. Outcome: no personal convention is inherited. Covers R22, R23.
+- **Adopting the whole cycle.** Trigger: a teammate wants the full development loop, gates included. Steps: they add the compound-engineering and Vendasta marketplaces first per R2, then install `dev-cycle`, which auto-installs every part and provider it binds. Outcome: the cycle runs end to end and closes back on itself through triage. Covers R2, R22b, R22c.
+- **Reusing the judgement over a different dev flow.** Trigger: someone wants the triage decision — ignore, fold in, track, or track and fix — but runs their own pipeline on a different tracker and CI. Steps: they install `triage-flow` alone, which pulls in nothing, and fill its roles from their own driver. Outcome: the judgement travels without the wiring. Covers R22a, R23.
+- **Taking parts without the assembly.** Trigger: someone wants the commit and PR mechanics and nothing else. Steps: they install `git-commit-flow` and `gh-pr`, which pull in nothing, and pair them with their own CI provider. Outcome: no personal convention is inherited, and the PR part degrades gracefully without a CI provider present. Covers R22, R26.
 
 ### Scope Boundaries
 
@@ -166,7 +191,7 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 
 **Resolve Before Planning**
 
-- Final membership within the settled structure. The working proposal is nine plugins covering 18 skills: `gchat`, `arc`, `cloud-build`, `git-commit-flow`, `gh-pr` as parts; `triage-flow` as policy; `jira-flow`, `pr-notify`, `feats-of-merit` as glue. See Appendix for the full assignment.
+- Final membership within the settled structure. The working proposal is seven plugins covering 19 skills: `git-commit-flow` and `gh-pr` as parts; `gchat`, `arc`, `cloud-build` as providers; `triage-flow` as policy; `dev-cycle` as the driver; `feats-of-merit` on its own cycle. See Appendix for the full assignment.
 - Repo home: the marketplace in `benjfactor/dotfiles`, which is already public and preserves the symlink dev loop, or a dedicated repo with clean tags and history.
 
 **Deferred to Planning**
@@ -200,13 +225,16 @@ Plugin names below are provisional; naming is deferred per Outstanding Questions
 | git-commit-flow | part | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
 | gh-pr | part | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | — (degrades without cloud-build, arc) |
 | triage-flow | policy | regression-triage | 147 | — (names roles, per R22a) |
-| jira-flow | glue | git-worktree-jira-branch | 56 | git-commit-flow |
-| pr-notify | glue | notify-pr-channels, pr-ready | 126 | gchat, gh-pr |
-| feats-of-merit | glue | wsu, wsu-note | 118 | gh-pr |
+| dev-cycle | driver | git-worktree-jira-branch, pr-ready, notify-pr-channels, plan-commit-to-worktree | 405 | git-commit-flow, gh-pr, gchat, arc, triage-flow, compound-engineering, vendasta-dev-agent-toolkit |
+| feats-of-merit | separate cycle | wsu, wsu-note | 118 | gh-pr |
 
-Nine plugins covering 18 skills. Verified against the delegation graph: zero upward dependencies, zero unresolvable references, and no cross-marketplace dependency, since the two skills that carried them stay local.
+Seven plugins covering 19 skills. Parts and providers are usable in isolation and declare nothing; `dev-cycle` is the assembly and carries every dependency, including the two cross-marketplace ones.
 
-**Unpackaged, per R20.** `vim-rest`, `user-preferences`, `plan-commit-to-worktree`, and `temporal-activities` stay symlinked local skills — none has a distribution need, and R21 holds for all four because none is the target of a delegation from a packaged skill. `pr-studio-open-in-arc` is also unpackaged; it belongs upstream in `vendasta-pr-studio`, and `temporal-activities` similarly duplicates `vendasta-dev-agent-toolkit:temporal-workflows`.
+**`plan-commit-to-worktree` is a driver skill, not a local one.** It performs the cycle's plan-then-review-as-draft-PR gate, so it moves out of the unpackaged set. The rule already written into CLAUDE.md — invoke it immediately after `ce:plan` — is driver sequencing currently living as a global instruction, and it belongs in the driver.
+
+**Unpackaged, per R20.** `vim-rest`, `user-preferences`, and `temporal-activities` stay symlinked local skills, and R21 holds for each because none is the target of a delegation from a packaged skill. `pr-studio-open-in-arc` is also unpackaged; it belongs upstream in `vendasta-pr-studio`, and `temporal-activities` similarly duplicates `vendasta-dev-agent-toolkit:temporal-workflows`.
+
+**Execution risk on the driver.** A skill is a prompt-time instruction and does not durably wait, while the cycle spans days and many sessions. The driver is therefore a set of entry points plus resume logic leaning on `/loop`, background tasks, and push notifications, not one long-running skill. This constrains how the driver is built, not whether the packaging is right.
 
 ### Surface matrix
 
