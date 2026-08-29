@@ -178,6 +178,12 @@ flowchart LR
 - R32. While below 1.0, a dependency string names a plugin and marketplace without a version range. Version resolution is standard semver, where `^0.1.0` means `>=0.1.0 <0.2.0`, so a caret range under 0.x breaks on every minor bump of the dependency and would force a matching bump in each plugin pinning it. Ranges are introduced at 1.0, where caret behaviour stops being a trap.
 - R33. The marketplace is named `benjfactor` and is served from the existing `benjfactor/dotfiles` repository, giving ids of the form `jf-gh-pr@benjfactor`. Releases are tagged with `claude plugin tag`, which produces one `{name}--v{version}` tag per plugin release in that repository.
 - R34. Because `benjfactor/dotfiles` is a public repository, stage 2 is a public release. R10 is therefore a stage 2 gate: no plugin ships a hard-coded Chat space id, team handle, or channel map, since a plugin that posts to a specific team by default is a different thing from a dotfile that mentions one.
+- R35. `userConfig` values are stored under `pluginConfigs` in `~/.claude/settings.json`, keyed by `plugin@marketplace` with an `options` object, so they are already versioned in dotfiles through the existing settings symlink and no separate mechanism is needed. Options declared sensitive go to secure storage instead and are not versioned, so an option is marked sensitive only when it is genuinely a secret; a Chat space id is an identifier, not a credential.
+
+**Skill decomposition**
+
+- R36. A skill is split when it performs several jobs and one of them creates a coupling that would otherwise be carried into its plugin. The split serves boundary purity, not tidiness — a skill doing several tightly related things stays whole.
+- R37. `jf-gh-pr` ships free of Jira, Chat, Confluence, Arc, and any named CI provider or repository. Reaching that requires the `ci/cloudbuild` check context to become config per R26, the `--repo vendasta/galaxy` literal to leave `merge-pr`, and `open-pr` to shed both its Jira link derivation and its Arc step. Those two move to `jf-dev-cycle`, which adds them around a pure PR open.
 
 ### Key Flows
 
@@ -188,8 +194,8 @@ flowchart LR
 
 ### Scope Boundaries
 
-- Skill bodies are not rewritten. The only content change in scope is moving hard-coded org identifiers behind configuration per R10.
-- Nothing is published publicly in this pass. R10 and R11 make publication possible later; they do not perform it.
+- Skill bodies are rewritten only where packaging forces it: script paths per R25, cross-skill references per R23 and R24, hard-coded identifiers per R10, and the decomposition of a skill whose several jobs create a coupling a split would remove per R35. What a skill is *for* does not change.
+- Stage 2 is a public release, because the marketplace is served from a public repository per R34. What is deliberately not published in stage 2 is `jf-triage-flow`, held back per R30.
 - Whether `temporal-activities` and `pr-studio-open-in-arc` should instead go upstream into the Vendasta marketplace is not decided here. Both overlap plugins that already exist there.
 - Release automation beyond R13's validate step is out of scope.
 
