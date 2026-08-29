@@ -16,7 +16,7 @@ product_contract_source: ce-brainstorm
 
 **Product authority.** This plan owns the packaging structure: how many marketplaces, which plugin owns each skill, what kind each plugin is, how they depend on each other, how org-specific configuration separates from portable skill logic, and the three stages the work is delivered in. It owns skill content only where packaging forces it: script paths, cross-skill references, and hard-coded identifiers.
 
-**Open blockers.** One item blocks planning: whether the marketplace lives in `benjfactor/dotfiles` or a dedicated repo, which stage 2 needs and stage 1 does not. Membership is settled at eight plugins over 18 skills. Naming is not a blocker either — a marketplace `renames` map makes plugin names reversible. See Outstanding Questions.
+**Open blockers.** None. Membership is settled at eight plugins over 18 skills, names take the `jf-` prefix and are reversible through a `renames` map, and the marketplace is `benjfactor` served from `benjfactor/dotfiles`. Remaining questions are deferred to planning rather than blocking it.
 
 ## Product Contract
 
@@ -47,6 +47,8 @@ The skills are densely interlinked — 13 of 23 reference at least one other by 
 - **`plan-commit-to-worktree` is retired, not packaged.** The harness now creates a worktree at session start, which was the skill's distinguishing job; what remains is already covered by `jf-gh-pr` and `jf-arc`.
 - **CI is a provider, and the code already says so.** `merge-pr` queries GitHub's status rollup first and escalates to Cloud Build only when a check is still pending, which is a substitutable-provider relationship with a working fallback already in place. Governs R26.
 - **Packaging breaks bundled-script paths, independent of grouping.** Five skills invoke scripts through `~/.claude/skills/<name>/`, which exists only because the skills are symlinked; an installed plugin lives under a versioned cache path. Governs R25.
+- **Stay below 1.0, and leave dependencies unpinned while there.** A 0.x line makes a breaking change a minor bump instead of a promise the shape cannot yet keep. Pinning under 0.x would be self-defeating: semver's caret excludes minor bumps below 1.0, so `^0.1.0` rejects 0.2.0 and every part release would force a matching bump in each plugin pinning it. Governs R31, R32.
+- **The marketplace ships from the existing public dotfiles repo.** That keeps the symlink edit loop and adds no new repository, at the cost of per-plugin release tags landing in it and stage 2 being a public release rather than a private one. Governs R33, R34.
 - **Membership is the one decision that hardens at first publish.** Names stay reversible through `renames`; skill moves do not, which is why membership is settled before anything ships rather than after. Governs R19.
 
 Parts, policy and driver, per R22. Parts sit alongside one another and declare nothing; only the driver points at them, and a dashed edge is a capability the part degrades without rather than a dependency it declares:
@@ -170,6 +172,13 @@ flowchart LR
 - R29. Stage 3 decomposes `jf-triage-flow` from one opinionated skill into policy. It is complete when the judgement is expressed over the four roles it needs — inspect recent work, record a finding, fix it, tell someone — and the plugin declares zero dependencies per R22a.
 - R30. `jf-triage-flow` is withheld from the stage 2 publish. Stage 3 may split or move its skills, and R19 leaves a skill move no migration path once installed, so it publishes in stage 3 once its shape is settled.
 
+**Release and versioning**
+
+- R31. Plugins release at `0.minor.patch` and stay below 1.0 until the shape has stopped moving, so a breaking change costs a minor bump rather than a major-version promise nothing yet justifies.
+- R32. While below 1.0, a dependency string names a plugin and marketplace without a version range. Version resolution is standard semver, where `^0.1.0` means `>=0.1.0 <0.2.0`, so a caret range under 0.x breaks on every minor bump of the dependency and would force a matching bump in each plugin pinning it. Ranges are introduced at 1.0, where caret behaviour stops being a trap.
+- R33. The marketplace is named `benjfactor` and is served from the existing `benjfactor/dotfiles` repository, giving ids of the form `jf-gh-pr@benjfactor`. Releases are tagged with `claude plugin tag`, which produces one `{name}--v{version}` tag per plugin release in that repository.
+- R34. Because `benjfactor/dotfiles` is a public repository, stage 2 is a public release. R10 is therefore a stage 2 gate: no plugin ships a hard-coded Chat space id, team handle, or channel map, since a plugin that posts to a specific team by default is a different thing from a dotfile that mentions one.
+
 ### Key Flows
 
 - **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `jf-gchat`, and configure their own space ID via `userConfig`. Outcome: no glue plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
@@ -201,18 +210,14 @@ flowchart LR
 
 **Resolve Before Planning**
 
-- Repo home: the marketplace in `benjfactor/dotfiles`, which is already public and preserves the symlink dev loop, or a dedicated repo with clean tags and history. Needed for stage 2; stage 1 can proceed without it.
+None. Membership, naming, marketplace, repo home, and staging are all settled.
 
 **Deferred to Planning**
 
-- Which couplings that still cross a plugin boundary after stage 1 can be rewritten as outcomes per R23, and which genuinely need to name an implementation.
-
-- Whether plugin names carry a personal prefix, and the marketplace name. Deferred rather than blocking because `renames` makes names reversible per R14.
-
-- Whether bare dependency names resolve same-marketplace; testable only by publishing.
+- Which of the cross-plugin skill references can be rewritten as outcomes per R23 without losing precision, and which genuinely need to name an implementation. Answered per reference during stage 1.
+- The `userConfig` schema shape for R10, which stage 2 needs and stage 1 does not.
 - Whether `wsu-note`, which invokes no external system and carries no org coupling, belongs in `jf-feats-of-merit` with `wsu` or as a part of its own.
-- Which of the six skill-name cross-references can be rewritten as outcomes without losing precision, and which genuinely need to name an implementation.
-- The `userConfig` schema shape for R10.
+- Whether a bare dependency name resolves within the declaring plugin's own marketplace. R32 sidesteps this by naming the marketplace explicitly, so it matters only if the shorter form is preferred later.
 
 ### Sources / Research
 
