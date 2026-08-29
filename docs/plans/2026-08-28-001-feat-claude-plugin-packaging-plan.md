@@ -14,15 +14,15 @@ product_contract_source: ce-brainstorm
 
 **Objective.** Repackage the personal skills in `claude/skills/` as eight `jf-` prefixed Claude Code plugins published from one personal marketplace — parts and providers that do one thing and declare nothing, one policy plugin carrying portable judgement, and one driver assembling them into a development cycle — so someone can take the parts without inheriting the assembly, and a generic subset can be published later.
 
-**Product authority.** This plan owns the packaging structure: how many marketplaces, which plugin owns each skill, what kind each plugin is, how they depend on each other, how org-specific configuration separates from portable skill logic, and the three stages the work is delivered in. It owns skill content only where packaging forces it: script paths, cross-skill references, and hard-coded identifiers.
+**Product authority.** This plan owns the packaging structure: how many marketplaces, which plugin owns each skill, what kind each plugin is, how they depend on each other, how org-specific configuration separates from portable skill logic, and the four stages the work is delivered in. It owns skill content only where packaging forces it: script paths, cross-skill references, and hard-coded identifiers.
 
-**Open blockers.** None. Membership is settled at eight plugins over 18 skills, names take the `jf-` prefix and are reversible through a `renames` map, and the marketplace is `benjfactor` served from `benjfactor/dotfiles`. Remaining questions are deferred to planning rather than blocking it.
+**Open blockers.** None. Membership is settled at eight plugins over 19 packaged skills, with five staying local, names take the `jf-` prefix and are reversible through a `renames` map, and the marketplace is `benjfactor` served from `benjfactor/dotfiles`. Remaining questions are deferred to planning rather than blocking it.
 
 ## Product Contract
 
 ### Summary
 
-Publish the personal skills as eight plugins from a single marketplace, sorted by what each is for rather than by topic: parts and providers do one thing and declare nothing, one policy plugin carries portable judgement, and one driver assembles the rest into a development cycle. Others take the parts and get value in isolation; only the driver requires the assembly. Delivered in three stages — regroup the skills, package them, then decompose the policy — so the structure is proven before anything is published and the hardest rewrite happens last. Org identifiers move behind `userConfig` so the parts become publishable without a restructure.
+Publish the personal skills as eight plugins from a single marketplace, sorted by what each is for rather than by topic: parts and providers do one thing and declare nothing, one policy plugin carries portable judgement, and one driver assembles the rest into a development cycle. Others take the parts and get value in isolation; only the driver requires the assembly. Delivered in four stages — regroup the skills, package them, decompose the policy, then build the driver — so the structure is proven before anything is published and the hardest work happens last. Org identifiers move behind `userConfig` so the parts become publishable without a restructure.
 
 ### Problem Frame
 
@@ -43,10 +43,10 @@ The skills are densely interlinked — 13 of 23 reference at least one other by 
 - **Level is depth, not portability.** Fusing the two pushed org-specific level-2 workflows up to the org level and produced dependencies pointing upward: the PR flow calls `notify-pr-channels`, so that skill sits below it regardless of being Vendasta-specific. Governs R18.
 - **Parts, policy, and glue.** The goal is that someone takes the parts they want and writes their own glue, so only glue carries dependencies. Composability is mostly a skill-writing property rather than a packaging one: a skill that names another skill pins an implementation, while one that names an outcome lets any plugin satisfy it. Governs R22, R23.
 - **The judgement is the portable asset, not the primitives.** Posting to Chat or opening a browser is trivially reimplemented; the triage decision — ignore, fold into the current work item, or track separately with or without fixing it — is the part worth reusing, and it is reused over someone else's dev flow rather than replaced by their own. It therefore names roles and ends with the fewest dependencies, inverting its current position as the most entangled plugin. Governs R22a.
-- **Three stages, with the hardest rewrite last.** Regrouping proves the structure while everything is still local and reversible; packaging is mechanical once the grouping holds; decomposing the policy is the only step that changes what a skill says, so it runs last against a structure that has stopped moving. Governs R27, R28, R29.
+- **Four stages, with the hardest work last.** Regrouping proves the structure while everything is still local and reversible; packaging is mechanical once the grouping holds; decomposing the policy changes what a skill says, so it runs against a structure that has stopped moving; and the driver is built last because it is the only stage delivering new capability rather than repackaging. Governs R27, R28, R29, R30a.
 - **`plan-commit-to-worktree` is retired, not packaged.** The harness now creates a worktree at session start, which was the skill's distinguishing job; what remains is already covered by `jf-gh-pr` and `jf-arc`.
 - **CI is a provider, and the code already says so.** `merge-pr` queries GitHub's status rollup first and escalates to Cloud Build only when a check is still pending, which is a substitutable-provider relationship with a working fallback already in place. Governs R26.
-- **Packaging breaks bundled-script paths, independent of grouping.** Five skills invoke scripts through `~/.claude/skills/<name>/`, which exists only because the skills are symlinked; an installed plugin lives under a versioned cache path. Governs R25.
+- **Packaging breaks bundled-script paths, independent of grouping.** Skills invoke scripts through `~/.claude/skills/<name>/` in both its `~` and `$HOME` spellings, a path that exists only because the skills are symlinked; an installed plugin lives under a versioned cache path. Two of those calls reach into a *different* plugin's script tree, which no path rewrite can fix — the consumer delegates to the owning skill instead. Governs R25, R25a.
 - **Stay below 1.0, and leave dependencies unpinned while there.** A 0.x line makes a breaking change a minor bump instead of a promise the shape cannot yet keep. Pinning under 0.x would be self-defeating: semver's caret excludes minor bumps below 1.0, so `^0.1.0` rejects 0.2.0 and every part release would force a matching bump in each plugin pinning it. Governs R31, R32.
 - **The marketplace ships from the existing public dotfiles repo.** That keeps the symlink edit loop and adds no new repository, at the cost of per-plugin release tags landing in it and stage 2 being a public release rather than a private one. Governs R33, R34.
 - **Membership is the one decision that hardens at first publish.** Names stay reversible through `renames`; skill moves do not, which is why membership is settled before anything ships rather than after. Governs R19.
@@ -69,7 +69,7 @@ flowchart TD
         cycle["jf-dev-cycle"]
     end
     theirs["someone else's driver"]
-    merit["jf-feats-of-merit<br/>separate cycle"]
+    merit["jf-feats-of-merit"]
 
     cycle --> gchat
     cycle --> ghpr
@@ -121,7 +121,7 @@ flowchart LR
 - R4. A capability plugin wraps one external tool, carries no workflow opinion, and declares no dependency on another personal plugin.
 - R5. A workflow plugin holds personal conventions and depends on the capability plugins whose tools it uses, so a consumer can adopt the capability without the convention built on it.
 - R6. Dependency edges point from higher levels to lower levels only; no capability plugin depends on a workflow plugin.
-- R7. Where a workflow plugin's use of a capability is optional, it does not declare a hard dependency on that capability's plugin. This covers Cloud Build status for `merge-pr` and `pr-feedback-watcher`, and Arc for `open-pr`.
+- R7. Where a workflow plugin's use of a capability is optional, it does not declare a hard dependency on that capability's plugin. This covers Cloud Build status for `merge-pr` and `pr-feedback-watcher`.
 - R8. Each plugin name describes what it owns, and no name collides with a name in a marketplace already added on this machine. An unprefixed `github` is excluded on that basis.
 
 **Portability**
@@ -160,6 +160,7 @@ flowchart LR
 - R22b. Exactly one plugin is the driver. It owns the development cycle's sequence, its human gates, and the bindings from roles to specific parts, and it is the one plugin where hard dependencies — including cross-marketplace ones — are correct, because installing it means opting into that assembly.
 - R22c. The driver closes a loop rather than ending a chain: triage of what deploy surfaces feeds new work back to the start of the cycle. A design that terminates after deploy has lost the property the cycle exists for.
 - R22d. The driver's value is its gates and waits, not its steps. Steps already exist as skills; what exists nowhere is the sequencing, the human review points, and the event transitions between them.
+- R22e. Needing a command-line tool is not a dependency on the plugin that happens to wrap it. `wsu` calls `gh search prs` directly and depends on no personal plugin; only a delegation to another plugin's *skill* is a dependency. Conflating the two manufactures edges that do not exist — it is what wrongly gave `jf-feats-of-merit` an edge to `jf-gh-pr`.
 - R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Eighteen existing cross-plugin delegations are rewritten to this form, enumerated in the Appendix, plus three reverse mentions that dangle the same way.
 - R24. No skill references another skill by relative file path. `notify-pr-channels` and `pr-studio-open-in-arc` currently do, and those paths cannot resolve once the skills sit in different plugins.
 - R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Skills currently hardcode the symlink path in both its `~` and `$HOME` spellings, and that path does not exist for an installed plugin.
@@ -169,7 +170,7 @@ flowchart LR
 **Delivery stages**
 
 - R27. Stage 1 regroups the existing skills into plugin-shaped directories without publishing anything. It is complete when each skill sits under the plugin that owns it, every coupling that has become internal to a plugin is left alone, every coupling that still crosses a plugin boundary satisfies R23 and R24, and the directories load from `~/.claude/skills/` as `<name>@skills-dir` so the symlink edit loop survives.
-- R28. Stage 2 turns those directories into marketplace plugins. It is complete when a `marketplace.json` lists them, each carries a `plugin.json` with a description and any `userConfig` required by R10 and R15, every bundled script resolves through `${CLAUDE_PLUGIN_ROOT}` per R25, and `claude plugin validate --strict` passes per R13.
+- R28. Stage 2 turns those directories into marketplace plugins. It is complete when a `marketplace.json` lists them except `jf-triage-flow`, which is withheld per R30, each carries a `plugin.json` with a description and any `userConfig` required by R10 and R15, every bundled script resolves through `${CLAUDE_PLUGIN_ROOT}` per R25, and `claude plugin validate --strict` passes per R13.
 - R29. Stage 3 decomposes `jf-triage-flow` from one opinionated skill into policy. It is complete when the judgement is expressed over the four roles it needs — inspect recent work, record a finding, fix it, tell someone — and the plugin declares zero dependencies per R22a.
 - R30. `jf-triage-flow` is withheld from the stage 2 publish. Stage 3 may split or move its skills, and R19 leaves a skill move no migration path once installed, so it publishes in stage 3 once its shape is settled.
 - R30a. Stage 4 builds the driver. `jf-dev-cycle` gains the sequencing, human gates, event transitions and cross-session resume logic that R22b through R22d describe. It is complete when the cycle runs from tracking item through deploy watch to triage and back to the start across more than one session. Stages 1 through 3 deliver packaging and decomposition only; none of them authors the sequencing R22d identifies as the thing that exists nowhere today, so without this stage the driver would publish as three ordinary skills and no cycle.
@@ -200,6 +201,7 @@ flowchart LR
 - Stage 2 is a public release, because the marketplace is served from a public repository per R34. What is deliberately not published in stage 2 is `jf-triage-flow`, held back per R30.
 - Whether `temporal-activities` and `pr-studio-open-in-arc` should instead go upstream into the Vendasta marketplace is not decided here. Both overlap plugins that already exist there.
 - Release automation beyond R13's validate step is out of scope.
+- Which plugins go public when the marketplace lands is decided at stage 2 and written into that stage's plan, not assumed. The repository is public, so publishing the marketplace exposes whatever it lists; `jf-triage-flow` is already withheld, and any plugin still carrying an org identifier is withheld with it until that identifier moves behind configuration.
 - Stages 1 through 3 deliver packaging and decomposition, not new capability. The development cycle itself — the gates, waits and transitions that make `jf-dev-cycle` a driver rather than three skills — arrives in stage 4 per R30a. A reader should not expect the cycle to work at the end of stage 3.
 
 ### Dependencies / Assumptions
@@ -225,7 +227,6 @@ None. Membership, naming, marketplace, repo home, and staging are all settled.
 
 - Which of the cross-plugin skill references can be rewritten as outcomes per R23 without losing precision, and which genuinely need to name an implementation. Answered per reference during stage 1.
 - The `userConfig` schema shape for R10, which stage 2 needs and stage 1 does not.
-- Whether `wsu-note`, which invokes no external system and carries no org coupling, belongs in `jf-feats-of-merit` with `wsu` or as a part of its own.
 - Whether a bare dependency name resolves within the declaring plugin's own marketplace. R32 sidesteps this by naming the marketplace explicitly, so it matters only if the shorter form is preferred later.
 
 ### Sources / Research
@@ -242,11 +243,14 @@ None. Membership, naming, marketplace, repo home, and staging are all settled.
 
 **Product Contract preservation:** unchanged. No R-ID was split, renumbered, or rescoped during enrichment.
 
-**Scope of this plan:** stage 1 only. Stages 2 and 3 remain named phases with completion gates in R28, R29 and R30, and get implementation units when stage 1 has landed.
+**Scope of this plan:** stage 1, which is broader than the stage 1 completion gate alone. It also pulls forward the bundled-script path fixes that the stage 2 gate lists, the provider-neutrality work on the GitHub plugin, and the retirement of `plan-commit-to-worktree`. Stage 2 therefore inherits the script-path clause already satisfied. Stages 2 through 4 stay named phases and get units when stage 1 has landed.
+
+**One requirement has no home yet.** The rule that each plugin records which of its skills need org-internal configuration is named by no stage gate — the stage 2 gate covers moving identifiers behind `userConfig` and writing descriptions, but not that separate record. Settle at stage 2 planning whether the `userConfig` declarations already serve as the record or whether it needs its own artifact.
+
 
 ### Key Technical Decisions
 
-- KTD1. **Plan stage 1 alone; stages 2 and 3 get units later.** (session-settled: user-directed — chosen over planning all three stages as phases: the restructure will teach things that would invalidate speculative stage 2 and 3 units.) Governs R27.
+- KTD1. **Plan stage 1 alone; later stages get units when they are reached.** (session-settled: user-directed — chosen over planning every stage as phases up front: the restructure will teach things that would invalidate speculative units for the stages after it.) Governs R27.
 - KTD2. **Restructure in place under `claude/skills/`, not into a parallel tree.** Each plugin becomes `claude/skills/<jf-name>/` holding `.claude-plugin/plugin.json` and `skills/<skill>/SKILL.md`. The existing `~/.claude/skills` symlink is untouched, every plugin auto-loads as `<name>@skills-dir`, and stage 2's marketplace entry can point `source: "./claude/skills/<jf-name>"` — one location serving both the dev loop and publication. Governs R27, and satisfies R12 without new machinery.
 - KTD3. **Prove the mixed layout before moving anything.** Stage 1 requires `~/.claude/skills/` to hold plugin directories and plain skill directories side by side, since five skills stay unpackaged. `claude plugin init` scaffolds plugins into exactly that directory, so mixing is strongly implied but unverified. U1 is a spike; if it fails, KTD2 is void and the restructure needs a different home. Governs R20.
 - KTD4. **`jf-gh-pr` purity lands in stage 1, not stage 2.** Removing the CI context, the named repo, and the Jira and Arc steps is skill-body work, and stage 2 is packaging. Doing it here also means stage 2 packages something already clean. Governs R37.
@@ -256,14 +260,26 @@ None. Membership, naming, marketplace, repo home, and staging are all settled.
 ### Assumptions
 
 - `~/.claude/skills/` distinguishes a plugin directory (contains `.claude-plugin/`) from a skill directory (contains `SKILL.md`) and loads both. U1 verifies this.
-- Renaming a skill's directory does not change how the model matches it — matching is on frontmatter `name` and `description`, which stage 1 does not touch.
-- No packaged skill delegates to any of the five unpackaged skills, so R21 holds for the split as designed. Verified against the delegation graph during brainstorming.
+- Renaming a skill's *directory* does not change how the model matches it. Frontmatter `description` is a different matter: two cross-plugin references live in description text, so U5 does edit the field the model matches on, and each edited skill needs re-checking against its triggers.
+- No packaged skill *delegates* to an unpackaged one, but `open-in-arc` *mentions* `pr-studio-open-in-arc`, which stays local — so the rule has to cover mentions, not just delegations, and that reference is in U5's scope. Verified against the enumerated cross-reference table rather than the earlier tier summary.
 
 ### Sequencing
 
-U1 gates everything. U2 moves files and must complete before the reference and path fixes (U3–U5) can be verified in their final locations. U6 and U7 are independent of each other and can land in any order after U2.
+U0 runs first so live checks can see the branch. U1 then gates everything else. U2 moves files and must complete before the reference and path fixes (U3–U5) can be verified in their final locations. U6 and U7 are independent of each other and can land in any order after U2.
 
 ## Implementation Units
+
+### U0. Point the loader at the branch under test
+
+- **Goal.** Make live-session verification possible for every later unit.
+- **Requirements.** KTD2, and the Definition of Done's live-session criterion.
+- **Dependencies.** None. Runs first.
+- **Files.** No repository files — this changes the `~/.claude/skills` symlink only.
+- **Approach.** `~/.claude/skills` points at the master checkout's `claude/skills`, while stage 1 happens in a worktree, so nothing edited on the branch reaches the loader. Repoint the symlink at the worktree's `claude/skills` for the duration of stage 1, recording the original target. Restore it at completion. Without this, every per-unit live check silently exercises master.
+- **Test scenarios.**
+  - After repointing, a skill edited in the worktree shows its edit in a new session.
+  - After restoring, `readlink ~/.claude/skills` returns the original master path.
+- **Verification.** The symlink resolves into the worktree during stage 1 and back to `~/dotfiles/claude/skills` at the end.
 
 ### U1. Prove plugin and skill directories coexist
 
@@ -276,6 +292,7 @@ U1 gates everything. U2 moves files and must complete before the reference and p
   - A scaffolded plugin's skill is offered as `<plugin>:<skill>` in a new session.
   - An existing plain skill directory in the same folder still resolves by its bare name in that same session.
   - Removing the scaffold leaves the plain skills resolving as before.
+  - The scaffold's generated `plugin.json` is read and its field set recorded before removal, so U2 knows what a loadable manifest requires.
   - `git status` shows no scaffold residue once it is removed.
 - **Verification.** Both resolution styles observed in one session. If they cannot coexist, stop and report — KTD2 is void and the restructure needs a different home.
 
@@ -285,7 +302,7 @@ U1 gates everything. U2 moves files and must complete before the reference and p
 - **Requirements.** R3, R4, R5, R20, R27, KTD2.
 - **Dependencies.** U1.
 - **Files.** `claude/skills/` throughout — each packaged skill moves from `claude/skills/<skill>/` to `claude/skills/<jf-plugin>/skills/<skill>/`. Membership is the Appendix assignment table. `claude/skills/README.md` needs its layout description updated.
-- **Approach.** Move with `git mv` so history follows. Create each plugin directory with a `skills/` subdirectory; `.claude-plugin/plugin.json` is stage 2's job, except the minimum U1 proved is needed for skills-dir loading. Leave `vim-rest`, `user-preferences`, `temporal-activities`, `pr-studio-open-in-arc` and `plan-commit-to-worktree` where they are. Do not edit any skill body in this unit — moves only, so a failure here is trivially distinguishable from a content bug.
+- **Approach.** Move with `git mv` so history follows. Create each plugin directory with a `skills/` subdirectory and a `.claude-plugin/plugin.json` carrying at least `name`, `version` (`0.1.0`, per R31) and `description` — `validate --strict` errors with "No manifest found" on a bare directory and exits 1 with "No version specified" on a manifest without one, so the stage 1 gate cannot pass otherwise. Everything else in the manifest, including `userConfig` and marketplace metadata, is stage 2's job. Leave `vim-rest`, `user-preferences`, `temporal-activities`, `pr-studio-open-in-arc` and `plan-commit-to-worktree` where they are. Do not edit any skill body in this unit — moves only, so a failure here is trivially distinguishable from a content bug.
 - **Test scenarios.**
   - Each of the 18 skills resolves under its plugin prefix in a new session.
   - Each of the 5 unpackaged skills still resolves by bare name.
@@ -372,11 +389,13 @@ U1 gates everything. U2 moves files and must complete before the reference and p
 
 **Global**
 
-- U1 through U7 are complete, or U1 failed and the run stopped with KTD2 reported void.
+- U0 through U7 are complete, or U1 failed and the run stopped with KTD2 reported void.
 - Every Verification Contract check passes.
 - The restructure is committed in small increments per the `green-commits` skill, with the U2 move committed separately from any content change so a regression is attributable.
 - `claude/skills/README.md` describes the new layout, and its skill-flow diagram reflects the plugin grouping.
+- `claude/CLAUDE.md`'s standing instructions no longer name skills by their bare names. Three of them do today, and those names change to the plugin-prefixed form when the skills move.
 - No scratch or experimental directory from U1 remains anywhere, including `~/.claude/skills/`.
+- The `~/.claude/skills` symlink is restored to its original master-checkout target per U0. Leaving it pointed at a worktree that may later be deleted would break every skill.
 - Stage 1's completion gate in R27 is satisfied in full.
 
 **Per unit**
@@ -389,16 +408,16 @@ Each unit is done when its own Verification line holds and its test scenarios ha
 
 Plugin names below are settled per the Goal Capsule and remain reversible per R14. This revision resolves the three upward dependencies produced by treating org-specificity as a level, per R18.
 
-| Plugin | Kind | Skills | ~always-on tokens | Depends on |
-|---|---|---|---|---|
-| jf-gchat | part — provider (comms) | send-gchat-message | 96 | — |
-| jf-arc | part — provider (browser) | open-in-arc | 87 | — |
-| jf-cloud-build | part — provider (CI) | gcp-ci-watch | 63 | — |
-| jf-git-commit-flow | part | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
-| jf-gh-pr | part | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | — (degrades without jf-cloud-build, jf-arc) |
-| jf-triage-flow | policy | regression-triage | 147 | — (names roles, per R22a) |
-| jf-dev-cycle | driver | git-worktree-jira-branch, pr-ready, notify-pr-channels, open-tracked-pr (new, U6) | ~230 | jf-git-commit-flow, jf-gh-pr, jf-gchat, jf-arc, jf-triage-flow, compound-engineering, vendasta-dev-agent-toolkit |
-| jf-feats-of-merit | separate cycle | wsu, wsu-note | 118 | jf-gh-pr |
+| Plugin | Kind | Level | Skills | ~always-on tokens | Depends on |
+|---|---|---|---|---|---|
+| jf-gchat | part — provider (comms) | capability | send-gchat-message | 96 | — |
+| jf-arc | part — provider (browser) | capability | open-in-arc | 87 | — |
+| jf-cloud-build | part — provider (CI) | capability | gcp-ci-watch | 63 | — |
+| jf-git-commit-flow | part | workflow | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
+| jf-gh-pr | part | workflow | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | — (degrades without jf-cloud-build) |
+| jf-triage-flow | policy | orchestration | regression-triage | 147 | — (names roles, per R22a) |
+| jf-dev-cycle | driver | orchestration | git-worktree-jira-branch, pr-ready, notify-pr-channels, open-tracked-pr (new, U6) | ~230 | jf-git-commit-flow, jf-gh-pr, jf-gchat, jf-arc, jf-triage-flow, compound-engineering, vendasta-dev-agent-toolkit |
+| jf-feats-of-merit | part | workflow | wsu, wsu-note | 118 | — |
 
 Eight plugins covering 19 skills once U6 creates `open-tracked-pr`; 18 before it. Parts and providers are usable in isolation and declare nothing; `jf-dev-cycle` is the assembly and carries every dependency, including the two cross-marketplace ones. Verified against the delegation graph: zero upward dependencies and zero unresolvable references.
 
@@ -446,24 +465,24 @@ External systems each skill actually invokes, derived by grepping for command an
 
 | From plugin | Reference site | To skill | To plugin |
 |---|---|---|---|
-| jf-dev-cycle | notify-pr-channels:24 | send-gchat-message | jf-gchat |
-| jf-gh-pr | open-pr:8 | pr-ready | jf-dev-cycle |
-| jf-gh-pr | open-pr:24 | commit-preferences | jf-git-commit-flow |
-| jf-gh-pr | open-pr:58 | open-in-arc | jf-arc |
-| jf-gh-pr | merge-pr:31 | gcp-ci-watch | jf-cloud-build |
-| jf-gh-pr | pr-feedback-watcher:3 | green-commits | jf-git-commit-flow |
-| jf-gh-pr | pr-feedback-watcher:91 | gcp-ci-watch | jf-cloud-build |
-| jf-triage-flow | regression-triage:83 | send-gchat-message | jf-gchat |
-| jf-triage-flow | regression-triage:100 | git-worktree-jira-branch | jf-dev-cycle |
-| jf-triage-flow | regression-triage:104 | plan-implementation-commits | jf-git-commit-flow |
-| jf-triage-flow | regression-triage:104 | green-commits | jf-git-commit-flow |
-| jf-triage-flow | regression-triage:105 | golang-pre-commit-tests | jf-git-commit-flow |
-| jf-triage-flow | regression-triage:106 | open-in-arc | jf-arc |
-| jf-triage-flow | regression-triage:106 | open-pr | jf-gh-pr |
-| jf-triage-flow | regression-triage:107 | notify-pr-channels | jf-dev-cycle |
-| jf-triage-flow | regression-triage:107 | pr-ready | jf-dev-cycle |
-| jf-triage-flow | regression-triage:108 | pr-feedback-watcher | jf-gh-pr |
-| jf-triage-flow | regression-triage:109 | merge-pr | jf-gh-pr |
+| jf-dev-cycle | notify-pr-channels:24 | orchestration | send-gchat-message | jf-gchat |
+| jf-gh-pr | open-pr:8 | workflow | pr-ready | jf-dev-cycle |
+| jf-gh-pr | open-pr:24 | workflow | commit-preferences | jf-git-commit-flow |
+| jf-gh-pr | open-pr:58 | workflow | open-in-arc | jf-arc |
+| jf-gh-pr | merge-pr:31 | workflow | gcp-ci-watch | jf-cloud-build |
+| jf-gh-pr | pr-feedback-watcher:3 | workflow | green-commits | jf-git-commit-flow |
+| jf-gh-pr | pr-feedback-watcher:91 | workflow | gcp-ci-watch | jf-cloud-build |
+| jf-triage-flow | regression-triage:83 | orchestration | send-gchat-message | jf-gchat |
+| jf-triage-flow | regression-triage:100 | orchestration | git-worktree-jira-branch | jf-dev-cycle |
+| jf-triage-flow | regression-triage:104 | orchestration | plan-implementation-commits | jf-git-commit-flow |
+| jf-triage-flow | regression-triage:104 | orchestration | green-commits | jf-git-commit-flow |
+| jf-triage-flow | regression-triage:105 | orchestration | golang-pre-commit-tests | jf-git-commit-flow |
+| jf-triage-flow | regression-triage:106 | orchestration | open-in-arc | jf-arc |
+| jf-triage-flow | regression-triage:106 | orchestration | open-pr | jf-gh-pr |
+| jf-triage-flow | regression-triage:107 | orchestration | notify-pr-channels | jf-dev-cycle |
+| jf-triage-flow | regression-triage:107 | orchestration | pr-ready | jf-dev-cycle |
+| jf-triage-flow | regression-triage:108 | orchestration | pr-feedback-watcher | jf-gh-pr |
+| jf-triage-flow | regression-triage:109 | orchestration | merge-pr | jf-gh-pr |
 
 Eleven of the eighteen sit in `regression-triage`, which is why R22a's zero-dependency target for `jf-triage-flow` is stage 3's whole substance rather than a tidy-up.
 
