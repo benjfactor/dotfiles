@@ -161,6 +161,7 @@ flowchart LR
 - R22c. The driver closes a loop rather than ending a chain: triage of what deploy surfaces feeds new work back to the start of the cycle. A design that terminates after deploy has lost the property the cycle exists for.
 - R22d. The driver's value is its gates and waits, not its steps. Steps already exist as skills; what exists nowhere is the sequencing, the human review points, and the event transitions between them.
 - R22e. Needing a command-line tool is not a dependency on the plugin that happens to wrap it. `wsu` calls `gh search prs` directly and depends on no personal plugin; only a delegation to another plugin's *skill* is a dependency. Conflating the two manufactures edges that do not exist — it is what wrongly gave `jf-feats-of-merit` an edge to `jf-gh-pr`.
+- R22f. Degradation is a stated contract, not an assumption. A skill that names a capability it does not require states in its own body what it does when that capability is unavailable — proceed without it, do the work inline, or stop and report. A skill is prose with no way to detect an absent plugin, so an unstated fallback is not graceful degradation; it is the model improvising. The one precedent, `open-pr`'s optional Arc step, degrades only because a hardcoded script path exits non-zero, and that mechanism disappears once capabilities are named as roles.
 - R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Eighteen existing cross-plugin delegations are rewritten to this form, enumerated in the Appendix, plus three reverse mentions that dangle the same way.
 - R24. No skill references another skill by relative file path. `notify-pr-channels` and `pr-studio-open-in-arc` currently do, and those paths cannot resolve once the skills sit in different plugins.
 - R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Skills currently hardcode the symlink path in both its `~` and `$HOME` spellings, and that path does not exist for an installed plugin.
@@ -170,7 +171,8 @@ flowchart LR
 **Delivery stages**
 
 - R27. Stage 1 regroups the existing skills into plugin-shaped directories without publishing anything. It is complete when each skill sits under the plugin that owns it, every coupling that has become internal to a plugin is left alone, every coupling that still crosses a plugin boundary satisfies R23 and R24, and the directories load from `~/.claude/skills/` as `<name>@skills-dir` so the symlink edit loop survives.
-- R28. Stage 2 turns those directories into marketplace plugins. It is complete when a `marketplace.json` lists them except `jf-triage-flow`, which is withheld per R30, each carries a `plugin.json` with a description and any `userConfig` required by R10 and R15, every bundled script resolves through `${CLAUDE_PLUGIN_ROOT}` per R25, and `claude plugin validate --strict` passes per R13.
+- R27a. Stage 2 opens by proving the publish path on `jf-git-commit-flow` alone, before the other seven are packaged. That plugin has no cross-plugin references, no bundled scripts and no org identifiers, so it isolates the packaging mechanics from everything else. The slice is complete when the marketplace has been added, the plugin installed, a version pinned, and an update pulled — which is also the first point at which two things this plan records as unverified can be tested: whether a rename migrates an existing install, and whether a bare dependency name resolves within its own marketplace. Its four skills settle membership early, which is acceptable because nothing depends on them.
+- R28. Stage 2 turns the remaining directories into marketplace plugins. It is complete when a `marketplace.json` lists them except `jf-triage-flow`, which is withheld per R30, each carries a `plugin.json` with a description and any `userConfig` required by R10 and R15, every bundled script resolves through `${CLAUDE_PLUGIN_ROOT}` per R25, and `claude plugin validate --strict` passes per R13.
 - R29. Stage 3 decomposes `jf-triage-flow` from one opinionated skill into policy. It is complete when the judgement is expressed over the four roles it needs — inspect recent work, record a finding, fix it, tell someone — and the plugin declares zero dependencies per R22a.
 - R30. `jf-triage-flow` is withheld from the stage 2 publish. Stage 3 may split or move its skills, and R19 leaves a skill move no migration path once installed, so it publishes in stage 3 once its shape is settled.
 - R30a. Stage 4 builds the driver. `jf-dev-cycle` gains the sequencing, human gates, event transitions and cross-session resume logic that R22b through R22d describe. It is complete when the cycle runs from tracking item through deploy watch to triage and back to the start across more than one session. Stages 1 through 3 deliver packaging and decomposition only; none of them authors the sequencing R22d identifies as the thing that exists nowhere today, so without this stage the driver would publish as three ordinary skills and no cycle.
@@ -222,6 +224,13 @@ flowchart LR
 **Resolve Before Planning**
 
 None. Membership, naming, marketplace, repo home, and staging are all settled.
+
+**Deferred to a later stage — not blocking stages 1 and 2**
+
+The immediate goal is getting the symlinked skills into installable marketplace plugins. How the plugins are then reshaped is revisited once that works, so these two are recorded rather than settled now.
+
+- Stage 3's completion gate is dependency count reaching zero, which a rewrite can satisfy by stripping concrete references until the triage skill is generic advice — the count falls and the judgement goes with it. An equivalence check, such as reaching the same triage outcome on a recorded past regression, is the candidate fix. Eleven of the eighteen cross-plugin references live in that one skill, so this is the highest-risk rewrite in the plan.
+- Stage 2 publicly fixes which skill lives in which plugin, but the four roles stage 3 decomposes the judgement over are not yet mapped to plugins. If that decomposition needs a role no published plugin cleanly fills, the fix is a skill move, which has no migration path once installed.
 
 **Deferred to Planning**
 
@@ -344,7 +353,7 @@ U0 runs first so live checks can see the branch. U1 then gates everything else. 
 - **Execution note.** This is the judgement-heavy unit. Propose per reference and wait; do not batch-substitute.
 - **Test scenarios.**
   - Each rewritten reference still tells the model what to achieve, with no dangling skill name.
-  - A skill whose named dependency is absent degrades in prose rather than dead-ending.
+  - Each rewritten skill is run in a session where the providing plugin is not loaded, and the observed behaviour is recorded. A skill that improvises silently instead of following its stated fallback fails this scenario.
 - **Verification.** Every cross-plugin reference either names an outcome or carries a recorded reason for naming an implementation.
 
 ### U6. Make jf-gh-pr provider-neutral
