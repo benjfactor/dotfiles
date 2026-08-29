@@ -41,7 +41,9 @@ The skills are densely interlinked — 13 of 23 reference at least one other by 
 - **Names are reversible, so naming does not block.** The marketplace `renames` map migrates an old name to a current one, supports multi-hop chains, and tombstones removals with `null`; the validator rejects dangling targets and cycles. Governs R14, R17.
 - **Capability grouping follows the consumer's need, not the vendor's catalog.** A `gcloud` plugin bundling BigQuery and logging would group by billing relationship rather than by anything a consumer wants together. Governs R16.
 - **Level is depth, not portability.** Fusing the two pushed org-specific level-2 workflows up to the org level and produced dependencies pointing upward: the PR flow calls `notify-pr-channels`, so that skill sits below it regardless of being Vendasta-specific. Governs R18.
-- **Parts and glue, not just levels.** The goal is that someone takes the parts they want and writes their own glue, so only glue carries dependencies. Composability is mostly a skill-writing property rather than a packaging one: a skill that names another skill pins an implementation, while one that names an outcome lets any plugin satisfy it. Governs R22, R23.
+- **Parts, policy, and glue.** The goal is that someone takes the parts they want and writes their own glue, so only glue carries dependencies. Composability is mostly a skill-writing property rather than a packaging one: a skill that names another skill pins an implementation, while one that names an outcome lets any plugin satisfy it. Governs R22, R23.
+- **The judgement is the portable asset, not the primitives.** Posting to Chat or opening a browser is trivially reimplemented; the triage decision — ignore, fold into the current work item, or track separately with or without fixing it — is the part worth reusing, and it is reused over someone else's dev flow rather than replaced by their own. It therefore names roles and ends with the fewest dependencies, inverting its current position as the most entangled plugin. Governs R22a.
+- **CI is a provider, and the code already says so.** `merge-pr` queries GitHub's status rollup first and escalates to Cloud Build only when a check is still pending, which is a substitutable-provider relationship with a working fallback already in place. Governs R26.
 - **Packaging breaks bundled-script paths, independent of grouping.** Five skills invoke scripts through `~/.claude/skills/<name>/`, which exists only because the skills are symlinked; an installed plugin lives under a versioned cache path. Governs R25.
 - **Membership is the one decision that hardens at first publish.** Names stay reversible through `renames`; skill moves do not, which is why membership is settled before anything ships rather than after. Governs R19.
 
@@ -55,28 +57,28 @@ flowchart TD
         cb["cloud-build"]
         commit["git-commit-flow"]
         ghpr["gh-pr"]
-        wt["worktree"]
     end
-    subgraph glue["GLUE - opinionated compositions, replaceable"]
+    subgraph policy["POLICY - portable judgement, names roles, declares nothing"]
+        triage["triage-flow<br/>ignore / fold in / track / track and fix"]
+    end
+    subgraph glue["GLUE - your wiring of parts into roles"]
         notify["pr-notify"]
-        triage["triage-flow"]
+        jira["jira-flow"]
         merit["feats-of-merit"]
     end
-    yours["someone else's glue<br/>composed their way"]
+    theirs["someone else's glue"]
 
     notify --> gchat
     notify --> ghpr
-    triage --> ghpr
-    triage --> notify
-    triage --> commit
-    triage --> wt
+    jira --> commit
     merit --> ghpr
     ghpr -. degrades .-> cb
     ghpr -. degrades .-> arc
-    triage -. degrades .-> arc
-    yours -.-> gchat
-    yours -.-> ghpr
-    yours -.-> commit
+    triage -. fills roles from .-> glue
+    triage -. or from .-> theirs
+    theirs -.-> gchat
+    theirs -.-> ghpr
+    theirs -.-> commit
 ```
 
 Levels still record composition depth per R18 — capability, workflow, orchestration — and the diagram's arrows are exactly the downward edges that rule permits. Parts and glue is the sharper cut, so it is the one drawn.
@@ -99,7 +101,7 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 
 **Portability**
 
-- R9. The `git-commit-flow` plugin assumes git only and invokes no GitHub tooling, so it is usable on a non-GitHub remote. Skills that shell out to `gh` sit in `gh-pr` or `worktree` instead, including `sync-base` and `worktree-cleanup`.
+- R9. The `git-commit-flow` plugin assumes git only and invokes no GitHub tooling, so it is usable on a non-GitHub remote. Skills that shell out to `gh` sit in `gh-pr` instead, including `sync-base` and `worktree-cleanup`.
 - R10. Org-specific identifiers move behind `userConfig` rather than remaining literal in skill bodies or bundled scripts. This covers the Chat space ID `AAAAIj8WMWc`, the `@vendasta/meerkats` handle, and the `TEAM_CHANNELS` map.
 - R11. Each plugin records which of its skills require org-internal configuration, so a plugin can be published without shipping internal defaults.
 
@@ -127,10 +129,12 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 
 **Composability**
 
-- R22. Plugins divide into parts and glue. A part declares no dependency on another personal plugin and degrades when an adjacent capability is absent; only a glue plugin declares dependencies. The optional edges are therefore design rather than defects.
+- R22. Plugins divide into parts, policy, and glue. A part declares no dependency on another personal plugin and degrades when an adjacent capability is absent. A policy plugin carries portable judgement, names the roles it needs rather than the plugins that fill them, and declares no dependency either. Only glue — the wiring of specific parts into those roles — declares dependencies.
+- R22a. A policy plugin's dependency count is the measure of whether it is portable. `triage-flow` carries the reusable judgement, so it ends with the fewest dependencies rather than the most.
 - R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Six existing cross-references are rewritten to this form.
 - R24. No skill references another skill by relative file path. `notify-pr-channels` and `pr-studio-open-in-arc` currently do, and those paths cannot resolve once the skills sit in different plugins.
 - R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Five skills currently hardcode the symlink path, which does not exist for an installed plugin.
+- R26. `gh-pr` names no CI provider. The check context is a `userConfig` value defaulting to all checks, so the plugin works on any CI, and `cloud-build` is a precision upgrade rather than a requirement. `merge-pr` currently hardcodes `.context == "ci/cloudbuild"` in its status query, which is the only thing making the GitHub part provider-specific.
 
 ### Key Flows
 
@@ -162,7 +166,7 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 
 **Resolve Before Planning**
 
-- Final membership within the settled structure. The working proposal is nine plugins covering 18 skills: `gchat`, `arc`, `cloud-build`, `git-commit-flow`, `gh-pr`, `worktree` as parts; `pr-notify`, `triage-flow`, `feats-of-merit` as glue. See Appendix for the full assignment.
+- Final membership within the settled structure. The working proposal is nine plugins covering 18 skills: `gchat`, `arc`, `cloud-build`, `git-commit-flow`, `gh-pr` as parts; `triage-flow` as policy; `jira-flow`, `pr-notify`, `feats-of-merit` as glue. See Appendix for the full assignment.
 - Repo home: the marketplace in `benjfactor/dotfiles`, which is already public and preserves the symlink dev loop, or a dedicated repo with clean tags and history.
 
 **Deferred to Planning**
@@ -188,17 +192,17 @@ Levels still record composition depth per R18 — capability, workflow, orchestr
 
 Plugin names below are provisional; naming is deferred per Outstanding Questions and reversible per R14. This revision resolves the three upward dependencies produced by treating org-specificity as a level, per R18.
 
-| Plugin | Level | Skills | ~always-on tokens | Depends on |
+| Plugin | Kind | Skills | ~always-on tokens | Depends on |
 |---|---|---|---|---|
-| gchat | capability | send-gchat-message | 96 | — |
-| arc | capability | open-in-arc | 87 | — |
-| cloud-build | capability | gcp-ci-watch | 63 | — |
-| git-commit-flow | part / workflow | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
-| gh-pr | part / workflow | open-pr, merge-pr, pr-feedback-watcher, sync-base | 361 | — (degrades without cloud-build, arc) |
-| worktree | part / workflow | git-worktree-jira-branch, worktree-cleanup | 102 | — |
-| pr-notify | glue / workflow | notify-pr-channels, pr-ready | 126 | gchat, gh-pr |
-| triage-flow | glue / orchestration | regression-triage | 147 | gh-pr, pr-notify, git-commit-flow, worktree |
-| feats-of-merit | glue / orchestration | wsu, wsu-note | 118 | gh-pr |
+| gchat | part — provider (comms) | send-gchat-message | 96 | — |
+| arc | part — provider (browser) | open-in-arc | 87 | — |
+| cloud-build | part — provider (CI) | gcp-ci-watch | 63 | — |
+| git-commit-flow | part | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
+| gh-pr | part | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | — (degrades without cloud-build, arc) |
+| triage-flow | policy | regression-triage | 147 | — (names roles, per R22a) |
+| jira-flow | glue | git-worktree-jira-branch | 56 | git-commit-flow |
+| pr-notify | glue | notify-pr-channels, pr-ready | 126 | gchat, gh-pr |
+| feats-of-merit | glue | wsu, wsu-note | 118 | gh-pr |
 
 Nine plugins covering 18 skills. Verified against the delegation graph: zero upward dependencies, zero unresolvable references, and no cross-marketplace dependency, since the two skills that carried them stay local.
 
