@@ -160,9 +160,10 @@ flowchart LR
 - R22b. Exactly one plugin is the driver. It owns the development cycle's sequence, its human gates, and the bindings from roles to specific parts, and it is the one plugin where hard dependencies — including cross-marketplace ones — are correct, because installing it means opting into that assembly.
 - R22c. The driver closes a loop rather than ending a chain: triage of what deploy surfaces feeds new work back to the start of the cycle. A design that terminates after deploy has lost the property the cycle exists for.
 - R22d. The driver's value is its gates and waits, not its steps. Steps already exist as skills; what exists nowhere is the sequencing, the human review points, and the event transitions between them.
-- R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Six existing cross-references are rewritten to this form.
+- R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Eighteen existing cross-plugin delegations are rewritten to this form, enumerated in the Appendix, plus three reverse mentions that dangle the same way.
 - R24. No skill references another skill by relative file path. `notify-pr-channels` and `pr-studio-open-in-arc` currently do, and those paths cannot resolve once the skills sit in different plugins.
-- R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Five skills currently hardcode the symlink path, which does not exist for an installed plugin.
+- R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Skills currently hardcode the symlink path in both its `~` and `$HOME` spellings, and that path does not exist for an installed plugin.
+- R25a. No skill or bundled script reaches into another plugin's files. A script stays in the plugin that owns it; a consuming plugin declares a dependency on the owning plugin and delegates to its skill. This keeps `${CLAUDE_PLUGIN_ROOT}` correct by construction — it resolves to the declaring plugin, so a script is only ever addressed by the plugin that ships it — and it is why runtime path-searching for a sibling plugin's script is not the answer. Where a dependency would make a plugin impure, the coupled job is split out and raised into the plugin that composes both, per R36.
 - R26. `jf-gh-pr` names no CI provider. The check context is a `userConfig` value defaulting to all checks, so the plugin works on any CI, and `jf-cloud-build` is a precision upgrade rather than a requirement. `merge-pr` and `pr-feedback-watcher` currently hardcode `.context == "ci/cloudbuild"` in their status queries, which is the only thing making the GitHub part CI-provider-specific.
 
 **Delivery stages**
@@ -171,6 +172,7 @@ flowchart LR
 - R28. Stage 2 turns those directories into marketplace plugins. It is complete when a `marketplace.json` lists them, each carries a `plugin.json` with a description and any `userConfig` required by R10 and R15, every bundled script resolves through `${CLAUDE_PLUGIN_ROOT}` per R25, and `claude plugin validate --strict` passes per R13.
 - R29. Stage 3 decomposes `jf-triage-flow` from one opinionated skill into policy. It is complete when the judgement is expressed over the four roles it needs — inspect recent work, record a finding, fix it, tell someone — and the plugin declares zero dependencies per R22a.
 - R30. `jf-triage-flow` is withheld from the stage 2 publish. Stage 3 may split or move its skills, and R19 leaves a skill move no migration path once installed, so it publishes in stage 3 once its shape is settled.
+- R30a. Stage 4 builds the driver. `jf-dev-cycle` gains the sequencing, human gates, event transitions and cross-session resume logic that R22b through R22d describe. It is complete when the cycle runs from tracking item through deploy watch to triage and back to the start across more than one session. Stages 1 through 3 deliver packaging and decomposition only; none of them authors the sequencing R22d identifies as the thing that exists nowhere today, so without this stage the driver would publish as three ordinary skills and no cycle.
 
 **Release and versioning**
 
@@ -198,6 +200,7 @@ flowchart LR
 - Stage 2 is a public release, because the marketplace is served from a public repository per R34. What is deliberately not published in stage 2 is `jf-triage-flow`, held back per R30.
 - Whether `temporal-activities` and `pr-studio-open-in-arc` should instead go upstream into the Vendasta marketplace is not decided here. Both overlap plugins that already exist there.
 - Release automation beyond R13's validate step is out of scope.
+- Stages 1 through 3 deliver packaging and decomposition, not new capability. The development cycle itself — the gates, waits and transitions that make `jf-dev-cycle` a driver rather than three skills — arrives in stage 4 per R30a. A reader should not expect the cycle to work at the end of stage 3.
 
 ### Dependencies / Assumptions
 
@@ -294,12 +297,13 @@ U1 gates everything. U2 moves files and must complete before the reference and p
 - **Goal.** Bundled scripts resolve from the plugin that ships them rather than from `~/.claude/skills/<name>/`, which will not exist for an installed plugin.
 - **Requirements.** R25.
 - **Dependencies.** U2.
-- **Files.** `claude/skills/jf-gchat/skills/send-gchat-message/SKILL.md`, `claude/skills/jf-dev-cycle/skills/notify-pr-channels/SKILL.md`, `claude/skills/jf-dev-cycle/skills/notify-pr-channels/scripts/chat_post.py`, `claude/skills/jf-dev-cycle/skills/pr-ready/SKILL.md`, `claude/skills/jf-gh-pr/skills/pr-feedback-watcher/SKILL.md`, `claude/skills/jf-triage-flow/skills/regression-triage/SKILL.md`, and `open-in-arc`'s SKILL.md under `jf-arc`.
-- **Approach.** Each invocation becomes `${CLAUDE_PLUGIN_ROOT:-<previous path>}` or an equivalent that degrades when the variable is unresolved, following the fallback discipline compound-engineering documents for platform variables. Five skills are affected; `open-in-arc` already uses the fallback form and is the pattern to copy.
+- **Files.** `claude/skills/jf-gchat/skills/send-gchat-message/SKILL.md`, `claude/skills/jf-dev-cycle/skills/notify-pr-channels/SKILL.md`, `claude/skills/jf-dev-cycle/skills/notify-pr-channels/scripts/chat_post.py`, `claude/skills/jf-dev-cycle/skills/pr-ready/SKILL.md`, `claude/skills/jf-gh-pr/skills/pr-feedback-watcher/SKILL.md`, `claude/skills/jf-triage-flow/skills/regression-triage/SKILL.md`, and `open-in-arc`'s SKILL.md under `jf-arc`. Also the three packaged skills that name the path in prose rather than invoking it — `green-commits`, `plan-implementation-commits` under `jf-git-commit-flow`, and `git-worktree-jira-branch` under `jf-dev-cycle` — whose self-references must be stripped for the gate to hold.
+- **Approach.** Two rules. **Within a plugin**, an invocation becomes `${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/<jf-plugin>}/skills/<skill>/<script>`, using post-move paths — `open-in-arc`'s current fallback targets its pre-move location and needs repointing rather than copying. **Across plugins**, no script is resolved at all: a script stays in the plugin that owns it, the consuming plugin declares a dependency on the owning plugin, and the consuming skill delegates to the owning *skill* rather than reaching for its file. `${CLAUDE_PLUGIN_ROOT}` then always resolves correctly, because every script is invoked only by its own plugin.
+- **Approach note — the two cross-plugin cases dissolve rather than being resolved.** `notify-pr-channels` currently imports `send_gchat` for `PEOPLE`, `get_access_token`, `resolve_target` and `post_message`; everything else in `chat_post.py` is the PR message shape and target selection. It becomes prose that builds the message and targets and then invokes `jf-gchat:send-gchat-message` through the interface that skill already documents, and `chat_post.py` is deleted. `regression-triage` likewise delegates instead of shelling `send_gchat.py`. `jf-dev-cycle` and `jf-triage-flow` each declare a dependency on `jf-gchat`.
 - **Test scenarios.**
   - Each affected script executes when invoked through the skill in a new session.
   - With `CLAUDE_PLUGIN_ROOT` unset, the fallback path still resolves for a skills-dir plugin.
-- **Verification.** `grep -rnE '(~|\$HOME)/\.claude/skills/' claude/skills` returns hits only inside the five unpackaged skills. Both spellings must be covered — three invocations use the `$HOME` form and would pass a tilde-only pattern.
+- **Verification.** `grep -rnE '(~|\$HOME)/\.claude/skills/' claude/skills | grep -v 'CLAUDE_PLUGIN_ROOT:-'` returns hits only inside the five unpackaged skills. Both spellings must be covered — three invocations use the `$HOME` form and would pass a tilde-only pattern — and the exclusion is required because the prescribed fallback contains the path by design.
 
 ### U4. Remove relative-path cross-references
 
@@ -318,7 +322,7 @@ U1 gates everything. U2 moves files and must complete before the reference and p
 - **Goal.** A skill in one plugin names the outcome it needs rather than the skill that provides it, so any plugin satisfying the outcome composes.
 - **Requirements.** R23, KTD5.
 - **Dependencies.** U2.
-- **Files.** The cross-plugin references identified in the Appendix cross-reference graph — principally under `jf-gh-pr`, `jf-dev-cycle` and `jf-triage-flow`. References internal to a single plugin are left alone.
+- **Files.** The eighteen delegations enumerated in the Appendix cross-reference table, plus the three reverse mentions named beneath it. Eleven sit in `regression-triage` alone. References internal to a single plugin are left alone.
 - **Approach.** For each reference that crosses a plugin boundary, propose the outcome phrasing and ask before applying it — for example `merge-pr` requiring that CI is confirmed green rather than that `gcp-ci-watch` is invoked. Where naming the implementation is genuinely load-bearing, keep it and record why. `jf-triage-flow` is the densest case and is also stage 3's subject, so restrict this unit to making its cross-plugin references resolvable; the decomposition is out of scope.
 - **Execution note.** This is the judgement-heavy unit. Propose per reference and wait; do not batch-substitute.
 - **Test scenarios.**
@@ -332,12 +336,12 @@ U1 gates everything. U2 moves files and must complete before the reference and p
 - **Requirements.** R9, R26, R36, R37.
 - **Dependencies.** U2.
 - **Files.** `claude/skills/jf-gh-pr/skills/merge-pr/SKILL.md`, `claude/skills/jf-gh-pr/skills/pr-feedback-watcher/SKILL.md`, `claude/skills/jf-gh-pr/skills/pr-feedback-watcher/scripts/review_gate.py`, `claude/skills/jf-gh-pr/skills/open-pr/SKILL.md`, and `claude/skills/jf-dev-cycle/skills/` for the steps that move.
-- **Approach.** Four removals. The `ci/cloudbuild` check context in `merge-pr` and `pr-feedback-watcher` becomes a configurable value defaulting to all checks. The `--repo vendasta/galaxy` literal leaves `merge-pr`. `open-pr` sheds its Jira link derivation and its Arc step, both of which move to `jf-dev-cycle` as steps the driver adds around a pure PR open — a split under R36, since each is a distinct job creating a coupling. Declaring the check context in `plugin.json` `userConfig` is stage 2; stage 1 need only stop hardcoding it.
+- **Approach.** Four removals. The `ci/cloudbuild` check context in `merge-pr` and `pr-feedback-watcher` becomes a configurable value defaulting to all checks. The `--repo vendasta/galaxy` literal leaves `merge-pr`. `open-pr` sheds its Jira link derivation and its Arc step. Both move into a new `jf-dev-cycle` skill, `open-tracked-pr`, which delegates the PR open to `jf-gh-pr:open-pr` and then prepends the ticket link and shows the result in the browser — a split under R36, since each is a distinct job creating a coupling. This raises the packaged count to 19 and the total to 24. Stage 4's driver later calls `open-tracked-pr` as one step of the cycle; stage 1 only has to make it independently invocable. Declaring the check context in `plugin.json` `userConfig` is stage 2; stage 1 need only stop hardcoding it.
 - **Test scenarios.**
   - `merge-pr` reports CI status on a repo whose checks are not named `ci/cloudbuild`.
   - `merge-pr` targets the current repo rather than a named one.
   - `open-pr` creates a draft PR with the repo template and no Jira line on a repo with no ticket convention.
-  - The Jira link and Arc open still happen when the driver runs the full flow.
+  - Invoking `jf-dev-cycle:open-tracked-pr` directly produces a draft PR carrying the ticket link and opens it in the browser, with no driver present.
 - **Verification.** No file under `claude/skills/jf-gh-pr/` matches `jira|vendasta|cloudbuild|arc|gchat|confluence`, case-insensitive.
 
 ### U7. Retire plan-commit-to-worktree
@@ -357,10 +361,10 @@ U1 gates everything. U2 moves files and must complete before the reference and p
 ## Verification Contract
 
 - `claude plugin validate --strict <dir>` passes for every plugin directory created in U2. Stage 1 produces skills-dir plugins, so this is the gate that catches manifest and skill-frontmatter errors before stage 2 depends on them.
-- All 23 skills load in a fresh session: 18 under `jf-<plugin>:<skill>`, 5 by bare name.
+- All 24 skills load in a fresh session: 19 under `jf-<plugin>:<skill>`, 5 by bare name. The 24th is `open-tracked-pr`, created by U6.
 - `grep -rn '\.\./[a-z-]*/SKILL\.md' claude/skills` returns nothing.
 - `grep -rni 'jira\|vendasta\|cloudbuild\|arc\|gchat\|confluence' claude/skills/jf-gh-pr` returns nothing.
-- `grep -rnE '(~|\$HOME)/\.claude/skills/' claude/skills` returns hits only within the five unpackaged skills.
+- `grep -rnE '(~|\$HOME)/\.claude/skills/' claude/skills | grep -v 'CLAUDE_PLUGIN_ROOT:-'` returns hits only within the five unpackaged skills.
 - Each bundled script still executes when invoked through its skill.
 - No stage 2 or 3 artifact appears: no `marketplace.json`, no publish, no `jf-triage-flow` decomposition.
 
@@ -393,10 +397,10 @@ Plugin names below are settled per the Goal Capsule and remain reversible per R1
 | jf-git-commit-flow | part | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
 | jf-gh-pr | part | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | — (degrades without jf-cloud-build, jf-arc) |
 | jf-triage-flow | policy | regression-triage | 147 | — (names roles, per R22a) |
-| jf-dev-cycle | driver | git-worktree-jira-branch, pr-ready, notify-pr-channels | 182 | jf-git-commit-flow, jf-gh-pr, jf-gchat, jf-arc, jf-triage-flow, compound-engineering, vendasta-dev-agent-toolkit |
+| jf-dev-cycle | driver | git-worktree-jira-branch, pr-ready, notify-pr-channels, open-tracked-pr (new, U6) | ~230 | jf-git-commit-flow, jf-gh-pr, jf-gchat, jf-arc, jf-triage-flow, compound-engineering, vendasta-dev-agent-toolkit |
 | jf-feats-of-merit | separate cycle | wsu, wsu-note | 118 | jf-gh-pr |
 
-Eight plugins covering 18 skills. Parts and providers are usable in isolation and declare nothing; `jf-dev-cycle` is the assembly and carries every dependency, including the two cross-marketplace ones. Verified against the delegation graph: zero upward dependencies and zero unresolvable references.
+Eight plugins covering 19 skills once U6 creates `open-tracked-pr`; 18 before it. Parts and providers are usable in isolation and declare nothing; `jf-dev-cycle` is the assembly and carries every dependency, including the two cross-marketplace ones. Verified against the delegation graph: zero upward dependencies and zero unresolvable references.
 
 `jf-triage-flow`'s five dependencies in that graph are today's prose, not the target. Stage 3 takes them to zero per R22a; until then the count is the measure of how far the judgement is from travelling.
 
@@ -438,9 +442,31 @@ External systems each skill actually invokes, derived by grepping for command an
 
 ### Cross-reference graph
 
-Directed edges are real delegations; backward mentions such as "X delegates here" are excluded. `send-gchat-message` and `open-in-arc` are pure sinks, which is what makes them clean capability plugins.
+33 distinct references exist between skills; 26 cross a plugin boundary. The 18 below are delegations from a packaged skill and are U5's work list. Line numbers are first occurrence, pre-move.
 
-- Depends on nothing: commit-preferences, green-commits, user-preferences, golang-pre-commit-tests, git-worktree-jira-branch, worktree-cleanup, sync-base, open-in-arc, send-gchat-message, gcp-ci-watch, vim-rest, temporal-activities, wsu-note
-- Composes the above: plan-implementation-commits, notify-pr-channels, pr-studio-open-in-arc, open-pr, merge-pr, pr-ready, wsu
-- Composes those: plan-commit-to-worktree, pr-feedback-watcher
-- Orchestrates across everything: regression-triage
+| From plugin | Reference site | To skill | To plugin |
+|---|---|---|---|
+| jf-dev-cycle | notify-pr-channels:24 | send-gchat-message | jf-gchat |
+| jf-gh-pr | open-pr:8 | pr-ready | jf-dev-cycle |
+| jf-gh-pr | open-pr:24 | commit-preferences | jf-git-commit-flow |
+| jf-gh-pr | open-pr:58 | open-in-arc | jf-arc |
+| jf-gh-pr | merge-pr:31 | gcp-ci-watch | jf-cloud-build |
+| jf-gh-pr | pr-feedback-watcher:3 | green-commits | jf-git-commit-flow |
+| jf-gh-pr | pr-feedback-watcher:91 | gcp-ci-watch | jf-cloud-build |
+| jf-triage-flow | regression-triage:83 | send-gchat-message | jf-gchat |
+| jf-triage-flow | regression-triage:100 | git-worktree-jira-branch | jf-dev-cycle |
+| jf-triage-flow | regression-triage:104 | plan-implementation-commits | jf-git-commit-flow |
+| jf-triage-flow | regression-triage:104 | green-commits | jf-git-commit-flow |
+| jf-triage-flow | regression-triage:105 | golang-pre-commit-tests | jf-git-commit-flow |
+| jf-triage-flow | regression-triage:106 | open-in-arc | jf-arc |
+| jf-triage-flow | regression-triage:106 | open-pr | jf-gh-pr |
+| jf-triage-flow | regression-triage:107 | notify-pr-channels | jf-dev-cycle |
+| jf-triage-flow | regression-triage:107 | pr-ready | jf-dev-cycle |
+| jf-triage-flow | regression-triage:108 | pr-feedback-watcher | jf-gh-pr |
+| jf-triage-flow | regression-triage:109 | merge-pr | jf-gh-pr |
+
+Eleven of the eighteen sit in `regression-triage`, which is why R22a's zero-dependency target for `jf-triage-flow` is stage 3's whole substance rather than a tidy-up.
+
+Three further cross-plugin references are reverse mentions — a skill naming its own consumers — and dangle just as badly once split: `send-gchat-message:3` and `:10` name `notify-pr-channels` and `regression-triage`, and `open-in-arc:35` names `pr-studio-open-in-arc`, which stays unpackaged. The claim in an earlier revision that these two skills were "pure sinks" counted only outgoing delegations.
+
+Five more cross-plugin references originate in `plan-commit-to-worktree`, which is retired and therefore out of scope.
