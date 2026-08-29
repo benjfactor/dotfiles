@@ -41,34 +41,45 @@ The skills are densely interlinked — 13 of 23 reference at least one other by 
 - **Names are reversible, so naming does not block.** The marketplace `renames` map migrates an old name to a current one, supports multi-hop chains, and tombstones removals with `null`; the validator rejects dangling targets and cycles. Governs R14, R17.
 - **Capability grouping follows the consumer's need, not the vendor's catalog.** A `gcloud` plugin bundling BigQuery and logging would group by billing relationship rather than by anything a consumer wants together. Governs R16.
 - **Level is depth, not portability.** Fusing the two pushed org-specific level-2 workflows up to the org level and produced dependencies pointing upward: the PR flow calls `notify-pr-channels`, so that skill sits below it regardless of being Vendasta-specific. Governs R18.
+- **Parts and glue, not just levels.** The goal is that someone takes the parts they want and writes their own glue, so only glue carries dependencies. Composability is mostly a skill-writing property rather than a packaging one: a skill that names another skill pins an implementation, while one that names an outcome lets any plugin satisfy it. Governs R22, R23.
+- **Packaging breaks bundled-script paths, independent of grouping.** Five skills invoke scripts through `~/.claude/skills/<name>/`, which exists only because the skills are symlinked; an installed plugin lives under a versioned cache path. Governs R25.
 - **Membership is the one decision that hardens at first publish.** Names stay reversible through `renames`; skill moves do not, which is why membership is settled before anything ships rather than after. Governs R19.
 
-The settled level structure, with dashed edges marking optional dependencies the manifest cannot express:
+Parts and glue, per R22. Parts sit alongside one another and declare nothing; only glue points at them, and a dashed edge is a capability the part degrades without rather than a dependency it declares:
 
 ```mermaid
 flowchart TD
-    subgraph L1["Level 1 - capabilities (no opinion, no deps)"]
-        GCHAT["gchat-send"]
-        ARC["arc-open"]
-        CB["cloudbuild-status"]
-        REST["rest-console"]
+    subgraph parts["PARTS - take what you need, declare no dependencies"]
+        gchat["gchat"]
+        arc["arc"]
+        cb["cloud-build"]
+        commit["git-commit-flow"]
+        ghpr["gh-pr"]
+        wt["worktree"]
     end
-    subgraph L2["Level 2 - workflow (personal conventions)"]
-        COMMIT["commit-flow<br/>git only, no GitHub"]
-        PR["pr-flow<br/>needs gh"]
+    subgraph glue["GLUE - opinionated compositions, replaceable"]
+        notify["pr-notify"]
+        triage["triage-flow"]
+        merit["feats-of-merit"]
     end
-    subgraph L3["Level 3 - org orchestration"]
-        ORG["vendasta-flow<br/>never published"]
-    end
+    yours["someone else's glue<br/>composed their way"]
 
-    GCHAT --> PR
-    CB -.optional.-> PR
-    ARC -.optional.-> PR
-    COMMIT --> ORG
-    PR --> ORG
-    ARC --> ORG
-    GCHAT --> ORG
+    notify --> gchat
+    notify --> ghpr
+    triage --> ghpr
+    triage --> notify
+    triage --> commit
+    triage --> wt
+    merit --> ghpr
+    ghpr -. degrades .-> cb
+    ghpr -. degrades .-> arc
+    triage -. degrades .-> arc
+    yours -.-> gchat
+    yours -.-> ghpr
+    yours -.-> commit
 ```
+
+Levels still record composition depth per R18 — capability, workflow, orchestration — and the diagram's arrows are exactly the downward edges that rule permits. Parts and glue is the sharper cut, so it is the one drawn.
 
 ### Requirements
 
@@ -88,7 +99,7 @@ flowchart TD
 
 **Portability**
 
-- R9. The `commit-flow` workflow plugin assumes git only and invokes no GitHub tooling, so it is usable on a non-GitHub remote. Skills that shell out to `gh` sit in `pr-flow` instead, including `sync-base` and `worktree-cleanup`.
+- R9. The `git-commit-flow` plugin assumes git only and invokes no GitHub tooling, so it is usable on a non-GitHub remote. Skills that shell out to `gh` sit in `gh-pr` or `worktree` instead, including `sync-base` and `worktree-cleanup`.
 - R10. Org-specific identifiers move behind `userConfig` rather than remaining literal in skill bodies or bundled scripts. This covers the Chat space ID `AAAAIj8WMWc`, the `@vendasta/meerkats` handle, and the `TEAM_CHANNELS` map.
 - R11. Each plugin records which of its skills require org-internal configuration, so a plugin can be published without shipping internal defaults.
 
@@ -114,10 +125,18 @@ flowchart TD
 - R20. Packaging every skill is not a goal. A skill with no distribution need stays unpackaged as a local skill symlinked from `claude/skills/`, and that is a settled outcome rather than an unfilled gap.
 - R21. A skill stays unpackaged only when no packaged skill delegates to it, since a plugin that ships a delegation to a local skill hands consumers a reference they cannot resolve.
 
+**Composability**
+
+- R22. Plugins divide into parts and glue. A part declares no dependency on another personal plugin and degrades when an adjacent capability is absent; only a glue plugin declares dependencies. The optional edges are therefore design rather than defects.
+- R23. A skill references outcomes, not other skills by name. `merge-pr` requires that CI is confirmed green rather than that `gcp-ci-watch` is invoked, so any plugin satisfying the outcome composes. Six existing cross-references are rewritten to this form.
+- R24. No skill references another skill by relative file path. `notify-pr-channels` and `pr-studio-open-in-arc` currently do, and those paths cannot resolve once the skills sit in different plugins.
+- R25. A bundled script is invoked through `${CLAUDE_PLUGIN_ROOT}` with a fallback for when the variable is unresolved, never through `~/.claude/skills/<name>/`. Five skills currently hardcode the symlink path, which does not exist for an installed plugin.
+
 ### Key Flows
 
-- **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `gchat-send`, and configure their own space ID via `userConfig`. Outcome: no workflow plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
-- **Adopting the full personal flow.** Trigger: a teammate wants the whole ship chain. Steps: they install `pr-flow`, which auto-installs `gchat-send` per R2, and optionally add `cloudbuild-status` and `arc-open`. Outcome: the chain works, and the two optional capabilities degrade in prose when absent. Covers R2, R7.
+- **Adopting one capability without the workflow above it.** Trigger: a teammate wants to post to a Chat space from Claude Code but does not want personal PR conventions. Steps: they add the marketplace, install `gchat`, and configure their own space ID via `userConfig`. Outcome: no glue plugin is installed, and `notify-pr-channels` never enters their context. Covers R4, R5, R10.
+- **Adopting the full personal flow.** Trigger: a teammate wants the whole ship chain. Steps: they install `triage-flow`, which auto-installs the parts it composes per R2, and optionally add `cloud-build` and `arc`. Outcome: the chain works, and the two optional capabilities degrade in prose when absent. Covers R2, R7, R22.
+- **Composing your own glue over the parts.** Trigger: someone wants the commit and PR parts but their own notification and triage behaviour. Steps: they install `git-commit-flow` and `gh-pr`, which pull in nothing else, and write their own glue plugin against the outcomes those parts name. Outcome: no personal convention is inherited. Covers R22, R23.
 
 ### Scope Boundaries
 
@@ -143,7 +162,7 @@ flowchart TD
 
 **Resolve Before Planning**
 
-- Final membership within the settled level structure. The working proposal is: `gchat-send`, `arc-open`, `cloudbuild-status`, `rest-console` at level 1; `commit-flow` and `pr-flow` at level 2; `vendasta-flow` at level 3. See Appendix for the full assignment.
+- Final membership within the settled structure. The working proposal is nine plugins covering 18 skills: `gchat`, `arc`, `cloud-build`, `git-commit-flow`, `gh-pr`, `worktree` as parts; `pr-notify`, `triage-flow`, `feats-of-merit` as glue. See Appendix for the full assignment.
 - Repo home: the marketplace in `benjfactor/dotfiles`, which is already public and preserves the symlink dev loop, or a dedicated repo with clean tags and history.
 
 **Deferred to Planning**
@@ -151,8 +170,8 @@ flowchart TD
 - Whether plugin names carry a personal prefix, and the marketplace name. Deferred rather than blocking because `renames` makes names reversible per R14.
 
 - Whether bare dependency names resolve same-marketplace; testable only by publishing.
-- Whether `wsu-note`, which invokes no external system and carries no org coupling, belongs in `vendasta-flow` with `wsu` or at a lower level.
-- Whether `user-preferences` belongs in `commit-flow` or alongside `rest-console` as editor configuration, given that it targets vim-go struct alignment.
+- Whether `wsu-note`, which invokes no external system and carries no org coupling, belongs in `feats-of-merit` with `wsu` or as a part of its own.
+- Which of the six skill-name cross-references can be rewritten as outcomes without losing precision, and which genuinely need to name an implementation.
 - The `userConfig` schema shape for R10.
 
 ### Sources / Research
@@ -174,12 +193,12 @@ Plugin names below are provisional; naming is deferred per Outstanding Questions
 | gchat | capability | send-gchat-message | 96 | — |
 | arc | capability | open-in-arc | 87 | — |
 | cloud-build | capability | gcp-ci-watch | 63 | — |
-| git-commit-flow | workflow | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
-| gh-pr-flow | workflow | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup | 407 | git-commit-flow; optionally cloud-build, arc |
-| pr-notify | workflow | notify-pr-channels, pr-ready | 126 | gchat |
-| jira-branch | workflow | git-worktree-jira-branch | 56 | — |
-| triage-flow | orchestration | regression-triage | 147 | gh-pr-flow, pr-notify, git-commit-flow, jira-branch; optionally arc |
-| feats-of-merit | orchestration | wsu, wsu-note | 118 | — |
+| git-commit-flow | part / workflow | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests | 340 | — |
+| gh-pr | part / workflow | open-pr, merge-pr, pr-feedback-watcher, sync-base | 361 | — (degrades without cloud-build, arc) |
+| worktree | part / workflow | git-worktree-jira-branch, worktree-cleanup | 102 | — |
+| pr-notify | glue / workflow | notify-pr-channels, pr-ready | 126 | gchat, gh-pr |
+| triage-flow | glue / orchestration | regression-triage | 147 | gh-pr, pr-notify, git-commit-flow, worktree |
+| feats-of-merit | glue / orchestration | wsu, wsu-note | 118 | gh-pr |
 
 Nine plugins covering 18 skills. Verified against the delegation graph: zero upward dependencies, zero unresolvable references, and no cross-marketplace dependency, since the two skills that carried them stay local.
 
