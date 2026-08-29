@@ -558,7 +558,7 @@
     <div class="hint">Click a <b>skill</b>, then the plugin that should own it. <b>Description</b> is published to consumers; <b>notes</b> are private scratch for briefing me. The <b>surface roll-up</b> is the fit check: a surface on only one skill usually means that skill belongs elsewhere.</div>
     <button type="button" id="btn-brief">Copy brief for Claude</button>
     <button type="button" id="btn-copy">Copy manifest</button>
-    <button type="button" id="btn-revision">Load Claude&rsquo;s revision</button>
+    <button type="button" id="btn-revision">Load end-state proposal</button>
     <button type="button" id="btn-undo" hidden>Undo load</button>
     <button type="button" id="btn-reset">Reset to proposal</button>
   </div>
@@ -727,31 +727,28 @@
     plugins: [
       { key: "p-gchat",  name: "gchat",           level: 1, pub: "public",
         desc: "Post a message to a Chat space, resolving team handles and slugs to space IDs. Needs Chat API access.",
-        notes: "Narrowed from 'read and write' — send-gchat-message only sends. Reading lives in vendasta-dev-agent-toolkit:google-chat-fetcher." },
+        notes: "PROVIDER — fills the comms role. Narrowed from 'read and write': send-gchat-message only sends. Reading lives in vendasta-dev-agent-toolkit:google-chat-fetcher." },
       { key: "p-arc",    name: "arc",             level: 1, pub: "public",
         desc: "Open a URL in Arc, optionally targeting a named Space. Needs Arc on macOS.",
-        notes: "Per-browser beats a generic browser plugin: a skill is prose the model reads, and branching four ways dilutes both the match and the instructions." },
+        notes: "PROVIDER — fills the browser role. Per-browser beats a generic browser plugin: a skill is prose the model reads, and branching four ways dilutes both the match and the instructions." },
       { key: "p-cb",     name: "cloud-build",     level: 1, pub: "public",
-        desc: "Read and watch Cloud Build status for a branch or PR. Needs gcloud auth.",
-        notes: "" },
+        desc: "Watch an in-progress Cloud Build to a terminal status, more precisely than GitHub reports it. Needs gcloud auth.",
+        notes: "PROVIDER — fills the CI role. gh-pr works without it via GitHub's own status rollup; this is a precision upgrade for in-progress builds, not a requirement." },
       { key: "p-commit", name: "git-commit-flow", level: 2, pub: "public",
         desc: "Small, green, conventional commits pushed as you go. Git only, no GitHub.",
-        notes: "golang-pre-commit-tests moved here — it is a pre-commit gate, which is commit discipline rather than PR mechanics." },
-      { key: "p-pr",     name: "gh-pr-flow",      level: 2, pub: "public",
-        desc: "Draft PR through review, CI and merge. Needs the gh CLI.",
-        notes: "Carved down to gh-on-git. Chat moved to pr-notify, Jira naming to jira-branch, so the Arc and Chat outliers are gone." },
-      { key: "p-notify", name: "pr-notify",       level: 2, pub: "internal",
-        desc: "Announce a PR to the right team channels when it is ready for review. Needs the gchat capability.",
-        notes: "This is the separation you asked for: gchat is the capability, this is the convention on it. Internal until the space IDs move behind userConfig." },
-      { key: "p-jira",   name: "jira-branch",     level: 2, pub: "public",
-        desc: "Name worktrees and branches so a ticket id is picked up by the commit hook. Git only.",
-        notes: "No Jira API call — this is a naming convention, which is why it is publishable." },
-      { key: "p-triage", name: "triage-flow",     level: 3, pub: "internal",
-        desc: "Triage a bug found while monitoring recent work: fix it under the current work item when related, or track it separately when not. Needs the gh CLI.",
-        notes: "Rewritten from the dictated description. Full agnosticism to tracker and comms is a skill-content change, best done after the split." },
+        notes: "PART. golang-pre-commit-tests belongs here — a pre-commit gate is commit discipline, not PR mechanics." },
+      { key: "p-pr",     name: "gh-pr",           level: 2, pub: "public",
+        desc: "Bare-bones GitHub on top of git: open a draft PR, sync with base, watch reviews, merge, clean up. Needs the gh CLI.",
+        notes: "PART. To be provider-neutral the hardcoded 'ci/cloudbuild' check context in merge-pr must become userConfig; that string is the only thing tying this to one CI." },
+      { key: "p-triage", name: "triage-flow",     level: 3, pub: "public",
+        desc: "Decide what to do with a bug found while monitoring recent work: ignore it, fold it into the current work item, or track it separately with or without fixing it.",
+        notes: "POLICY — the portable judgement, meant to run over someone else's dev flow. Target is ZERO dependencies: it should name four roles (inspect recent work, record a finding, fix it, tell someone) rather than naming skills. The dependency count shown is the gap left to close." },
+      { key: "p-cycle",  name: "dev-cycle",       level: 3, pub: "internal",
+        desc: "Drives the development loop end to end, with human gates: tracking item, brainstorm, plan, review, work, review, PR, approvals, merge, deploy watch, triage, and back to the start.",
+        notes: "DRIVER — the assembly, and the one plugin where hard deps are correct, including cross-marketplace ones on compound-engineering and vendasta-dev-agent-toolkit. Its value is the gates and waits, not the steps. Note a skill does not durably wait, so this is entry points plus resume logic over /loop and notifications." },
       { key: "p-merit",  name: "feats-of-merit",  level: 3, pub: "internal",
         desc: "Capture work as it happens and compile it into weekly, monthly and quarterly summaries you can point at in a review. Needs Confluence.",
-        notes: "Drafted from your note. Internal only while it assumes Confluence and your space." }
+        notes: "A separate cycle from dev-cycle, on its own cadence." }
     ],
     assign: {
       "send-gchat-message": "p-gchat",
@@ -766,21 +763,23 @@
       "pr-feedback-watcher": "p-pr",
       "sync-base": "p-pr",
       "worktree-cleanup": "p-pr",
-      "notify-pr-channels": "p-notify",
-      "pr-ready": "p-notify",
-      "git-worktree-jira-branch": "p-jira",
       "regression-triage": "p-triage",
+      "git-worktree-jira-branch": "p-cycle",
+      "pr-ready": "p-cycle",
+      "notify-pr-channels": "p-cycle",
       "wsu": "p-merit",
       "wsu-note": "p-merit",
       // Stay local: no packaged skill delegates to any of these.
       "vim-rest": null,
       "user-preferences": null,
-      "plan-commit-to-worktree": null,
       "temporal-activities": null,
+      // Likely obsolete: the harness now creates a worktree at session start,
+      // which was this skill's distinguishing job.
+      "plan-commit-to-worktree": null,
       // Belongs upstream in vendasta-pr-studio rather than here.
       "pr-studio-open-in-arc": null
     },
-    globalNotes: "Claude's revision. Resolves all three upward dependencies by putting notify-pr-channels and git-worktree-jira-branch at their real depth (level 2) instead of treating org-specificity as a level. Four low-need skills stay symlinked, plus pr-studio-open-in-arc which belongs upstream."
+    globalNotes: "End-state proposal: parts, providers, policy, driver.\n\nPARTS (git-commit-flow, gh-pr) and PROVIDERS (gchat, arc, cloud-build) declare nothing and are usable in isolation — that is what other people take.\n\nPOLICY (triage-flow) is the portable judgement, reused over someone else's dev flow rather than replaced by it. It should end with zero dependencies; the count shown is today's prose, not the target.\n\nDRIVER (dev-cycle) is your assembly — sequence, human gates, and the bindings from roles to specific parts. The only plugin where hard and cross-marketplace deps are correct. It closes a loop: triage feeds new work back to the start.\n\nplan-commit-to-worktree is parked as likely obsolete — the harness now creates the worktree at session start, which was its distinguishing job."
   };
 
   var ORIGINAL_NAME = {};
@@ -1528,7 +1527,7 @@
     gnBox.value = globalNotes;
     save();
     render();
-    flash("Loaded Claude's revision — your board is saved under Undo load.");
+    flash("Loaded the end-state proposal — your board is saved under Undo load.");
   });
 
   document.getElementById("btn-undo").addEventListener("click", function () {
