@@ -1,0 +1,1575 @@
+<title>Plugin Strata</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #F7F8F7;
+    --surface: #FFFFFF;
+    --surface-sunk: #EFF2F1;
+    --ink: #16211F;
+    --ink-soft: #46544F;
+    --ink-faint: #6E7A76;
+    --rule: #D9DFDD;
+    --rule-firm: #BFC8C5;
+
+    --l1: #0F5C55;
+    --l2: #2E8B7F;
+    --l3: #7FB3A8;
+    --l1-wash: #E4EEEC;
+    --l2-wash: #E9F2F0;
+    --l3-wash: #EFF5F3;
+
+    --signal: #C9622F;
+    --signal-wash: #FAEDE5;
+    --alarm: #A32E2E;
+    --alarm-wash: #F8E9E9;
+
+    --sel: #0F5C55;
+    --sel-wash: #DCEBE8;
+
+    --fs-display: clamp(1.9rem, 4.2vw, 2.9rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1413;
+      --surface: #161E1C;
+      --surface-sunk: #111917;
+      --ink: #E6EDEA;
+      --ink-soft: #AFBCB7;
+      --ink-faint: #7E8C87;
+      --rule: #263230;
+      --rule-firm: #374744;
+
+      --l1: #6FC2B4;
+      --l2: #55A899;
+      --l3: #3F8377;
+      --l1-wash: #16302C;
+      --l2-wash: #142A27;
+      --l3-wash: #122522;
+
+      --signal: #E8894F;
+      --signal-wash: #33200F;
+      --alarm: #E07070;
+      --alarm-wash: #331616;
+
+      --sel: #6FC2B4;
+      --sel-wash: #1B3B36;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0E1413;
+    --surface: #161E1C;
+    --surface-sunk: #111917;
+    --ink: #E6EDEA;
+    --ink-soft: #AFBCB7;
+    --ink-faint: #7E8C87;
+    --rule: #263230;
+    --rule-firm: #374744;
+
+    --l1: #6FC2B4;
+    --l2: #55A899;
+    --l3: #3F8377;
+    --l1-wash: #16302C;
+    --l2-wash: #142A27;
+    --l3-wash: #122522;
+
+    --signal: #E8894F;
+    --signal-wash: #33200F;
+    --alarm: #E07070;
+    --alarm-wash: #331616;
+
+    --sel: #6FC2B4;
+    --sel-wash: #1B3B36;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  .masthead { display: flex; flex-direction: column; gap: 0.6rem; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  h1 {
+    font-family: Spectral, Georgia, "Times New Roman", serif;
+    font-size: var(--fs-display);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-family: Spectral, Georgia, serif;
+    font-size: 1.05rem;
+    font-style: italic;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .readout {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .stat {
+    flex: 1 1 7.5rem;
+    padding: 0.7rem 0.95rem;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat .k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .stat .v {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.15rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .v.warn { color: var(--signal); }
+  .stat .v.bad { color: var(--alarm); }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+  .hint { font-size: 0.85rem; color: var(--ink-soft); flex: 1 1 18rem; }
+  .hint b { color: var(--ink); font-weight: 600; }
+
+  button {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule-firm);
+    border-radius: 3px;
+    padding: 0.42rem 0.8rem;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  button:hover { background: var(--surface-sunk); border-color: var(--ink-faint); }
+  button:focus-visible { outline: 2px solid var(--sel); outline-offset: 2px; }
+
+  .flash {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.75rem;
+    color: var(--l1);
+    background: var(--l1-wash);
+    border: 1px solid var(--l1);
+    border-radius: 3px;
+    padding: 0.45rem 0.7rem;
+  }
+
+  .bands { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .band {
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--band);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .band[data-level="1"] { --band: var(--l1); --band-wash: var(--l1-wash); }
+  .band[data-level="2"] { --band: var(--l2); --band-wash: var(--l2-wash); }
+  .band[data-level="3"] { --band: var(--l3); --band-wash: var(--l3-wash); }
+
+  .band-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    padding: 0.6rem 1rem;
+    background: var(--band-wash);
+    border-bottom: 1px solid var(--rule);
+    flex-wrap: wrap;
+  }
+  .band-num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--band);
+    text-transform: uppercase;
+  }
+  .band-name { font-family: Spectral, Georgia, serif; font-size: 1.05rem; font-weight: 600; }
+  .band-rule { font-size: 0.8rem; color: var(--ink-soft); flex: 1 1 15rem; }
+  .band-head button { padding: 0.24rem 0.55rem; font-size: 0.74rem; }
+
+  .band-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: 1px;
+    background: var(--rule);
+  }
+
+  .plugin {
+    background: var(--surface);
+    padding: 0.8rem 0.9rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 9rem;
+    transition: background 120ms ease;
+  }
+  .plugin.target { background: var(--sel-wash); box-shadow: inset 0 0 0 2px var(--sel); cursor: pointer; }
+  .plugin-empty-note { font-size: 0.78rem; color: var(--ink-faint); font-style: italic; }
+
+  .name-row { display: flex; align-items: center; gap: 0.4rem; }
+
+  input.name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--band);
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 1px dotted var(--rule-firm);
+    border-radius: 2px;
+    padding: 0.1rem 0.2rem;
+  }
+  input.name:hover { border-bottom-color: var(--band); }
+  input.name:focus {
+    outline: none;
+    border-color: var(--sel);
+    background: var(--surface-sunk);
+  }
+  input.name.dupe { color: var(--alarm); border-bottom-color: var(--alarm); }
+
+  .tok {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  textarea.desc {
+    width: 100%;
+    resize: vertical;
+    min-height: 2.9rem;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px dotted var(--rule-firm);
+    border-radius: 2px;
+    padding: 0.25rem 0.35rem;
+  }
+  textarea.desc:hover { border-color: var(--ink-faint); }
+  textarea.desc:focus {
+    outline: none;
+    border-style: solid;
+    border-color: var(--sel);
+    background: var(--surface-sunk);
+    color: var(--ink);
+  }
+  textarea.desc::placeholder { color: var(--ink-faint); font-style: italic; }
+  textarea.desc.missing { border-color: var(--signal); }
+
+  .field-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.57rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    gap: 0.4rem;
+    margin-bottom: -0.3rem;
+  }
+  .field-label .qualifier { font-style: italic; letter-spacing: 0.05em; text-transform: none; }
+
+  textarea.notes {
+    width: 100%;
+    resize: vertical;
+    min-height: 2.4rem;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    background: var(--surface-sunk);
+    border: 1px dashed var(--rule-firm);
+    border-left: 3px solid var(--rule-firm);
+    border-radius: 2px;
+    padding: 0.25rem 0.35rem;
+  }
+  textarea.notes:hover { border-left-color: var(--ink-faint); }
+  textarea.notes:focus {
+    outline: none;
+    border-color: var(--ink-faint);
+    border-left-color: var(--sel);
+    color: var(--ink);
+  }
+  textarea.notes::placeholder { color: var(--ink-faint); font-style: italic; }
+  textarea.notes.filled { border-left-color: var(--sel); }
+
+  .worksheet-notes {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--rule-firm);
+    border-radius: 3px;
+    background: var(--surface);
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .worksheet-notes textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 4rem;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px dashed var(--rule-firm);
+    border-radius: 2px;
+    padding: 0.4rem 0.5rem;
+  }
+  .worksheet-notes textarea:focus { outline: none; border-color: var(--sel); border-style: solid; }
+  .worksheet-notes textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+
+  .surfaces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.22rem;
+    padding-top: 0.15rem;
+    border-top: 1px dotted var(--rule-firm);
+  }
+  .surf {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.62rem;
+    padding: 0.02rem 0.28rem;
+    border-radius: 2px;
+    background: var(--surface-sunk);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .surf.outlier { background: var(--signal-wash); color: var(--signal); font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    padding: 0.16rem 0.42rem;
+    border: 1px solid var(--rule-firm);
+    border-radius: 2px;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 100ms ease, border-color 100ms ease;
+  }
+  .chip:hover { border-color: var(--sel); }
+  .chip.sel { background: var(--sel); border-color: var(--sel); color: var(--ground); font-weight: 500; }
+  .chip.linked { border-color: var(--signal); background: var(--signal-wash); }
+
+  .deps {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.65rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+  .deps .opt { color: var(--signal); }
+  .deps .viol { color: var(--alarm); font-weight: 600; }
+  .deps .none { color: var(--ink-faint); font-style: italic; }
+
+  .card-foot { display: flex; align-items: center; gap: 0.4rem; margin-top: auto; }
+  .card-foot select {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.66rem;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 0.1rem 0.2rem;
+  }
+  .card-foot select.internal { color: var(--signal); border-color: var(--signal); }
+  .card-foot .kill {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    color: var(--ink-faint);
+  }
+  .card-foot .kill:hover { color: var(--alarm); border-color: var(--alarm); }
+
+  .tray {
+    border: 1px dashed var(--rule-firm);
+    border-radius: 3px;
+    background: var(--surface-sunk);
+    padding: 0.8rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .tray.target { box-shadow: inset 0 0 0 2px var(--sel); cursor: pointer; }
+  .tray-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .tray-empty { font-size: 0.85rem; color: var(--ink-faint); font-style: italic; }
+  .leak-warn {
+    font-size: 0.78rem;
+    color: var(--alarm);
+    background: var(--alarm-wash);
+    border-radius: 2px;
+    padding: 0.2rem 0.4rem;
+    margin-top: 0.3rem;
+  }
+  .leak-ok { font-size: 0.78rem; color: var(--ink-faint); margin-top: 0.2rem; }
+
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 1.1rem;
+  }
+  .panel {
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-head {
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-sunk);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .panel-title { font-family: Spectral, Georgia, serif; font-size: 0.98rem; font-weight: 600; }
+  .panel-note {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .panel-body { padding: 0.75rem 0.9rem; overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  th, td {
+    text-align: left;
+    padding: 0.3rem 0.45rem 0.3rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  td.mono { font-family: "IBM Plex Mono", monospace; font-size: 0.73rem; }
+  tr:last-child td { border-bottom: 0; }
+
+  .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.62rem;
+    padding: 0.05rem 0.3rem;
+    border-radius: 2px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .tag.req { color: var(--l1); }
+  .tag.opt { color: var(--signal); background: var(--signal-wash); }
+  .tag.ext { color: var(--ink-faint); }
+  .tag.viol { color: var(--alarm); background: var(--alarm-wash); font-weight: 600; }
+
+  pre {
+    margin: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: var(--ink);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .empty-note { font-size: 0.82rem; color: var(--ink-faint); font-style: italic; margin: 0; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  footer code { font-family: "IBM Plex Mono", monospace; font-size: 0.75rem; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Packaging worksheet &middot; 23 skills &middot; 28 Aug 2026</div>
+    <h1>Plugin Strata</h1>
+    <p class="standfirst">Assigning personal skills across three levels &mdash; pure capability, personal workflow, org orchestration &mdash; so a consumer can take a primitive without inheriting the opinion built on top of it.</p>
+  </header>
+
+  <div class="readout" id="readout"></div>
+
+  <div class="toolbar">
+    <div class="hint">Click a <b>skill</b>, then the plugin that should own it. <b>Description</b> is published to consumers; <b>notes</b> are private scratch for briefing me. The <b>surface roll-up</b> is the fit check: a surface on only one skill usually means that skill belongs elsewhere.</div>
+    <button type="button" id="btn-brief">Copy brief for Claude</button>
+    <button type="button" id="btn-copy">Copy manifest</button>
+    <button type="button" id="btn-revision">Load end-state proposal</button>
+    <button type="button" id="btn-undo" hidden>Undo load</button>
+    <button type="button" id="btn-reset">Reset to proposal</button>
+  </div>
+
+  <div class="flash" id="flash" hidden></div>
+
+  <div class="bands" id="bands"></div>
+
+  <div class="tray" id="tray">
+    <div class="field-label">
+      <span>Stays a local skill &mdash; not packaged</span>
+      <span class="qualifier">symlinked from dotfiles, never installed by anyone else</span>
+    </div>
+    <div class="chips" id="tray-chips"></div>
+    <div id="tray-warn"></div>
+  </div>
+
+  <div class="worksheet-notes">
+    <div class="field-label">
+      <span>Notes for Claude &mdash; whole worksheet</span>
+      <span class="qualifier">private, never published</span>
+    </div>
+    <textarea id="global-notes" rows="3" aria-label="Notes for Claude about the whole worksheet" placeholder="What you want me to do next, what you are unsure about, constraints I do not know yet. Copy brief for Claude picks this up along with every plugin note."></textarea>
+  </div>
+
+  <div class="panels">
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Cross-plugin dependencies</span>
+        <span class="panel-note" id="dep-count"></span>
+      </div>
+      <div class="panel-body" id="dep-body"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Generated manifest</span>
+        <span class="panel-note">plugin.json + renames</span>
+      </div>
+      <div class="panel-body"><pre id="manifest"></pre></div>
+    </section>
+  </div>
+
+  <footer>
+    <div><b>Level is composition depth only</b> &mdash; what builds on what. Whether a plugin is publishable is a separate axis, set per card. An org-specific plugin can sit at any level: <code>notify-pr-channels</code> is Vendasta-specific and still a level-2 workflow, because the PR flow depends on it rather than the other way round.</div>
+    <div>Optional edges are orange. Claude Code has no <code>peerDependencies</code> &mdash; the validator reports it as an unknown field ignored at load time &mdash; so every orange edge is either an over-requiring hard dependency or unenforced prose.</div>
+    <div>A renamed plugin emits a <code>renames</code> entry in the manifest below, since a rename target must resolve to a name in <code>plugins[]</code>, another <code>renames</code> key, or <code>null</code>.</div>
+    <div><b>Description</b> is published &mdash; it becomes the plugin&rsquo;s <code>description</code> in the manifest and is what a consumer reads when choosing to install. <b>Notes</b> are never published and never reach the manifest; they exist only to brief Claude, and <em>Copy brief for Claude</em> collects them along with the current grouping.</div>
+    <div>Token figures are always-on cost measured from each skill&rsquo;s frontmatter at roughly 4 characters per token. Your grouping, names, descriptions and notes are saved in this browser only &mdash; they never reach Claude unless you paste the brief.</div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SKILLS = [
+    { id: "send-gchat-message",          tok: 96,  surf: ["gcloud", "Chat"] },
+    { id: "open-in-arc",                 tok: 87,  surf: ["Arc"] },
+    { id: "gcp-ci-watch",                tok: 63,  surf: ["gh", "gcloud"] },
+    { id: "vim-rest",                    tok: 58,  surf: ["vim"] },
+    { id: "green-commits",               tok: 124, surf: ["git", "go"] },
+    { id: "commit-preferences",          tok: 79,  surf: ["git"] },
+    { id: "plan-implementation-commits", tok: 65,  surf: ["git"] },
+    { id: "golang-pre-commit-tests",     tok: 72,  surf: ["git", "go"] },
+    { id: "user-preferences",            tok: 55,  surf: ["go"] },
+    { id: "open-pr",                     tok: 44,  surf: ["gh", "git", "Arc"] },
+    { id: "pr-ready",                    tok: 59,  surf: ["gh", "git", "Chat"] },
+    { id: "merge-pr",                    tok: 60,  surf: ["gh", "git", "gcloud"] },
+    { id: "pr-feedback-watcher",         tok: 84,  surf: ["gh", "gcloud"] },
+    { id: "sync-base",                   tok: 173, surf: ["gh", "git", "go"] },
+    { id: "worktree-cleanup",            tok: 46,  surf: ["gh", "git"] },
+    { id: "git-worktree-jira-branch",    tok: 56,  surf: ["git", "Jira"] },
+    { id: "notify-pr-channels",          tok: 67,  surf: ["gh", "Chat"] },
+    { id: "regression-triage",           tok: 147, surf: ["gh", "Arc", "Chat", "Confluence", "go"] },
+    { id: "wsu",                         tok: 68,  surf: ["gh", "git", "Confluence"] },
+    { id: "wsu-note",                    tok: 50,  surf: [] },
+    { id: "plan-commit-to-worktree",     tok: 143, surf: ["gh", "git", "Arc", "ce-plan"] },
+    { id: "pr-studio-open-in-arc",       tok: 85,  surf: ["Arc", "pr-studio"] },
+    { id: "temporal-activities",         tok: 54,  surf: ["Temporal"] }
+  ];
+
+  // Real delegations only. Backward mentions ("X delegates here") excluded.
+  var EDGES = [
+    { from: "notify-pr-channels",          to: "send-gchat-message",          opt: false },
+    { from: "pr-ready",                    to: "notify-pr-channels",          opt: false },
+    { from: "open-pr",                     to: "commit-preferences",          opt: false },
+    { from: "open-pr",                     to: "open-in-arc",                 opt: true  },
+    { from: "merge-pr",                    to: "gcp-ci-watch",                opt: true  },
+    { from: "pr-feedback-watcher",         to: "gcp-ci-watch",                opt: true  },
+    { from: "pr-feedback-watcher",         to: "green-commits",               opt: false },
+    { from: "pr-feedback-watcher",         to: "merge-pr",                    opt: false },
+    { from: "plan-implementation-commits", to: "commit-preferences",          opt: false },
+    { from: "plan-implementation-commits", to: "green-commits",               opt: false },
+    { from: "plan-commit-to-worktree",     to: "git-worktree-jira-branch",    opt: false },
+    { from: "plan-commit-to-worktree",     to: "open-pr",                     opt: false },
+    { from: "plan-commit-to-worktree",     to: "open-in-arc",                 opt: true  },
+    { from: "pr-studio-open-in-arc",       to: "open-in-arc",                 opt: false },
+    { from: "wsu",                         to: "wsu-note",                    opt: false },
+    { from: "regression-triage",           to: "send-gchat-message",          opt: false },
+    { from: "regression-triage",           to: "notify-pr-channels",          opt: false },
+    { from: "regression-triage",           to: "pr-ready",                    opt: false },
+    { from: "regression-triage",           to: "open-pr",                     opt: false },
+    { from: "regression-triage",           to: "open-in-arc",                 opt: true  },
+    { from: "regression-triage",           to: "merge-pr",                    opt: false },
+    { from: "regression-triage",           to: "pr-feedback-watcher",         opt: false },
+    { from: "regression-triage",           to: "green-commits",               opt: false },
+    { from: "regression-triage",           to: "plan-implementation-commits", opt: false },
+    { from: "regression-triage",           to: "golang-pre-commit-tests",     opt: false },
+    { from: "regression-triage",           to: "git-worktree-jira-branch",    opt: false }
+  ];
+
+  var EXTERNAL = {
+    "plan-commit-to-worktree": "compound-engineering@compound-engineering-plugin",
+    "pr-studio-open-in-arc":   "vendasta-pr-studio@vendasta-dev-agent-toolkit"
+  };
+
+  // Level is composition depth only — what builds on what. Whether a plugin is
+  // publishable is a separate axis, carried by the publishable flag per plugin.
+  var LEVELS = [
+    { n: 1, name: "Capability",    rule: "Wraps one capability a consumer wants. No workflow opinion, and depends on no other personal plugin." },
+    { n: 2, name: "Workflow",      rule: "A convention built on the capabilities below. May depend sideways on another workflow, never upward." },
+    { n: 3, name: "Orchestration", rule: "Composes workflows into an end-to-end run. Depends downward only." }
+  ];
+
+  var PROPOSAL_PLUGINS = [
+    { key: "p-gchat",  name: "gchat",         level: 1, desc: "Post a message to a Chat space, resolving team handles and slugs to space IDs. Needs Chat API access." },
+    { key: "p-arc",    name: "arc",           level: 1, desc: "Open a URL in Arc, optionally targeting a named Space. Needs Arc on macOS." },
+    { key: "p-cb",     name: "cloud-build",   level: 1, desc: "Read and watch Cloud Build status for a branch or PR. Needs gcloud auth." },
+    { key: "p-rest",   name: "rest-console",  level: 1, desc: "Structure .rest files for rest.nvim and vim-rest-console." },
+    { key: "p-commit", name: "commit-flow",   level: 2, desc: "Small, green, conventional commits pushed as you go. Git only, no GitHub." },
+    { key: "p-pr",     name: "pr-flow",       level: 2, desc: "Draft PR through review, CI and merge. Needs the gh CLI." },
+    { key: "p-org",    name: "vendasta-flow", level: 3, desc: "Regression triage, weekly status and plan-to-worktree glue. Vendasta-internal." }
+  ];
+
+  var PROPOSAL_ASSIGN = {
+    "send-gchat-message": "p-gchat",
+    "open-in-arc": "p-arc",
+    "gcp-ci-watch": "p-cb",
+    "vim-rest": "p-rest",
+    "green-commits": "p-commit",
+    "commit-preferences": "p-commit",
+    "plan-implementation-commits": "p-commit",
+    "golang-pre-commit-tests": "p-commit",
+    "user-preferences": "p-commit",
+    "open-pr": "p-pr",
+    "pr-ready": "p-pr",
+    "merge-pr": "p-pr",
+    "pr-feedback-watcher": "p-pr",
+    "sync-base": "p-pr",
+    "worktree-cleanup": "p-pr",
+    "git-worktree-jira-branch": "p-pr",
+    "notify-pr-channels": "p-pr",
+    "regression-triage": "p-org",
+    "wsu": "p-org",
+    "wsu-note": "p-org",
+    "plan-commit-to-worktree": "p-org",
+    "pr-studio-open-in-arc": "p-org",
+    "temporal-activities": "p-org"
+  };
+
+  // The restructure proposed in the plan: resolves the three upward
+  // dependencies, and leaves the four low-need skills unpackaged.
+  var CLAUDE_REVISION = {
+    plugins: [
+      { key: "p-gchat",  name: "gchat",           level: 1, pub: "public",
+        desc: "Post a message to a Chat space, resolving team handles and slugs to space IDs. Needs Chat API access.",
+        notes: "PROVIDER — fills the comms role. Narrowed from 'read and write': send-gchat-message only sends. Reading lives in vendasta-dev-agent-toolkit:google-chat-fetcher." },
+      { key: "p-arc",    name: "arc",             level: 1, pub: "public",
+        desc: "Open a URL in Arc, optionally targeting a named Space. Needs Arc on macOS.",
+        notes: "PROVIDER — fills the browser role. Per-browser beats a generic browser plugin: a skill is prose the model reads, and branching four ways dilutes both the match and the instructions." },
+      { key: "p-cb",     name: "cloud-build",     level: 1, pub: "public",
+        desc: "Watch an in-progress Cloud Build to a terminal status, more precisely than GitHub reports it. Needs gcloud auth.",
+        notes: "PROVIDER — fills the CI role. gh-pr works without it via GitHub's own status rollup; this is a precision upgrade for in-progress builds, not a requirement." },
+      { key: "p-commit", name: "git-commit-flow", level: 2, pub: "public",
+        desc: "Small, green, conventional commits pushed as you go. Git only, no GitHub.",
+        notes: "PART. golang-pre-commit-tests belongs here — a pre-commit gate is commit discipline, not PR mechanics." },
+      { key: "p-pr",     name: "gh-pr",           level: 2, pub: "public",
+        desc: "Bare-bones GitHub on top of git: open a draft PR, sync with base, watch reviews, merge, clean up. Needs the gh CLI.",
+        notes: "PART. To be provider-neutral the hardcoded 'ci/cloudbuild' check context in merge-pr must become userConfig; that string is the only thing tying this to one CI." },
+      { key: "p-triage", name: "triage-flow",     level: 3, pub: "public",
+        desc: "Decide what to do with a bug found while monitoring recent work: ignore it, fold it into the current work item, or track it separately with or without fixing it.",
+        notes: "POLICY — the portable judgement, meant to run over someone else's dev flow. Target is ZERO dependencies: it should name four roles (inspect recent work, record a finding, fix it, tell someone) rather than naming skills. The dependency count shown is the gap left to close." },
+      { key: "p-cycle",  name: "dev-cycle",       level: 3, pub: "internal",
+        desc: "Drives the development loop end to end, with human gates: tracking item, brainstorm, plan, review, work, review, PR, approvals, merge, deploy watch, triage, and back to the start.",
+        notes: "DRIVER — the assembly, and the one plugin where hard deps are correct, including cross-marketplace ones on compound-engineering and vendasta-dev-agent-toolkit. Its value is the gates and waits, not the steps. Note a skill does not durably wait, so this is entry points plus resume logic over /loop and notifications." },
+      { key: "p-merit",  name: "feats-of-merit",  level: 3, pub: "internal",
+        desc: "Capture work as it happens and compile it into weekly, monthly and quarterly summaries you can point at in a review. Needs Confluence.",
+        notes: "A separate cycle from dev-cycle, on its own cadence." }
+    ],
+    assign: {
+      "send-gchat-message": "p-gchat",
+      "open-in-arc": "p-arc",
+      "gcp-ci-watch": "p-cb",
+      "green-commits": "p-commit",
+      "commit-preferences": "p-commit",
+      "plan-implementation-commits": "p-commit",
+      "golang-pre-commit-tests": "p-commit",
+      "open-pr": "p-pr",
+      "merge-pr": "p-pr",
+      "pr-feedback-watcher": "p-pr",
+      "sync-base": "p-pr",
+      "worktree-cleanup": "p-pr",
+      "regression-triage": "p-triage",
+      "git-worktree-jira-branch": "p-cycle",
+      "pr-ready": "p-cycle",
+      "notify-pr-channels": "p-cycle",
+      "wsu": "p-merit",
+      "wsu-note": "p-merit",
+      // Stay local: no packaged skill delegates to any of these.
+      "vim-rest": null,
+      "user-preferences": null,
+      "temporal-activities": null,
+      // Likely obsolete: the harness now creates a worktree at session start,
+      // which was this skill's distinguishing job.
+      "plan-commit-to-worktree": null,
+      // Belongs upstream in vendasta-pr-studio rather than here.
+      "pr-studio-open-in-arc": null
+    },
+    globalNotes: "End-state proposal: parts, providers, policy, driver.\n\nPARTS (git-commit-flow, gh-pr) and PROVIDERS (gchat, arc, cloud-build) declare nothing and are usable in isolation — that is what other people take.\n\nPOLICY (triage-flow) is the portable judgement, reused over someone else's dev flow rather than replaced by it. It should end with zero dependencies; the count shown is today's prose, not the target.\n\nDRIVER (dev-cycle) is your assembly — sequence, human gates, and the bindings from roles to specific parts. The only plugin where hard and cross-marketplace deps are correct. It closes a loop: triage feeds new work back to the start.\n\nplan-commit-to-worktree is parked as likely obsolete — the harness now creates the worktree at session start, which was its distinguishing job."
+  };
+
+  var ORIGINAL_NAME = {};
+  PROPOSAL_PLUGINS.forEach(function (p) { ORIGINAL_NAME[p.key] = p.name; });
+
+  var KEY = "plugin-strata-v2";
+  var LEGACY_KEY = "plugin-strata-v1";
+  var UNDO_KEY = "plugin-strata-undo";
+  var plugins = [];
+  var assign = {};
+  var globalNotes = "";
+  var selected = null;
+  var nextKey = 1;
+
+  var skillById = {};
+  SKILLS.forEach(function (s) { skillById[s.id] = s; });
+
+  function pluginByKey(k) {
+    for (var i = 0; i < plugins.length; i++) { if (plugins[i].key === k) { return plugins[i]; } }
+    return null;
+  }
+
+  function reset() {
+    plugins = PROPOSAL_PLUGINS.map(function (p) {
+      return { key: p.key, name: p.name, level: p.level, desc: p.desc, notes: "", pub: p.pub || "" };
+    });
+    assign = {};
+    SKILLS.forEach(function (s) { assign[s.id] = PROPOSAL_ASSIGN[s.id]; });
+    globalNotes = "";
+    nextKey = 1;
+  }
+
+  // One-time recovery: the first version of this worksheet stored a flat
+  // { skillId: pluginName } map under a different key. Import it only when no
+  // current state exists, so live edits are never clobbered.
+  function importLegacy() {
+    var raw = null;
+    try { raw = window.localStorage.getItem(LEGACY_KEY); } catch (e) { return false; }
+    if (!raw) { return false; }
+    var old;
+    try { old = JSON.parse(raw); } catch (e) { return false; }
+    if (!old || typeof old !== "object") { return false; }
+
+    var byName = {};
+    PROPOSAL_PLUGINS.forEach(function (p) { byName[p.name] = p.key; });
+    // v1 used these names for the same seven plugins.
+    byName["gchat-send"] = "p-gchat";
+    byName["arc-open"] = "p-arc";
+    byName["cloudbuild-status"] = "p-cb";
+
+    var touched = false;
+    SKILLS.forEach(function (s) {
+      if (!Object.prototype.hasOwnProperty.call(old, s.id)) { return; }
+      var v = old[s.id];
+      if (v === null) { assign[s.id] = null; touched = true; return; }
+      var k = byName[v];
+      if (k) { assign[s.id] = k; touched = true; }
+    });
+    return touched;
+  }
+
+  function load() {
+    var raw = null;
+    try { raw = window.localStorage.getItem(KEY); } catch (e) { raw = null; }
+
+    if (!raw) {
+      // No current state. Seed the proposal, then try to recover a v1 grouping.
+      reset();
+      if (importLegacy()) { save(); }
+      return;
+    }
+
+    try {
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.plugins) || !d.assign) { reset(); return; }
+      plugins = d.plugins.filter(function (p) {
+        return p && typeof p.key === "string" && typeof p.name === "string";
+      }).map(function (p) {
+        return {
+          key: p.key,
+          name: p.name,
+          level: (p.level === 1 || p.level === 2 || p.level === 3) ? p.level : 1,
+          desc: typeof p.desc === "string" ? p.desc : "",
+          notes: typeof p.notes === "string" ? p.notes : "",
+          pub: (p.pub === "public" || p.pub === "internal") ? p.pub : ""
+        };
+      });
+      if (!plugins.length) { reset(); return; }
+      assign = {};
+      SKILLS.forEach(function (s) {
+        var v = d.assign[s.id];
+        assign[s.id] = (typeof v === "string" && pluginByKey(v)) ? v : null;
+      });
+      globalNotes = typeof d.globalNotes === "string" ? d.globalNotes : "";
+      nextKey = typeof d.nextKey === "number" ? d.nextKey : 1;
+    } catch (e) { reset(); }
+  }
+
+  function serialize() {
+    return JSON.stringify({
+      plugins: plugins, assign: assign, globalNotes: globalNotes, nextKey: nextKey
+    });
+  }
+
+  function snapshot() {
+    try { window.localStorage.setItem(UNDO_KEY, serialize()); } catch (e) { /* ignore */ }
+  }
+
+  function hasUndo() {
+    try { return !!window.localStorage.getItem(UNDO_KEY); } catch (e) { return false; }
+  }
+
+  function applyRevision() {
+    snapshot();
+    plugins = CLAUDE_REVISION.plugins.map(function (p) {
+      return { key: p.key, name: p.name, level: p.level, desc: p.desc, notes: p.notes, pub: p.pub };
+    });
+    assign = {};
+    SKILLS.forEach(function (s) {
+      var v = CLAUDE_REVISION.assign[s.id];
+      assign[s.id] = (typeof v === "string" && pluginByKey(v)) ? v : null;
+    });
+    globalNotes = CLAUDE_REVISION.globalNotes;
+    nextKey = 1;
+  }
+
+  function restoreUndo() {
+    var raw = null;
+    try { raw = window.localStorage.getItem(UNDO_KEY); } catch (e) { return false; }
+    if (!raw) { return false; }
+    try {
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.plugins)) { return false; }
+      plugins = d.plugins;
+      assign = {};
+      SKILLS.forEach(function (s) {
+        var v = d.assign[s.id];
+        assign[s.id] = (typeof v === "string" && pluginByKey(v)) ? v : null;
+      });
+      globalNotes = typeof d.globalNotes === "string" ? d.globalNotes : "";
+      nextKey = typeof d.nextKey === "number" ? d.nextKey : 1;
+    } catch (e) { return false; }
+    try { window.localStorage.removeItem(UNDO_KEY); } catch (e) { /* ignore */ }
+    return true;
+  }
+
+  function save() {
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify({
+        plugins: plugins, assign: assign, globalNotes: globalNotes, nextKey: nextKey
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function analyse() {
+    var info = {};
+    plugins.forEach(function (p) {
+      info[p.key] = { tok: 0, skills: [], deps: {}, surf: {} };
+    });
+    var unassigned = [];
+
+    SKILLS.forEach(function (s) {
+      var k = assign[s.id];
+      if (k && info[k]) {
+        info[k].tok += s.tok;
+        info[k].skills.push(s.id);
+        s.surf.forEach(function (f) { info[k].surf[f] = (info[k].surf[f] || 0) + 1; });
+      } else {
+        unassigned.push(s.id);
+      }
+    });
+
+    var rows = [];
+    EDGES.forEach(function (e) {
+      var kf = assign[e.from], kt = assign[e.to];
+      if (!kf || !kt || kf === kt) { return; }
+      var pf = pluginByKey(kf), pt = pluginByKey(kt);
+      if (!pf || !pt) { return; }
+      var violation = pt.level > pf.level;
+      rows.push({ from: e.from, to: e.to, pf: pf, pt: pt, opt: e.opt, violation: violation });
+      var b = info[kf].deps[kt];
+      if (!b) { b = info[kf].deps[kt] = { opt: true, violation: false }; }
+      if (!e.opt) { b.opt = false; }
+      if (violation) { b.violation = true; }
+    });
+
+    // A skill can only stay local if nothing packaged delegates to it —
+    // otherwise the plugin ships a reference a consumer cannot resolve.
+    var leaks = [];
+    EDGES.forEach(function (e) {
+      var kf = assign[e.from], kt = assign[e.to];
+      if (kf && !kt) {
+        leaks.push({ from: e.from, to: e.to, plugin: pluginByKey(kf), opt: e.opt });
+      }
+    });
+
+    var ext = [];
+    Object.keys(EXTERNAL).forEach(function (sk) {
+      var k = assign[sk];
+      if (k && pluginByKey(k)) { ext.push({ plugin: pluginByKey(k), skill: sk, dep: EXTERNAL[sk] }); }
+    });
+
+    var nameCount = {};
+    plugins.forEach(function (p) {
+      var n = p.name.trim();
+      nameCount[n] = (nameCount[n] || 0) + 1;
+    });
+
+    return { info: info, unassigned: unassigned, rows: rows, ext: ext, leaks: leaks, nameCount: nameCount };
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (text !== undefined) { n.textContent = text; }
+    return n;
+  }
+
+  function neighbours(id) {
+    var set = {};
+    EDGES.forEach(function (e) {
+      if (e.from === id) { set[e.to] = true; }
+      if (e.to === id) { set[e.from] = true; }
+    });
+    return set;
+  }
+
+  function chip(id) {
+    var c = el("button", "chip", id);
+    c.type = "button";
+    if (selected === id) { c.classList.add("sel"); }
+    else if (selected && neighbours(selected)[id]) { c.classList.add("linked"); }
+    var sf = skillById[id].surf;
+    c.title = (sf.length ? sf.join(", ") : "no external surface") + " · ~" + skillById[id].tok + " tok";
+    c.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selected = (selected === id) ? null : id;
+      render();
+    });
+    return c;
+  }
+
+  function render() {
+    var a = analyse();
+    var focusKey = document.activeElement && document.activeElement.getAttribute
+      ? document.activeElement.getAttribute("data-focus")
+      : null;
+    var caret = null;
+    if (focusKey && document.activeElement.setSelectionRange) {
+      try { caret = document.activeElement.selectionStart; } catch (e) { caret = null; }
+    }
+
+    var totalTok = SKILLS.reduce(function (n, s) { return n + s.tok; }, 0);
+    var viol = a.rows.filter(function (r) { return r.violation; }).length;
+    var optCount = a.rows.filter(function (r) { return r.opt && !r.violation; }).length;
+    var live = plugins.filter(function (p) { return a.info[p.key].skills.length > 0; }).length;
+    var dupes = Object.keys(a.nameCount).filter(function (n) { return a.nameCount[n] > 1; }).length;
+    var noDesc = plugins.filter(function (p) {
+      return a.info[p.key].skills.length > 0 && !p.desc.trim();
+    }).length;
+
+    var ro = document.getElementById("readout");
+    ro.textContent = "";
+    [
+      { k: "Plugins in use", v: String(live), cls: "" },
+      { k: "Stays local", v: String(a.unassigned.length), cls: "" },
+      { k: "Unresolvable refs", v: String(a.leaks.length), cls: a.leaks.length ? "bad" : "" },
+      { k: "Cross-plugin deps", v: String(a.rows.length), cls: "" },
+      { k: "Optional edges", v: String(optCount), cls: optCount ? "warn" : "" },
+      { k: "Level violations", v: String(viol), cls: viol ? "bad" : "" },
+      { k: "Duplicate names", v: String(dupes), cls: dupes ? "bad" : "" },
+      { k: "Missing descriptions", v: String(noDesc), cls: noDesc ? "warn" : "" },
+      { k: "Always-on tokens", v: String(totalTok), cls: "" }
+    ].forEach(function (s) {
+      var d = el("div", "stat");
+      d.appendChild(el("span", "k", s.k));
+      d.appendChild(el("span", "v " + s.cls, s.v));
+      ro.appendChild(d);
+    });
+
+    var bands = document.getElementById("bands");
+    bands.textContent = "";
+
+    LEVELS.forEach(function (lv) {
+      var band = el("div", "band");
+      band.setAttribute("data-level", String(lv.n));
+
+      var head = el("div", "band-head");
+      head.appendChild(el("span", "band-num", "Level " + lv.n));
+      head.appendChild(el("span", "band-name", lv.name));
+      head.appendChild(el("span", "band-rule", lv.rule));
+      var add = el("button", "", "+ plugin");
+      add.type = "button";
+      add.addEventListener("click", function () {
+        plugins.push({
+          key: "u-" + nextKey,
+          name: "new-plugin-" + nextKey,
+          level: lv.n,
+          desc: "",
+          notes: ""
+        });
+        nextKey += 1;
+        save();
+        render();
+      });
+      head.appendChild(add);
+      band.appendChild(head);
+
+      var body = el("div", "band-body");
+      plugins.filter(function (p) { return p.level === lv.n; }).forEach(function (p) {
+        body.appendChild(card(p, a));
+      });
+      band.appendChild(body);
+      bands.appendChild(band);
+    });
+
+    var tray = document.getElementById("tray");
+    var trayChips = document.getElementById("tray-chips");
+    trayChips.textContent = "";
+    if (selected) { tray.classList.add("target"); } else { tray.classList.remove("target"); }
+    if (!a.unassigned.length) {
+      trayChips.appendChild(el("span", "tray-empty", "Every skill is packaged."));
+    } else {
+      a.unassigned.forEach(function (s) { trayChips.appendChild(chip(s)); });
+    }
+
+    var warn = document.getElementById("tray-warn");
+    warn.textContent = "";
+    if (a.leaks.length) {
+      a.leaks.forEach(function (k) {
+        warn.appendChild(el("div", "leak-warn",
+          k.plugin.name + " ships " + k.from + ", which delegates to " + k.to
+          + " — a local skill a consumer will not have"
+          + (k.opt ? " (optional, so it degrades rather than breaks)" : "")));
+      });
+    } else if (a.unassigned.length) {
+      warn.appendChild(el("div", "leak-ok",
+        "Safe to leave local: no packaged skill delegates to any of these."));
+    }
+
+    renderDeps(a);
+    document.getElementById("manifest").textContent = manifest(a);
+    document.getElementById("btn-undo").hidden = !hasUndo();
+
+    if (focusKey) {
+      var back = document.querySelector('[data-focus="' + focusKey + '"]');
+      if (back) {
+        back.focus();
+        if (caret !== null && back.setSelectionRange) {
+          try { back.setSelectionRange(caret, caret); } catch (e) { /* ignore */ }
+        }
+      }
+    }
+  }
+
+  function card(p, a) {
+    var info = a.info[p.key];
+    var c = el("div", "plugin");
+    if (selected) { c.classList.add("target"); }
+
+    var nameRow = el("div", "name-row");
+    var name = document.createElement("input");
+    name.type = "text";
+    name.className = "name";
+    name.value = p.name;
+    name.spellcheck = false;
+    name.setAttribute("aria-label", "Plugin name");
+    name.setAttribute("data-focus", "name-" + p.key);
+    if (a.nameCount[p.name.trim()] > 1) { name.classList.add("dupe"); }
+    name.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    name.addEventListener("input", function () {
+      p.name = name.value;
+      save();
+      render();
+    });
+    nameRow.appendChild(name);
+    nameRow.appendChild(el("span", "tok", "~" + info.tok + " tok"));
+    c.appendChild(nameRow);
+
+    var descLabel = el("div", "field-label");
+    descLabel.appendChild(el("span", "", "Description"));
+    descLabel.appendChild(el("span", "qualifier", "published"));
+    c.appendChild(descLabel);
+
+    var desc = document.createElement("textarea");
+    desc.className = "desc";
+    desc.rows = 2;
+    desc.value = p.desc;
+    desc.placeholder = "What a consumer gets — and what they must already have.";
+    desc.setAttribute("aria-label", "Plugin description, published to consumers");
+    desc.setAttribute("data-focus", "desc-" + p.key);
+    if (info.skills.length && !p.desc.trim()) { desc.classList.add("missing"); }
+    desc.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    desc.addEventListener("input", function () {
+      p.desc = desc.value;
+      save();
+      render();
+    });
+    c.appendChild(desc);
+
+    var noteLabel = el("div", "field-label");
+    noteLabel.appendChild(el("span", "", "Notes for Claude"));
+    noteLabel.appendChild(el("span", "qualifier", "private"));
+    c.appendChild(noteLabel);
+
+    var notes = document.createElement("textarea");
+    notes.className = "notes" + (p.notes && p.notes.trim() ? " filled" : "");
+    notes.rows = 2;
+    notes.value = p.notes || "";
+    notes.placeholder = "Unsure about this one? Tell me why.";
+    notes.setAttribute("aria-label", "Private notes for Claude, never published");
+    notes.setAttribute("data-focus", "notes-" + p.key);
+    notes.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    notes.addEventListener("input", function () {
+      p.notes = notes.value;
+      save();
+      // Nothing derived depends on notes, so avoid a full re-render while typing.
+      notes.classList.toggle("filled", !!notes.value.trim());
+    });
+    c.appendChild(notes);
+
+    if (info.skills.length) {
+      var chips = el("div", "chips");
+      info.skills.forEach(function (s) { chips.appendChild(chip(s)); });
+      c.appendChild(chips);
+
+      var sf = el("div", "surfaces");
+      var keys = Object.keys(info.surf).sort(function (x, y) { return info.surf[y] - info.surf[x]; });
+      if (!keys.length) {
+        sf.appendChild(el("span", "surf", "no external surface"));
+      } else {
+        keys.forEach(function (k) {
+          var n = info.surf[k];
+          var outlier = info.skills.length >= 3 && n === 1;
+          sf.appendChild(el("span", "surf" + (outlier ? " outlier" : ""), k + "×" + n));
+        });
+      }
+      c.appendChild(sf);
+    } else {
+      c.appendChild(el("div", "plugin-empty-note", "No skills yet."));
+    }
+
+    var deps = el("div", "deps");
+    var dk = Object.keys(info.deps);
+    if (!dk.length) {
+      deps.appendChild(el("span", "none", "no dependencies"));
+    } else {
+      deps.appendChild(document.createTextNode("deps: "));
+      dk.forEach(function (k, i) {
+        var b = info.deps[k];
+        var tgt = pluginByKey(k);
+        var span = el("span", b.violation ? "viol" : (b.opt ? "opt" : ""),
+          (tgt ? tgt.name : k) + (b.opt ? " (optional)" : ""));
+        deps.appendChild(span);
+        if (i < dk.length - 1) { deps.appendChild(document.createTextNode(", ")); }
+      });
+    }
+    c.appendChild(deps);
+
+    var foot = el("div", "card-foot");
+    var sel = document.createElement("select");
+    sel.setAttribute("aria-label", "Level");
+    LEVELS.forEach(function (lv) {
+      var o = document.createElement("option");
+      o.value = String(lv.n);
+      o.textContent = "L" + lv.n;
+      if (lv.n === p.level) { o.selected = true; }
+      sel.appendChild(o);
+    });
+    sel.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    sel.addEventListener("change", function () {
+      p.level = parseInt(sel.value, 10);
+      save();
+      render();
+    });
+    foot.appendChild(sel);
+
+    var pub = document.createElement("select");
+    pub.setAttribute("aria-label", "Publishability");
+    [
+      { v: "", t: "publishability?" },
+      { v: "public", t: "publishable" },
+      { v: "internal", t: "internal only" }
+    ].forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.v;
+      opt.textContent = o.t;
+      if (o.v === (p.pub || "")) { opt.selected = true; }
+      pub.appendChild(opt);
+    });
+    if (p.pub === "internal") { pub.classList.add("internal"); }
+    pub.addEventListener("click", function (ev) { ev.stopPropagation(); });
+    pub.addEventListener("change", function () {
+      p.pub = pub.value;
+      save();
+      render();
+    });
+    foot.appendChild(pub);
+
+    if (!info.skills.length) {
+      var kill = el("button", "kill", "remove");
+      kill.type = "button";
+      kill.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        plugins = plugins.filter(function (x) { return x.key !== p.key; });
+        save();
+        render();
+      });
+      foot.appendChild(kill);
+    }
+    c.appendChild(foot);
+
+    c.addEventListener("click", function () {
+      if (!selected) { return; }
+      assign[selected] = p.key;
+      selected = null;
+      save();
+      render();
+    });
+
+    return c;
+  }
+
+  function renderDeps(a) {
+    var body = document.getElementById("dep-body");
+    body.textContent = "";
+    document.getElementById("dep-count").textContent = a.rows.length + " edges";
+
+    if (!a.rows.length && !a.ext.length) {
+      body.appendChild(el("p", "empty-note", "No skill in one plugin delegates to a skill in another. Nothing needs a dependencies entry."));
+      return;
+    }
+
+    var table = el("table");
+    var thead = el("thead");
+    var hr = el("tr");
+    ["Delegation", "Crosses", "Kind"].forEach(function (h) { hr.appendChild(el("th", "", h)); });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = el("tbody");
+    a.rows.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "mono", r.from + " → " + r.to));
+      tr.appendChild(el("td", "mono", r.pf.name + " → " + r.pt.name));
+      var c3 = el("td");
+      if (r.violation) { c3.appendChild(el("span", "tag viol", "depends upward")); }
+      else if (r.opt) { c3.appendChild(el("span", "tag opt", "optional")); }
+      else { c3.appendChild(el("span", "tag req", "required")); }
+      tr.appendChild(c3);
+      tbody.appendChild(tr);
+    });
+    a.ext.forEach(function (e) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "mono", e.skill + " → " + e.dep));
+      tr.appendChild(el("td", "mono", e.plugin.name + " → external"));
+      var c3 = el("td");
+      c3.appendChild(el("span", "tag ext", "cross-marketplace"));
+      tr.appendChild(c3);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+  }
+
+  function jsonStr(s) { return JSON.stringify(String(s)); }
+
+  function manifest(a) {
+    var out = [];
+    plugins.forEach(function (p) {
+      var info = a.info[p.key];
+      if (!info.skills.length) { return; }
+
+      var hard = Object.keys(info.deps)
+        .filter(function (k) { return !info.deps[k].opt; })
+        .map(function (k) { var t = pluginByKey(k); return t ? t.name : k; });
+      info.skills.forEach(function (s) { if (EXTERNAL[s]) { hard.push(EXTERNAL[s]); } });
+
+      var soft = Object.keys(info.deps)
+        .filter(function (k) { return info.deps[k].opt; })
+        .map(function (k) { var t = pluginByKey(k); return t ? t.name : k; });
+
+      out.push("// " + p.name + "  · level " + p.level + "  · ~" + info.tok + " tok");
+      out.push("{");
+      out.push("  \"name\": " + jsonStr(p.name.trim()) + ",");
+      out.push("  \"version\": \"0.1.0\",");
+      out.push("  \"description\": " + jsonStr(p.desc.trim()) + ",");
+      out.push("  \"dependencies\": [" + hard.map(jsonStr).join(", ") + "]");
+      out.push("}");
+      if (soft.length) { out.push("// optional, not expressible: " + soft.join(", ")); }
+      out.push("");
+    });
+
+    var renames = [];
+    plugins.forEach(function (p) {
+      var orig = ORIGINAL_NAME[p.key];
+      if (orig && orig !== p.name.trim() && a.info[p.key].skills.length) {
+        renames.push("    " + jsonStr(orig) + ": " + jsonStr(p.name.trim()));
+      }
+    });
+    Object.keys(ORIGINAL_NAME).forEach(function (k) {
+      if (!pluginByKey(k)) { renames.push("    " + jsonStr(ORIGINAL_NAME[k]) + ": null"); }
+    });
+
+    if (renames.length) {
+      out.push("// marketplace.json — keeps existing installs resolving");
+      out.push("{");
+      out.push("  \"renames\": {");
+      out.push(renames.join(",\n"));
+      out.push("  }");
+      out.push("}");
+      out.push("");
+    }
+
+    if (!out.length) { return "// every skill is unassigned"; }
+    return out.join("\n");
+  }
+
+  // A pasteable digest of the whole worksheet: grouping, names, published
+  // descriptions, and the private notes. This is the channel back to Claude.
+  function brief(a) {
+    var L = [];
+    L.push("# Plugin Strata — working state");
+    L.push("");
+
+    var gn = globalNotes.trim();
+    L.push("## Notes for Claude — whole worksheet");
+    L.push(gn ? gn : "(none)");
+    L.push("");
+
+    LEVELS.forEach(function (lv) {
+      var inLevel = plugins.filter(function (p) { return p.level === lv.n; });
+      if (!inLevel.length) { return; }
+      L.push("## Level " + lv.n + " — " + lv.name);
+      L.push("");
+      inLevel.forEach(function (p) {
+        var info = a.info[p.key];
+        L.push("### " + p.name.trim() + "  (~" + info.tok + " tok, " + info.skills.length + " skills"
+          + (p.pub ? ", " + p.pub : "") + ")");
+        L.push("description: " + (p.desc.trim() || "(none)"));
+        var n = (p.notes || "").trim();
+        if (n) { L.push("notes: " + n); }
+        L.push("skills: " + (info.skills.length ? info.skills.join(", ") : "(none)"));
+
+        var sk = Object.keys(info.surf).sort(function (x, y) { return info.surf[y] - info.surf[x]; });
+        if (sk.length) {
+          var outliers = sk.filter(function (k) { return info.skills.length >= 3 && info.surf[k] === 1; });
+          L.push("surfaces: " + sk.map(function (k) { return k + "×" + info.surf[k]; }).join(", ")
+            + (outliers.length ? "   [outlier: " + outliers.join(", ") + "]" : ""));
+        }
+
+        var dk = Object.keys(info.deps);
+        if (dk.length) {
+          L.push("deps: " + dk.map(function (k) {
+            var t = pluginByKey(k), b = info.deps[k];
+            return (t ? t.name : k) + (b.violation ? " (DEPENDS UPWARD)" : (b.opt ? " (optional)" : ""));
+          }).join(", "));
+        }
+        L.push("");
+      });
+    });
+
+    if (a.unassigned.length) {
+      L.push("## Stays local — not packaged");
+      L.push(a.unassigned.join(", "));
+      L.push("");
+    }
+
+    var flags = [];
+    a.leaks.forEach(function (k) {
+      flags.push("unresolvable ref: " + k.plugin.name + " ships " + k.from
+        + " which delegates to local skill " + k.to + (k.opt ? " (optional)" : ""));
+    });
+    var viol = a.rows.filter(function (r) { return r.violation; });
+    viol.forEach(function (r) {
+      flags.push("level violation: " + r.pf.name + " depends upward on " + r.pt.name
+        + " (" + r.from + " → " + r.to + ")");
+    });
+    a.rows.filter(function (r) { return r.opt && !r.violation; }).forEach(function (r) {
+      flags.push("optional edge, not expressible: " + r.pf.name + " → " + r.pt.name
+        + " (" + r.from + " → " + r.to + ")");
+    });
+    plugins.forEach(function (p) {
+      if (a.info[p.key].skills.length && !p.desc.trim()) {
+        flags.push("no description: " + p.name.trim());
+      }
+    });
+    Object.keys(a.nameCount).forEach(function (n) {
+      if (a.nameCount[n] > 1) { flags.push("duplicate name: " + n); }
+    });
+    var renamed = plugins.filter(function (p) {
+      var o = ORIGINAL_NAME[p.key];
+      return o && o !== p.name.trim();
+    });
+    renamed.forEach(function (p) {
+      flags.push("renamed: " + ORIGINAL_NAME[p.key] + " → " + p.name.trim());
+    });
+
+    if (flags.length) {
+      L.push("## Flags");
+      flags.forEach(function (f) { L.push("- " + f); });
+      L.push("");
+    }
+
+    return L.join("\n");
+  }
+
+  var flashTimer = null;
+  function flash(msg) {
+    var box = document.getElementById("flash");
+    box.textContent = msg;
+    box.hidden = false;
+    if (flashTimer) { window.clearTimeout(flashTimer); }
+    flashTimer = window.setTimeout(function () { box.hidden = true; }, 5000);
+  }
+
+  function copyTo(btn, text, label) {
+    var done = function (ok) {
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      window.setTimeout(function () { btn.textContent = label; }, 1600);
+      if (!ok) { flash("Clipboard is blocked here — select the text in the panel below and copy it manually."); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else { done(false); }
+  }
+
+  var gnBox = document.getElementById("global-notes");
+  gnBox.addEventListener("input", function () {
+    globalNotes = gnBox.value;
+    save();
+  });
+
+  document.getElementById("btn-brief").addEventListener("click", function (ev) {
+    copyTo(ev.currentTarget, brief(analyse()), "Copy brief for Claude");
+  });
+
+  // No window.confirm anywhere: the artifact runs in a sandboxed iframe where
+  // modals can be blocked, and a blocked confirm() returns false, so the action
+  // silently never runs. Every destructive action snapshots first instead, and
+  // Undo load restores it.
+  document.getElementById("btn-revision").addEventListener("click", function () {
+    applyRevision();
+    selected = null;
+    gnBox.value = globalNotes;
+    save();
+    render();
+    flash("Loaded the end-state proposal — your board is saved under Undo load.");
+  });
+
+  document.getElementById("btn-undo").addEventListener("click", function () {
+    if (!restoreUndo()) {
+      flash("Nothing to undo.");
+      return;
+    }
+    selected = null;
+    gnBox.value = globalNotes;
+    save();
+    render();
+    flash("Restored your previous board.");
+  });
+
+  document.getElementById("tray").addEventListener("click", function () {
+    if (!selected) { return; }
+    assign[selected] = null;
+    selected = null;
+    save();
+    render();
+  });
+
+  document.getElementById("btn-reset").addEventListener("click", function () {
+    snapshot();
+    reset();
+    selected = null;
+    gnBox.value = globalNotes;
+    save();
+    render();
+    flash("Reset to the original proposal — your board is saved under Undo load.");
+  });
+
+  document.getElementById("btn-copy").addEventListener("click", function (ev) {
+    copyTo(ev.currentTarget, document.getElementById("manifest").textContent, "Copy manifest");
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && selected) { selected = null; render(); }
+  });
+
+  load();
+  gnBox.value = globalNotes;
+  render();
+})();
+</script>

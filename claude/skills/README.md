@@ -2,68 +2,127 @@
 
 **Location:** `~/.claude/skills` (this directory).
 
-**For the AI:** At the start of any **coding task** (implementing a plan, refactor, or multi-step change), read and apply the skills in this directory. Do not wait for the user to remind you. Key skills:
+## Layout
+
+This directory holds two kinds of thing side by side, and Claude Code loads both:
+
+- **Plugin directories** — a `jf-*` directory containing `.claude-plugin/plugin.json`
+  and one or more `skills/<skill>/SKILL.md`. Each auto-loads as `<plugin>@skills-dir`,
+  and its skills are addressed **`jf-<plugin>:<skill>`**.
+- **Plain skill directories** — a directory containing `SKILL.md` directly. These
+  stay unpackaged and are addressed by their **bare name**.
+
+Keeping the plugins here rather than in a parallel tree means one location serves
+both the local edit loop (through this symlink) and publication.
+
+## Plugins
+
+Sorted by what each is *for*, not by topic. **Parts** and **providers** do one job
+and declare no dependencies, so they can be taken in isolation. The **policy**
+plugin carries portable judgement. The **driver** is the assembly, and is the only
+one that binds the others together.
+
+| Plugin | Kind | Skills |
+|---|---|---|
+| `jf-gchat` | part — provider (comms) | send-gchat-message |
+| `jf-arc` | part — provider (browser) | open-in-arc |
+| `jf-cloud-build` | part — provider (CI) | gcp-ci-watch |
+| `jf-git-commit-flow` | part | green-commits, commit-preferences, plan-implementation-commits, golang-pre-commit-tests |
+| `jf-gh-pr` | part | open-pr, merge-pr, pr-feedback-watcher, sync-base, worktree-cleanup |
+| `jf-triage-flow` | policy | regression-triage |
+| `jf-dev-cycle` | driver | git-worktree-jira-branch, open-tracked-pr, pr-ready, notify-pr-channels |
+| `jf-feats-of-merit` | part | wsu, wsu-note |
+
+**Unpackaged, staying local:** `vim-rest`, `user-preferences`, `temporal-activities`,
+and `pr-studio-open-in-arc` (which belongs upstream in `vendasta-pr-studio`).
+
+One further directory here holds a **retired** skill: nothing fires it
+automatically any more, because the harness now creates a worktree at session
+start and that was its distinguishing job. It stays on disk so it can still be
+invoked deliberately.
+
+## For the AI
+
+At the start of any **coding task** (implementing a plan, refactor, or multi-step
+change), read and apply the skills here. Do not wait to be reminded. Key ones:
 
 | Skill | When to apply |
 |-------|----------------|
-| **plan-implementation-commits** | When **implementing a plan** (RFC, sprint tasks, multi-step job). Make **small logical commits** and **push to the feature branch as you go**—after each step or todo. Never do all work then one commit at the end. |
-| **green-commits** | Whenever you write or change code. Commit and **push** in small, green increments **as you go**—after each logical step. Never do all work then one commit at the end. |
-| **user-preferences** | When editing Go: match struct/map/comment alignment so the user’s editor (e.g. vim) doesn’t rewrite your changes. |
-| **commit-preferences** | When writing commit messages: use Conventional Commits (feat, fix, refactor, etc.) and the user’s preferred types/scopes. |
-| **golang-pre-commit-tests** | Before committing in a Go repo: run the full internal test suite (e.g. `go test ./internal/...`) so commits are green. |
-| **open-pr** | When opening a pull request: always create as draft, include Jira link, fill PR template. |
-| **pr-ready** | When marking a PR ready for review: un-draft, add `vendasta/meerkats` reviewer, append `@vendasta/meerkats` to body, post in team GChat PR channel. |
-| **notify-pr-channels** | When a build passes or notifying the team: post to personal team PR channel (AT Craig & Daniel) and any `@vendasta/<team>` channels in the PR body. Delegates delivery to **send-gchat-message**. |
-| **send-gchat-message** | Low-level primitive: post a message to any Google Chat space/team, resolving space IDs / `@vendasta/<team>` handles / slugs. Owns Chat auth + the `TEAM_CHANNELS` map. Used by notify-pr-channels and regression-triage. |
-| **regression-triage** | When a side problem (e.g. from **deploy-monitor**) looks like a regression from an earlier PR: attribute it to the introducing PR (confirm-gate — first blame is often wrong), then route to **alert** the owning team or **fix** it (hands off to the dev flow below). |
-| **gcp-ci-watch** | When watching CI/CD for a branch: poll GCP Cloud Build directly (not GitHub checks). Report green/failure. Only merge if explicitly asked. On failure, always diagnose logs, fix, push, and re-watch — don't wait to be asked. |
-| **wsu** | When creating a new Weekly Status Update page: compute the correct title, gather data from GitHub/GChat/git, run the questionnaire, and create the Confluence page. |
-| **wsu-note** | When the user wants to capture a WSU-worthy moment mid-week. Appends a timestamped note to the weekly file for `/wsu` to pick up at compile time. |
+| **jf-git-commit-flow:plan-implementation-commits** | When **implementing a plan** (RFC, sprint tasks, multi-step job). Make **small logical commits** and **push to the feature branch as you go** — after each step or todo. Never do all work then one commit at the end. |
+| **jf-git-commit-flow:green-commits** | Whenever you write or change code. Commit and **push** in small, green increments **as you go**. Never do all work then one commit at the end. |
+| **jf-git-commit-flow:commit-preferences** | When writing commit messages: Conventional Commits (feat, fix, refactor, …) and the user's preferred types/scopes. |
+| **jf-git-commit-flow:golang-pre-commit-tests** | Before committing in a Go repo: run the full internal test suite (e.g. `go test ./internal/...`) so commits are green. |
+| **user-preferences** | When editing Go: match struct/map/comment alignment so the user's editor (e.g. vim) doesn't rewrite your changes. |
+| **jf-gh-pr:open-pr** | Opening a pull request: always draft, fill the repo PR template. No tracker link and no browser step — those live in `open-tracked-pr`. |
+| **jf-dev-cycle:open-tracked-pr** | Opening a PR for ticket-tracked work: delegates the open to `open-pr`, then prepends the Jira link and shows it in Arc. |
+| **jf-dev-cycle:pr-ready** | Marking a PR ready for review: un-draft, append `@vendasta/meerkats` to the body, then hand off the Chat post. |
+| **jf-dev-cycle:notify-pr-channels** | Build passed, or notifying the team: personal team PR channel (@Craig & @Daniel) plus any `@vendasta/<team>` channel named in the PR body. Owns the message shape; delegates delivery. |
+| **jf-gchat:send-gchat-message** | Low-level primitive: post to any Chat space/team, resolving space IDs, `@vendasta/<team>` handles and slugs. Owns Chat auth and the team→space map. |
+| **jf-triage-flow:regression-triage** | A side problem looks like a regression from an earlier PR: attribute it to the introducing PR (confirm-gate — first blame is often wrong), then route to **alert** the owning team or **fix** it. |
+| **jf-cloud-build:gcp-ci-watch** | Watching CI for a branch when GitHub's rollup lags: poll Cloud Build directly and report green/failure. |
+| **jf-feats-of-merit:wsu** | Creating a Weekly Status Update page: compute the title, gather from GitHub/Chat/git, run the questionnaire, create the Confluence page. |
+| **jf-feats-of-merit:wsu-note** | Capturing a WSU-worthy moment mid-week. Appends a timestamped note for `wsu` to pick up. |
 
-**Refactors:** Use at least 2–3 commits: (1) add new code + tests → commit & push, (2) switch callers to new code → commit & push, (3) remove old code → commit & push. See **green-commits/SKILL.md** and **plan-implementation-commits/SKILL.md** for details.
+**Refactors:** Use at least 2–3 commits: (1) add new code + tests → commit & push,
+(2) switch callers to new code → commit & push, (3) remove old code → commit & push.
+See `jf-git-commit-flow`'s `green-commits` and `plan-implementation-commits`.
 
 ## Skill flow — which kicks off which
 
-How the develop → ship → deploy → triage skills chain together. `deploy-monitor`
-lives in the `vendasta-dev-agent-toolkit` plugin; everything else is in this dir.
-This is the chain `regression-triage`'s fix branch hands back into.
+How the develop → ship → deploy → triage skills chain together, grouped by the
+plugin that owns each. A **dashed** edge is a capability the caller degrades
+without rather than one it requires; a solid edge is the flow itself.
 
 ```mermaid
 flowchart TD
-    subgraph Develop
+    subgraph driver["jf-dev-cycle — driver"]
         WT[git-worktree-jira-branch]
-        PLAN{"/plan ?"}
-        PCW[plan-commit-to-worktree]
-        WORK["do the work<br/>green-commits / plan-implementation-commits<br/>+ golang-pre-commit-tests + commit-preferences"]
-    end
-    subgraph Ship
-        DRAFT[open-pr - draft]
-        ARC[open-in-arc / pr-studio-open-in-arc]
+        TRACKED[open-tracked-pr]
         READY[pr-ready]
         NOTIFY[notify-pr-channels]
-        GCHAT[send-gchat-message]
+    end
+    subgraph commits["jf-git-commit-flow — part"]
+        WORK["do the work<br/>green-commits · plan-implementation-commits<br/>golang-pre-commit-tests · commit-preferences"]
+    end
+    subgraph ghpr["jf-gh-pr — part"]
+        DRAFT[open-pr · draft]
         FB[pr-feedback-watcher]
         SYNC[sync-base]
         MERGE[merge-pr]
+        CLEAN[worktree-cleanup]
     end
-    subgraph DeployTriage["Deploy & Triage"]
-        DM[["deploy-monitor (plugin)"]]
+    subgraph provs["parts — providers"]
+        GCHAT[jf-gchat · send-gchat-message]
+        ARC[jf-arc · open-in-arc]
+        CI[jf-cloud-build · gcp-ci-watch]
+    end
+    subgraph policy["jf-triage-flow — policy"]
         RT[regression-triage]
-        JIRA[(Jira bug)]
+    end
+    subgraph outside["other marketplaces"]
+        DM[["deploy-monitor"]]
+        TICKET[(Jira bug)]
     end
 
-    WT --> PLAN
-    PLAN -- yes --> PCW --> WORK
-    PLAN -- no --> WORK
-    WORK --> DRAFT --> ARC --> READY
-    READY --> NOTIFY --> GCHAT
+    WT --> WORK --> TRACKED
+    TRACKED --> DRAFT
+    TRACKED -.-> ARC
+    TRACKED --> READY
+    READY --> NOTIFY
+    NOTIFY -.-> GCHAT
     READY --> FB
-    FB --> SYNC --> MERGE --> DM
+    FB -.-> CI
+    FB --> SYNC --> MERGE
+    MERGE -.-> CI
+    MERGE --> CLEAN
+    MERGE --> DM
     DM -- side-finding --> RT
     RT -- alert-only --> GCHAT
-    RT -- alert-only --> JIRA
-    RT -- fix - Jira first --> JIRA
+    RT -- alert-only --> TICKET
+    RT -- fix · ticket first --> TICKET
     RT -- fix --> WT
 ```
 
-**Cursor:** If these skills are not being applied in new chats, enable **Agent Skills** in Cursor Settings → Rules (Import Settings), or add the key rules as **User Rules** in the same place so they are always in context.
+**Cursor:** If these skills are not being applied in new chats, enable **Agent Skills**
+in Cursor Settings → Rules (Import Settings), or add the key rules as **User Rules**
+in the same place so they are always in context.
