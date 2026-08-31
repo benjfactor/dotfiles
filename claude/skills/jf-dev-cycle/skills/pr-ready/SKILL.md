@@ -29,13 +29,9 @@ description: Mark a draft PR as ready for review, tag the meerkats team handle i
    esac
    ```
 
-4. **Post in the personal team PR channel** — use the bundled script from `notify-pr-channels`:
-   ```bash
-   PR_URL=$(gh pr view --json url --jq '.url')
-   PR_TITLE=$(gh pr view --json title --jq '.title')
-   python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "$PR_URL" "$PR_TITLE"
-   ```
-   User IDs for Craig and Daniel are hardcoded in the script — no need to look them up.
+4. **Post in the personal team PR channel** — hand off to `notify-pr-channels`,
+   which owns the message shape, the channel list and the Craig/Daniel mentions.
+   Don't assemble the Chat post here.
 
 5. **Report back** with the PR URL and confirmation that the team handle is tagged and the Chat post went out.
 
@@ -43,4 +39,4 @@ description: Mark a draft PR as ready for review, tag the meerkats team handle i
 
 - If the PR is already out of draft, skip step 2 — still ensure the body tag (step 3) and post.
 - Do NOT post in the snapcats channel for `pr-ready` — that's only for build notifications via `notify-pr-channels`.
-- Chat posting uses OAuth (not a webhook) — see `notify-pr-channels` skill if auth needs refreshing.
+- Chat posting uses interactive OAuth rather than a webhook, so it can be unavailable in headless contexts — `notify-pr-channels` documents the auth path.

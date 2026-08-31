@@ -22,7 +22,7 @@ uses it to alert the team that owns a buggy PR.
 ## Usage
 
 ```bash
-SCRIPT=~/.claude/skills/send-gchat-message/scripts/send_gchat.py
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/jf-gchat}/skills/send-gchat-message/scripts/send_gchat.py"
 
 # Post to one or more teams/spaces (mix freely):
 python3 "$SCRIPT" --targets "phoenix,marina" --message "heads up: ..."
@@ -69,11 +69,19 @@ listing the authenticated user's spaces and matching `displayName == "Team: <slu
 When you discover a new team this way, paste its `slug: space_id` into
 `TEAM_CHANNELS` so future runs skip the lookup.
 
-Importing from another skill:
+### Calling it from another skill
+
+A skill in **another plugin** invokes this skill and lets it do the sending. It
+must not import `send_gchat` or shell out to the script: the module only exists
+inside this plugin's install tree, and that path is not a stable address from
+outside it. Describe the targets and the message; this skill owns the rest.
+
+A skill **in this plugin** can import the module directly, resolving it from the
+plugin root the harness supplies:
 
 ```python
 import sys, os
-sys.path.insert(0, os.path.expanduser('~/.claude/skills/send-gchat-message/scripts'))
+sys.path.insert(0, os.path.join(os.environ['CLAUDE_PLUGIN_ROOT'], 'skills/send-gchat-message/scripts'))
 import send_gchat
 token = send_gchat.get_access_token()
 sid, how = send_gchat.resolve_target('@vendasta/phoenix', token)

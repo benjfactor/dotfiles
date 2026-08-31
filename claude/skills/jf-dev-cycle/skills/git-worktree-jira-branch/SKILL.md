@@ -80,4 +80,4 @@ Use this skill when starting new work that should live in its own worktree and b
 
 ## References
 
-- [Cursor docs: Skill directories](https://cursor.com/docs/context/skills#skill-directories) — skills can live in `~/.cursor/skills/` or `~/.claude/skills/`.
+- [Cursor docs: Skill directories](https://cursor.com/docs/context/skills#skill-directories) — skills load from a user-level skills directory in either Cursor or Claude Code.

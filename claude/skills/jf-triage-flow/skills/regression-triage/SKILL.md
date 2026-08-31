@@ -34,7 +34,7 @@ Gather (from the deploy-monitor context or pasted in):
    predates the PR you suspect, that PR didn't introduce it.
 2. **Blame the EXACT faulting line, not the surrounding feature.** Use the helper:
    ```bash
-   ~/.claude/skills/regression-triage/scripts/attribute_pr.sh <file> <line> [origin/master]
+   "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/jf-triage-flow}"/skills/regression-triage/scripts/attribute_pr.sh <file> <line> [origin/master]
    ```
    It prints the commit, author/date, and PR(s). Treat it as an input, not the verdict.
 3. **Distinguish three different roles** — be explicit about which a PR played:
@@ -80,13 +80,12 @@ breaks — always use a file). Template (from the worked example, which landed w
 1. (If chosen) create the Jira bug via the Atlassian MCP `createJiraIssue` — project
    from the gate, issue type **Bug**, description = finding summary + links to the
    introducing PR / the PR comment.
-2. Notify the owning team via the **send-gchat-message** skill, resolving the team
-   to its channel and linking the PR comment. Use a prefix that ties it to the
-   finding's origin:
-   ```bash
-   ~/.claude/skills/send-gchat-message/scripts/send_gchat.py \
-     --targets "@vendasta/<team>" --message-file /tmp/alert.md
-   ```
+2. Notify the owning team via the **send-gchat-message** skill, passing the team
+   handle (`@vendasta/<team>`) as the target and an alert body that links the PR
+   comment. Write the body to a file and pass the file. Open with a line that ties
+   the alert to the finding's origin, so the receiving team knows why it arrived.
+   Let that skill resolve the team to its channel and handle auth — do not invoke
+   its script directly.
 
 ## Phase 4b — Fix → hand off to the existing dev flow
 

@@ -25,7 +25,7 @@ Use at least 2–3 commits; never do add + switch + remove in a single commit fo
 
 ## Relation to other skills
 
-- **green-commits** (~/.claude/skills/green-commits): Full rules (never push to master, green = build + tests + lint, ask if unsure). This skill is the **plan-specific** reminder to do small commits and push **during** implementation.
+- **green-commits** (same plugin): Full rules (never push to master, green = build + tests + lint, ask if unsure). This skill is the **plan-specific** reminder to do small commits and push **during** implementation.
 - **commit-preferences**: Use when writing commit messages (Conventional Commits, scopes, etc.).
 
 ## Example

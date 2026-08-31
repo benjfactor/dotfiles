@@ -5,7 +5,13 @@ description: Post PR build/ready notifications to Google Chat channels. Always p
 
 # Notify PR Channels
 
-When a build passes or a PR is ready, the script always posts to the personal team channel, then reads the PR body for `@vendasta/<team>` mentions and posts to any matching external team channels.
+When a build passes or a PR is ready, always post to the personal team channel,
+then read the PR body for `@vendasta/<team>` mentions and post to any matching
+external team channels.
+
+This skill owns the **PR-specific message shape and target selection**. Chat
+auth, channel resolution and delivery belong to `jf-gchat:send-gchat-message`;
+invoke that skill rather than reaching for its script.
 
 ## Channels
 
@@ -20,44 +26,62 @@ When a build passes or a PR is ready, the script always posts to the personal te
 | Warped Tour | https://chat.google.com/room/AAQANVVa_PA?cls=7 | External — posted when `@vendasta/warped-tour` in PR body |
 | Marketplace Institute of Technology | https://chat.google.com/room/AAAACpnkUis?cls=7 | External — posted when `@vendasta/marketplace-institute-of-technology` in PR body |
 
-To add a new external team: add their slug → space ID to `TEAM_CHANNELS` in the
-[send-gchat-message](../send-gchat-message/SKILL.md) skill (`scripts/send_gchat.py`) —
-that map is the single source of truth. Unmapped teams are resolved live via
-`spaces.list` ("Team: <Name>"), so a missing entry degrades to a lookup, not a failure.
+The table above is a convenience listing. The authoritative team→space map lives
+with the Chat-sending capability, which also resolves an unmapped team live by
+listing spaces for one named `Team: <Name>` — so a missing entry degrades to a
+lookup rather than a failure. To add a team permanently, record its slug and
+space ID there.
 
 ## When to notify
 
-Only run this skill after the PR is marked ready for review. Do not notify channels while the PR is still a draft — reviewers shouldn't be pinged until the work is ready for their attention. If the PR stays as a draft, remind the user to run this step when marking it ready.
-
-## Sending messages
-
-Use the bundled script — no webhook URLs needed, auth is handled via OAuth:
-
-```bash
-# Standard PR notification:
-python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "<PR_URL>" "<PR_TITLE>"
-
-# With an optional prefix line (e.g. context for why you're posting):
-python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "<PR_URL>" "<PR_TITLE>" "Found during deploy monitor for a different PR."
-```
-
-The script:
-- Always posts to the personal team PR channel with @Craig Kumick and @Daniel Ngo mentions
-- Reads the PR body via `gh pr view` and posts to any external team channels whose `@vendasta/<slug>` appears in the body
-- Optional 3rd arg is a prefix line prepended to every message
-- **Delegates auth + channel resolution to the [send-gchat-message](../send-gchat-message/SKILL.md) skill** (`scripts/send_gchat.py`) — it only owns the PR-specific message shape
-- Auth: OAuth token via GCP secret `google-chat-oauth-client-secret` (repcore-prod), cached at `~/.config/google-chat-cli/credentials-rw.json`
-
-### Known user IDs (hardcoded in script)
-- Craig Kumick: `users/101609381686230694100`
-- Daniel Ngo: `users/107059066615888383168`
+Only run this skill after the PR is marked ready for review. Do not notify
+channels while the PR is still a draft — reviewers shouldn't be pinged until the
+work is ready for their attention. If the PR stays as a draft, remind the user to
+run this step when marking it ready.
 
 ## Steps
 
-1. Get the PR URL and title: `gh pr view --json url,title,number`
-2. Run the script:
+1. **Read the PR.** Title and URL for the message, body for team mentions:
    ```bash
    PR_URL=$(gh pr view --json url --jq '.url')
    PR_TITLE=$(gh pr view --json title --jq '.title')
-   python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "$PR_URL" "$PR_TITLE"
+   PR_BODY=$(gh pr view --json body --jq '.body')
    ```
+
+2. **Build the message.** One line of title, one line of URL:
+   ```
+   <PR_TITLE>
+   <PR_URL>
+   ```
+   If the caller supplied a reason for posting (for example "Found during deploy
+   monitor for a different PR."), prepend it as a first line on **every** message.
+
+3. **Post to the personal team channel**, always, mentioning Craig and Daniel.
+   Target space `AAAAIj8WMWc`, mentions `craig,daniel`.
+
+4. **Find external teams.** Extract every `@vendasta/<slug>` from `PR_BODY`.
+
+5. **Resolve those slugs to space IDs before posting**, and drop any that
+   resolve to a space already being posted to — including the personal team
+   channel itself. Deduplicate on the **resolved space ID, not the slug**: a
+   team whose channel *is* the personal team channel (meerkats) would otherwise
+   be posted to twice, and two different slugs can resolve to one space. The
+   Chat-sending capability exposes a resolve-without-sending mode for exactly
+   this check.
+
+6. **Post to each remaining distinct space** with the same message, without the
+   Craig/Daniel mentions — those are for the personal channel only.
+
+7. **Report** which channels were posted to, and which slugs were skipped and
+   why (unresolved, or already covered by another target).
+
+Write multi-line message bodies to a file and pass the file, rather than
+inlining them in a shell command — heredoc quoting is fragile.
+
+## Notes
+
+- Craig and Daniel are referred to by their person slugs (`craig`, `daniel`),
+  which the Chat-sending capability maps to user IDs. Don't hardcode raw
+  `users/...` IDs here.
+- Auth is interactive OAuth, owned by the Chat-sending capability, so this may
+  be unavailable in fully headless or cron contexts.

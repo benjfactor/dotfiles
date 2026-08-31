@@ -145,7 +145,7 @@ A plan is real work-in-progress, so it gets a **draft PR** immediately — that 
    ```
    If that prints a URL, a PR already exists — **don't create another**. Just open the existing one in Arc and report it:
    ```bash
-   "$HOME/.claude/skills/open-in-arc/open-in-arc.sh" "<existing-pr-url>" "PR reviews"
+   Ask the open-in-arc capability to open <existing-pr-url> in the "PR reviews" Space.
    ```
 2. **Otherwise, invoke the `open-pr` skill.** It creates the PR as a **draft**, adds **no reviewers** (no ping — `pr-ready` handles that later), and opens it in Arc's `PR reviews` Space. Push the branch first if it has no upstream (`open-pr` does this too).
 3. This is best-effort — if PR creation or the Arc open fails, report the failure but don't abort the plan-commit flow; the plan is already safely committed.

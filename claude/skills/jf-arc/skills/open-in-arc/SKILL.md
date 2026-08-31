@@ -18,10 +18,10 @@ Use the bundled script — it targets the user's *existing* window (never spawns
 "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills}/open-in-arc/open-in-arc.sh" "<url>"
 
 # Open a tab in a SPECIFIC space (focuses it first, then opens):
-"$HOME/.claude/skills/open-in-arc/open-in-arc.sh" "<url>" "PR reviews"
+"${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/jf-arc}/skills/open-in-arc/open-in-arc.sh" "<url>" "PR reviews"
 
 # List the user's current spaces:
-"$HOME/.claude/skills/open-in-arc/open-in-arc.sh" --list-spaces
+"${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/jf-arc}/skills/open-in-arc/open-in-arc.sh" --list-spaces
 ```
 
 ## Choosing the Space — ask when unspecified

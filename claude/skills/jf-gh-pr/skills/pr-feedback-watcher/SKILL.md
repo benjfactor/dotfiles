@@ -23,7 +23,7 @@ A PR is *fully ready to merge* only when all three hold:
 Evaluate the gate with the bundled script (run from the repo):
 
 ```bash
-python3 ~/.claude/skills/pr-feedback-watcher/scripts/review_gate.py <PR_NUMBER> [--team <slug>]...
+python3 "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/jf-gh-pr}"/skills/pr-feedback-watcher/scripts/review_gate.py <PR_NUMBER> [--team <slug>]...
 ```
 
 It prints a JSON verdict: `humanApprovals`, `humanApprovers`, `teamsOfInterest`, `teamMemberApprovals` (per team, who approved), `ownerApproved`, `ci`, and `fullyReady`. Use it for the baseline and on each poll. If `membershipUncheckable` is non-empty, the org/team read failed for those teams — report it and fall back to eyeballing approver names.

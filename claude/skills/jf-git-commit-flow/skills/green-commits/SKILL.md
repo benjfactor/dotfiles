@@ -62,7 +62,7 @@ You don't need to run full CI; running build, tests, and lint locally is enough.
 
 ## Where this skill lives
 
-This skill is in **~/.claude/skills/green-commits/**. For a full list of the user’s preferences (including this one), see **~/.claude/skills/README.md**. In new chats, check that file at the start of coding tasks so you apply these rules without being reminded.
+This skill ships in the **jf-git-commit-flow** plugin, alongside `commit-preferences`, `plan-implementation-commits` and `golang-pre-commit-tests`. Apply these rules at the start of coding tasks without waiting to be reminded.
 
 ## Example flow
 
