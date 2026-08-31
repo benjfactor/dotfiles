@@ -7,7 +7,7 @@
 ## Workflow
 - Always use git worktrees for feature branches. Never work directly on master/main.
 - Worktree dir naming — **all lowercase**, hyphens: `{repo}-{ticket-lower}-{description}` (e.g. `atlas-kat-1309-simple-templates-nav`)
-- Branch naming — **uppercase ticket**, slash before the description: `{TICKET}/{description}` (e.g. `KAT-1309/simple-templates-nav`). The **uppercase** is the part that matters: the global `prepare-commit-msg` hook greps `[A-Z]+-[0-9]+` off the branch name to append the Jira ID, so a lowercase ticket silently gets no ID. The slash is convention, not a hook requirement — a hyphenated branch still gets its ID. See the `git-worktree-jira-branch` skill.
+- Branch naming — **uppercase ticket**, slash before the description: `{TICKET}/{description}` (e.g. `KAT-1309/simple-templates-nav`). The **uppercase** is the part that matters: the global `prepare-commit-msg` hook greps `[A-Z]+-[0-9]+` off the branch name to append the Jira ID, so a lowercase ticket silently gets no ID. The slash is convention, not a hook requirement — a hyphenated branch still gets its ID. See the `jf-dev-cycle:git-worktree-jira-branch` skill.
 - A new worktree's branch must **not** track `origin/master` (`git worktree add -b` from `origin/master` sets that by default — `git branch --unset-upstream`). `push.default = simple` means a bare `git push` refuses rather than pushing to master, but it then suggests `git push origin HEAD:master` — don't paste that. Create the remote on first push: `git push -u origin '{TICKET}/{description}'`
 - Start with a draft PR, mark ready only when explicitly asked.
 - Small, focused commits. Use conventional commits (`feat`, `fix`, `docs`, `chore`).
@@ -15,8 +15,8 @@
 
 ## PR Reviews
 - Always tag `@vendasta/meerkats` in PR descriptions.
-- Use the `pr-ready` skill when marking PRs ready for review.
-- Use the `notify-pr-channels` skill for Google Chat notifications.
+- Use the `jf-dev-cycle:pr-ready` skill when marking PRs ready for review.
+- Use the `jf-dev-cycle:notify-pr-channels` skill for Google Chat notifications.
   - Meerkats team PR channel: `AAAAIj8WMWc` (always @Craig and @Daniel)
 
 ## Bash Tool Rules
