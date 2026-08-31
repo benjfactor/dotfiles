@@ -11,7 +11,8 @@ After opening a PR, poll for new reviewer feedback. For code change requests: im
 
 A PR is *fully ready to merge* only when all three hold:
 
-1. **CI is green** (`ci/cloudbuild` = SUCCESS).
+1. **CI is green** — every reported check passing. A repo with one authoritative
+   check can narrow the read to it via `--check-context`; there is no default check name.
 2. **At least 2 human approvals.** Bot reviews (`github-actions`, any `*[bot]`) never count toward the two.
 3. **At least one approval from a member of a "team of interest"** — typically the team that owns the code being changed.
 
@@ -82,13 +83,25 @@ For each new item:
 After any code push, check CI:
 
 ```bash
-gh pr view <PR_NUMBER> --json statusCheckRollup \
-  --jq '[.statusCheckRollup[] | select(.context == "ci/cloudbuild") | {status: (.state // .conclusion), url: (.targetUrl // .detailsUrl)}]'
+gh pr view <PR_NUMBER> --json statusCheckRollup --jq '
+[ .statusCheckRollup[]
+  | { name:   (.context // .name),
+      status: (.state // .conclusion // .status // "UNKNOWN"),
+      url:    (.targetUrl // .detailsUrl) } ]
+| { overall:
+      ( if   length == 0 then "NONE"
+        elif any(.[]; .status | IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE","STALE")) then "FAILURE"
+        elif all(.[]; .status | IN("SUCCESS","NEUTRAL","SKIPPED")) then "SUCCESS"
+        else "PENDING" end ),
+    notPassing: [ .[] | select(.status | IN("SUCCESS","NEUTRAL","SKIPPED") | not) ] }'
 ```
 
 - `SUCCESS` → green. Resume the feedback poll loop (Step 2).
-- `FAILURE` → fetch the build log and diagnose. Fix via `green-commits`, push, recheck. If you cannot resolve the failure without user input, stop and report with full context.
-- `PENDING` or active → GitHub lags. Extract the Cloud Build ID from the URL and use the `gcp-ci-watch` skill to monitor until terminal. Then handle the result as above.
+- `FAILURE` → fetch the log for each check in `notPassing` and diagnose. Fix via `green-commits`, push, recheck. If you cannot resolve the failure without user input, stop and report with full context.
+- `PENDING` → the rollup lags while a build is still running. Escalate to the CI
+  provider's own status and wait for a terminal result; the `gcp-ci-watch` skill
+  covers one such provider. Then handle the result as above.
+- `NONE` → the repo reports no checks. Treat the CI leg of the gate as unmet and say so.
 
 ## Exit conditions
 

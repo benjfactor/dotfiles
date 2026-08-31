@@ -21,7 +21,7 @@ Always create PRs as **drafts**. Do not add reviewers — that happens at the `p
      5. `PULL_REQUEST_TEMPLATE.md`
      6. Files inside `.github/PULL_REQUEST_TEMPLATE/` or `docs/PULL_REQUEST_TEMPLATE/`
 
-2. **Derive the PR title** from the branch name or top commit. Keep it under 70 characters. Follow Conventional Commits style (same as the commit-preferences skill). The Jira ticket number belongs in the body, not the title.
+2. **Derive the PR title** from the branch name or top commit. Keep it under 70 characters. Follow Conventional Commits style (same as the commit-preferences skill). An issue or ticket identifier belongs in the body, not the title.
 
 3. **Build the PR body:**
    - **If a template file exists:** read it and fill in its sections based on the commits and diff. Keep all section headings from the template as-is. Remove HTML comments (`<!-- ... -->`).
@@ -41,9 +41,7 @@ Always create PRs as **drafts**. Do not add reviewers — that happens at the `p
 1. <step>
 ```
 
-   - Either way, prepend a Jira link as the **very first line** if a ticket can be inferred (e.g. branch `KAT-1309/foo` → `[KAT-1309](https://vendasta.jira.com/browse/KAT-1309)`). Omit if no ticket.
    - Always append `🤖 Generated with [Claude Code](https://claude.com/claude-code)` at the end.
-   - Jira base URL: `https://vendasta.jira.com/browse/`
 
 4. **Create the draft PR:**
 ```bash
@@ -55,13 +53,10 @@ EOF
 
 5. **Return the PR URL.**
 
-6. **Open the PR in Arc.** Use the `open-in-arc` skill to open the new PR in the **`PR reviews`** Space (the Space is fixed — do not ask):
-   ```bash
-   "$HOME/.claude/skills/open-in-arc/open-in-arc.sh" "<pr-url>" "PR reviews"
-   ```
-   This is best-effort: if it fails (e.g. Arc isn't running), still report the URL — never block PR creation on it.
-
 ## Notes
 
+- This skill opens a plain draft PR and stops there. Prepending a tracker link,
+  or showing the PR in a browser, is a caller's job — see `open-tracked-pr` for
+  a wrapper that does both.
 - Never add `--reviewer` here — reviewers are added by the `pr-ready` skill.
 - If the branch has no upstream yet, push first: `git push -u origin <branch>`.

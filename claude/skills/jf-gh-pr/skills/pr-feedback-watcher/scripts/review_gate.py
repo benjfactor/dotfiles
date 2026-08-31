@@ -10,13 +10,26 @@ CODEOWNERS — they come from:
 
 Bot approvals (github-actions, *[bot]) never count toward the human total.
 
+CI is read from the status check rollup. By default *every* reported check must
+be green, which is the right default for an unknown repo. A repo that publishes
+one authoritative check can narrow the read to it with --check-context (or the
+CI_CHECK_CONTEXT environment variable), rather than this script naming any
+particular CI provider.
+
 Usage:
     review_gate.py <PR_NUMBER> [--repo owner/name] [--team slug]...
+                               [--check-context <context>]
 
 Prints a JSON verdict to stdout. Exit code is always 0 unless gh itself fails;
 the caller reads the JSON and decides what to do.
 """
-import json, re, subprocess, sys
+import json, os, re, subprocess, sys
+
+# Rollup states, grouped by what they mean for the gate. Anything unrecognised is
+# treated as still running, so a new state never reads as green by accident.
+PASSING = {'SUCCESS', 'NEUTRAL', 'SKIPPED'}
+FAILING = {'FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED',
+           'STARTUP_FAILURE', 'STALE'}
 
 
 def gh_json(args):
@@ -33,20 +46,50 @@ def is_bot(login):
     return login == 'github-actions' or login.endswith('[bot]')
 
 
+def check_state(c):
+    return (c.get('state') or c.get('conclusion') or c.get('status') or '').upper()
+
+
+def rollup_status(checks, context=None):
+    """Collapse the rollup to one of SUCCESS / FAILURE / PENDING, or None.
+
+    With a context, read only that check — a repo with one authoritative check.
+    Without one, every check must pass: any failure fails the gate, and anything
+    not yet passing holds it pending.
+    """
+    if context:
+        for c in checks:
+            if c.get('context') == context or c.get('name') == context:
+                return check_state(c) or None
+        return None
+    states = [check_state(c) for c in checks]
+    if not states:
+        return None
+    if any(s in FAILING for s in states):
+        return 'FAILURE'
+    if all(s in PASSING for s in states):
+        return 'SUCCESS'
+    return 'PENDING'
+
+
 def main():
     if len(sys.argv) < 2:
-        print(json.dumps({'error': 'usage: review_gate.py <PR_NUMBER> [--repo owner/name] [--team slug]...'}))
+        print(json.dumps({'error': 'usage: review_gate.py <PR_NUMBER> [--repo owner/name] '
+                                   '[--team slug]... [--check-context <context>]'}))
         sys.exit(1)
 
     pr = sys.argv[1]
     repo = None
     explicit_teams = []
+    check_context = os.environ.get('CI_CHECK_CONTEXT') or None
     i = 2
     while i < len(sys.argv):
         if sys.argv[i] == '--repo':
             repo = sys.argv[i + 1]; i += 2
         elif sys.argv[i] == '--team':
             explicit_teams.append(sys.argv[i + 1].lstrip('@').split('/')[-1]); i += 2
+        elif sys.argv[i] == '--check-context':
+            check_context = sys.argv[i + 1]; i += 2
         else:
             i += 1
 
@@ -100,12 +143,7 @@ def main():
     required_teams = explicit_teams if explicit_teams else teams
     owner_approved = any(t in team_member_approvals for t in required_teams)
 
-    # CI status (ci/cloudbuild).
-    ci = None
-    for c in data.get('statusCheckRollup', []) or []:
-        if c.get('context') == 'ci/cloudbuild':
-            ci = c.get('state') or c.get('conclusion')
-            break
+    ci = rollup_status(data.get('statusCheckRollup', []) or [], check_context)
 
     verdict = {
         'pr': int(pr),
@@ -120,6 +158,7 @@ def main():
         'ownerApproved': owner_approved,
         'membershipUncheckable': membership_errors,
         'ci': ci,
+        'ciCheckContext': check_context,
         'meets2Approvals': len(human_approvers) >= 2,
         'ciGreen': ci == 'SUCCESS',
         'fullyReady': len(human_approvers) >= 2 and ci == 'SUCCESS' and owner_approved,

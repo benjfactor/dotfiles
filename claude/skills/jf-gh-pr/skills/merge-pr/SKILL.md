@@ -1,6 +1,6 @@
 ---
 name: merge-pr
-description: Merge a PR — verify approval, confirm CI is green (using GCP for active builds), sync with master, squash merge, then hand off to deploy-monitor. Use when the user says "merge", "merge when green", "merge it", or wants to land a PR.
+description: Merge a PR — verify approval, confirm CI is green (escalating to the CI provider's own status while a build is still running), sync with the base branch, squash merge, then hand off to deployment monitoring. Use when the user says "merge", "merge when green", "merge it", or wants to land a PR.
 ---
 
 # Merge PR
@@ -19,16 +19,33 @@ gh pr view --json reviews,number,url,headRefName \
 
 ## Step 2: Check CI status
 
-Check GitHub's reported status first — it's reliable for completed builds:
+Read GitHub's status check rollup first — it's reliable for completed builds.
+**Every reported check must be green.** A repo with one authoritative check can
+narrow the read to it, but do not assume a check name.
 
 ```bash
-gh pr view --json statusCheckRollup \
-  --jq '[.statusCheckRollup[] | select(.context == "ci/cloudbuild") | {status: (.state // .conclusion), url: (.targetUrl // .detailsUrl)}]'
+gh pr view --json statusCheckRollup --jq '
+[ .statusCheckRollup[]
+  | { name:   (.context // .name),
+      status: (.state // .conclusion // .status // "UNKNOWN"),
+      url:    (.targetUrl // .detailsUrl) } ]
+| { overall:
+      ( if   length == 0 then "NONE"
+        elif any(.[]; .status | IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE","STALE")) then "FAILURE"
+        elif all(.[]; .status | IN("SUCCESS","NEUTRAL","SKIPPED")) then "SUCCESS"
+        else "PENDING" end ),
+    notPassing: [ .[] | select(.status | IN("SUCCESS","NEUTRAL","SKIPPED") | not) ] }'
 ```
 
 - `SUCCESS` → green, proceed to Step 3.
-- `FAILURE` → stop. Report the failure and do not merge.
-- `PENDING` or in-progress → GitHub lags. Extract the Cloud Build ID from the URL and use the `gcp-ci-watch` skill to monitor until a terminal status. If the build passes, continue to Step 3. If it fails, report and stop.
+- `FAILURE` → stop. Report which checks in `notPassing` failed, with their URLs, and do not merge.
+- `PENDING` → the rollup lags while a build is still running. Escalate to the CI
+  provider's own status and wait for a terminal result; the `gcp-ci-watch` skill
+  covers one such provider. If it passes, continue to Step 3. If it fails, report and stop.
+- `NONE` → the repo reports no checks at all. Say so and ask whether to merge without CI.
+
+An unrecognised state counts as pending, so a state this skill has not seen
+before never reads as green by accident.
 
 ## Step 3: Sync branch with master
 
@@ -42,18 +59,21 @@ If this pulls in new commits from master, push and return to Step 2 to wait for 
 
 ## Step 4: Squash merge
 
-Galaxy does not allow merge commits — always squash:
+Squash by default — many repos disallow merge commits, and a squashed history
+is what the commit conventions assume:
 
 ```bash
-gh pr merge <PR_NUMBER> --squash --delete-branch --repo vendasta/galaxy
+gh pr merge <PR_NUMBER> --squash --delete-branch
 ```
 
-> **Note:** `--delete-branch` can fail with `fatal: '<branch>' is already used by worktree` when a local worktree exists for the branch. The `--repo` flag avoids most of these errors by bypassing local git context. If it still fails, delete the branch manually — the merge itself succeeds.
+> **Note:** `--delete-branch` can fail with `fatal: '<branch>' is already used by worktree` when a local worktree exists for the branch. Passing `--repo <owner>/<name>` bypasses local git context and avoids most of these — derive it from `gh repo view --json nameWithOwner` rather than hardcoding one. If it still fails, delete the branch manually — the merge itself succeeds.
 
 ## Step 5: Hand off to deploy-monitor
 
-After a successful merge, invoke the `deploy-monitor` skill with the PR URL to watch the rollout:
+After a successful merge, hand the PR URL to whatever watches deployments in
+this environment, so the rollout is observed rather than assumed:
 
-> "Merged PR #X. Starting deploy-monitor to watch the rollout."
+> "Merged PR #X. Starting deployment monitoring to watch the rollout."
 
-Then invoke `/deploy-monitor` with the merged PR URL.
+If nothing is available to watch the rollout, say so rather than reporting the
+merge as fully done.
