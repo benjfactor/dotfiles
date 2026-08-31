@@ -12,7 +12,6 @@
 - Start with a draft PR, mark ready only when explicitly asked.
 - Small, focused commits. Use conventional commits (`feat`, `fix`, `docs`, `chore`).
 - Commit messages focus on WHY, not what changed.
-- **After every `ce:plan` completes:** immediately invoke the `plan-commit-to-worktree` skill without waiting for the user to ask. It moves the plan file into a new worktree and commits it.
 
 ## PR Reviews
 - Always tag `@vendasta/meerkats` in PR descriptions.
