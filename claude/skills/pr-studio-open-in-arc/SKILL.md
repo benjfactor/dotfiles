@@ -13,11 +13,9 @@ During the `vendasta-pr-studio:pr-studio` workflow, `start_server.py` prints JSO
 
 ## What to do
 
-Open the parsed `url` in Arc, in the **`PR reviews`** Space. Use the [`open-in-arc`](../open-in-arc/SKILL.md) skill — it handles window/Space targeting:
-
-```bash
-"$HOME/.claude/skills/open-in-arc/open-in-arc.sh" "<url>" "PR reviews"
-```
+Open the parsed `url` in Arc, in the **`PR reviews`** Space. Delegate the actual
+opening to the `open-in-arc` skill, which handles window and Space targeting —
+pass it the URL and the Space name rather than driving Arc yourself.
 
 The Space is fixed (`PR reviews`), so **do not ask** which Space — that's the whole point of this skill.
 
