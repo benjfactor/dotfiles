@@ -1,0 +1,9 @@
+{
+  "name": "jf-cloud-build",
+  "version": "0.1.0",
+  "description": "Read and watch Google Cloud Build status for a GitHub pull request, for when GitHub's own check status lags.",
+  "author": {
+    "name": "Benj Hingston",
+    "email": "benjhingston@gmail.com"
+  }
+}

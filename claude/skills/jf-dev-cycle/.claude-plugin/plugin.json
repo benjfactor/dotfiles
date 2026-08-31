@@ -1,0 +1,9 @@
+{
+  "name": "jf-dev-cycle",
+  "version": "0.1.0",
+  "description": "Assemble the parts into one development cycle: worktree and branch setup, tracked PR opening, review readiness, and team notification.",
+  "author": {
+    "name": "Benj Hingston",
+    "email": "benjhingston@gmail.com"
+  }
+}

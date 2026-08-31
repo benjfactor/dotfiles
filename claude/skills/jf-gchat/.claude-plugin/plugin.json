@@ -1,0 +1,9 @@
+{
+  "name": "jf-gchat",
+  "version": "0.1.0",
+  "description": "Send messages to Google Chat spaces, resolving team identifiers and slugs to space IDs.",
+  "author": {
+    "name": "Benj Hingston",
+    "email": "benjhingston@gmail.com"
+  }
+}

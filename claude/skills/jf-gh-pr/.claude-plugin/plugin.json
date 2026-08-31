@@ -1,0 +1,9 @@
+{
+  "name": "jf-gh-pr",
+  "version": "0.1.0",
+  "description": "Open, sync, watch, merge, and clean up GitHub pull requests.",
+  "author": {
+    "name": "Benj Hingston",
+    "email": "benjhingston@gmail.com"
+  }
+}

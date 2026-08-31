@@ -1,0 +1,9 @@
+{
+  "name": "jf-triage-flow",
+  "version": "0.1.0",
+  "description": "Attribute a regression to the pull request that introduced it, then decide whether to ignore it, fold it into current work, track it, or fix it.",
+  "author": {
+    "name": "Benj Hingston",
+    "email": "benjhingston@gmail.com"
+  }
+}
