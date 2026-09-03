@@ -78,11 +78,6 @@ PATH=$PATH:/usr/local/mysql/bin
 # Add Visual Studio Code (code)
 #PATH=$PATH:/Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin
 
-# pyenv init instructions for pyenv shell commands
-export PYENV_ROOT="$HOME/.pyenv"
-command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-
 export GOPATH=$HOME/go
 export GOBIN=$GOPATH/bin
 export PATH=$GOBIN:$PATH
