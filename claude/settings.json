@@ -193,12 +193,12 @@
     }
   },
   "effortLevel": "high",
-  "theme": "dark-daltonized",
+  "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
+  "theme": "custom:dark-daltonized-custom",
   "editorMode": "vim",
   "verbose": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "skipWorkflowUsageWarning": true,
-  "tui": "fullscreen"
+  "voiceEnabled": true
 }
