@@ -2,6 +2,16 @@
 
 input=$(cat)
 
+# --- Status bar greys: explicit, so they no longer follow the theme's `inactive` ---
+# Claude Code wraps status line output in ANSI faint (SGR 2) and sets no colour,
+# so unstyled text inherits the theme and every faint run is that same colour
+# faint-ed twice. \e[22m ("normal intensity") cancels that blanket faint, and the
+# two explicit greys below then hold regardless of how dark `inactive` gets.
+SB_ON='\e[22m'                  # cancel Claude Code's blanket dim
+G1='\e[38;2;153;153;153m'       # shade 1 - the brighter grey you liked at 153
+G2='\e[38;2;76;76;76m'         # shade 2 - matches the original faint(153) at ~74
+SB_OFF='\e[0m'
+
 # --- Model (used on bottom line) ---
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 
@@ -97,12 +107,12 @@ if [ -n "$used_pct" ]; then
     if [ -n "$input_tokens" ] && [ -n "$context_size" ]; then
         used_fmt=$(fmt_k "$input_tokens")
         total_fmt=$(fmt_k "$context_size")
-        token_str="${color}${bar} ${used_pct_int}% · ${used_fmt}/${total_fmt}\e[m${timer_str}"
+        token_str="${color}${bar} ${used_pct_int}% · ${used_fmt}/${total_fmt}${G1}${timer_str}"
     else
-        token_str="${color}${bar} ${used_pct_int}%\e[m${timer_str}"
+        token_str="${color}${bar} ${used_pct_int}%${G1}${timer_str}"
     fi
 else
-    token_str="\e[2mno data\e[m${timer_str}"
+    token_str="${G2}no data${G1}${timer_str}"
 fi
 
 # --- Rate limits ---
@@ -117,7 +127,7 @@ if [ -n "$five_h_pct" ] && [ -n "$five_h_reset" ]; then
     c=$(rate_color "$pct_int")
     bar=$(make_bar5 "$pct_int")
     reset=$(fmt_reset "$five_h_reset")
-    rate_str="${rate_str} \e[2m│\e[m ${c}${bar}\e[m \e[2m5h in\e[m ${reset}"
+    rate_str="${rate_str} ${G2}│${G1} ${c}${bar}${G1} ${G2}5h in${G1} ${reset}"
 fi
 
 if [ -n "$seven_d_pct" ] && [ -n "$seven_d_reset" ]; then
@@ -125,7 +135,7 @@ if [ -n "$seven_d_pct" ] && [ -n "$seven_d_reset" ]; then
     c=$(rate_color "$pct_int")
     bar=$(make_bar5 "$pct_int")
     reset=$(date -r "$seven_d_reset" +"%a")
-    rate_str="${rate_str} · ${c}${bar}\e[m \e[2m7d on\e[m ${reset}"
+    rate_str="${rate_str} · ${c}${bar}${G1} ${G2}7d on${G1} ${reset}"
 fi
 
 # --- Claude Code version ---
@@ -145,14 +155,14 @@ branch_str=""
 [ -n "$branch" ] && branch_str=" │  ${branch}"
 
 # --- Bottom line: Model (default color) · v.X.X.XXX │~/cwd  branch (dimmed) ---
-dir_branch="\e[2m${cwd}${branch_str}\e[m"
+dir_branch="${G2}${cwd}${branch_str}${G1}"
 
 if [ -n "$model" ] && [ -n "$claude_version" ]; then
-    bottom_line="${model}\e[2m · v.${claude_version} │ \e[m${dir_branch}"
+    bottom_line="${model}${G2} · v.${claude_version} │ ${G1}${dir_branch}"
 elif [ -n "$model" ]; then
-    bottom_line="${model}\e[2m │ \e[m${dir_branch}"
+    bottom_line="${model}${G2} │ ${G1}${dir_branch}"
 else
     bottom_line="${dir_branch}"
 fi
 
-printf "%b%b\n%b" "$token_str" "$rate_str" "$bottom_line"
+printf "%b%b%b%b\n%b%b" "${SB_ON}${G1}" "$token_str" "$rate_str" "$SB_OFF" "${SB_ON}${G1}${bottom_line}" "$SB_OFF"
