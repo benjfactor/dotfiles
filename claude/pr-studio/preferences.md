@@ -81,8 +81,8 @@ Up to three parts. Split only when splitting makes the comment clearer — most
 comments don't need all three, and a one-part comment is often the right answer.
 
 1. **What I'm looking at** — the label line itself. Always present.
-2. **Why it matters** — what happens if this is or isn't addressed. Include it when
-   the consequence isn't already obvious from the first part.
+2. **Why it matters** — a consequence the first part doesn't already imply. If it
+   only rephrases the finding in other words, drop it and go straight to the action.
 3. **What to do** — the next step. Often a question rather than an instruction.
 
 Parts after the first open with a short bolded phrase that runs into the sentence
@@ -98,8 +98,22 @@ The label stays a short token; the warmth lives in the sentence. A `thought` rea
 like "what do you think about…". An `fyi` offers information without assuming the
 author doesn't know it — "in case it's useful…" — and without assuming they do.
 
-Keep each comment as tight as the finding allows. Never say "LGTM" in any comment
-or review body.
+**Write it so a human wants to read it.** These comments are mostly read by bots,
+but a comment only a bot will read teaches the author to stop reading and let their
+bot handle it — and then nothing I said actually lands. Shorter is usually easier
+to read, but the goal is readability, not brevity: never cut something the author
+or a bot needs to act on it.
+
+Most findings land somewhere around 40–80 words. That's an observation, not a
+target — an eight-word comment that says everything is better than a padded one,
+and nothing is gained by writing up to a number.
+
+Treat 80 as a prompt to re-read rather than a limit. Past it, ask honestly whether
+this still reads well, or whether the opening is carrying evidence that would land
+better a paragraph down. Sometimes the answer is that the trace really does need
+the room — that's fine. The point is to have asked.
+
+Never say "LGTM" in any comment or review body.
 
 PR-level comments must not just summarize what the PR does. The author knows what
 they wrote, and the description already covers it. A PR-level comment earns its
