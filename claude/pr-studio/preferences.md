@@ -81,8 +81,8 @@ Up to three parts. Split only when splitting makes the comment clearer — most
 comments don't need all three, and a one-part comment is often the right answer.
 
 1. **What I'm looking at** — the label line itself. Always present.
-2. **Why it matters** — what happens if this is or isn't addressed. Include it when
-   the consequence isn't already obvious from the first part.
+2. **Why it matters** — a consequence the first part doesn't already imply. If it
+   only rephrases the finding in other words, drop it and go straight to the action.
 3. **What to do** — the next step. Often a question rather than an instruction.
 
 Parts after the first open with a short bolded phrase that runs into the sentence
@@ -98,8 +98,17 @@ The label stays a short token; the warmth lives in the sentence. A `thought` rea
 like "what do you think about…". An `fyi` offers information without assuming the
 author doesn't know it — "in case it's useful…" — and without assuming they do.
 
-Keep each comment as tight as the finding allows. Never say "LGTM" in any comment
-or review body.
+**Write it so a human wants to read it.** These comments are mostly read by bots,
+but a comment only a bot will read teaches the author to stop reading and let their
+bot handle it — and then nothing I said actually lands. Shorter is usually easier
+to read, but the goal is readability, not brevity: never cut something the author
+or a bot needs to act on it.
+
+Most findings fit comfortably under 100 words. Longer is fine when the trace
+genuinely needs it. If most comments are running long, it's usually the opening
+carrying evidence that would read better a paragraph down.
+
+Never say "LGTM" in any comment or review body.
 
 PR-level comments must not just summarize what the PR does. The author knows what
 they wrote, and the description already covers it. A PR-level comment earns its
