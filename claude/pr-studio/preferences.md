@@ -104,9 +104,14 @@ bot handle it — and then nothing I said actually lands. Shorter is usually eas
 to read, but the goal is readability, not brevity: never cut something the author
 or a bot needs to act on it.
 
-Most findings fit comfortably under 100 words. Longer is fine when the trace
-genuinely needs it. If most comments are running long, it's usually the opening
-carrying evidence that would read better a paragraph down.
+Most findings land somewhere around 40–80 words. That's an observation, not a
+target — an eight-word comment that says everything is better than a padded one,
+and nothing is gained by writing up to a number.
+
+Treat 80 as a prompt to re-read rather than a limit. Past it, ask honestly whether
+this still reads well, or whether the opening is carrying evidence that would land
+better a paragraph down. Sometimes the answer is that the trace really does need
+the room — that's fine. The point is to have asked.
 
 Never say "LGTM" in any comment or review body.
 
