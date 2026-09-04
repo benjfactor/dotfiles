@@ -29,7 +29,11 @@ comments, not one comment carrying both.
 - **problem** — something is wrong.
 - **suggest** — a specific alternative exists and I'm naming it.
 - **consider** — worth weighing, but I'm not proposing a specific answer.
-- **question** — I need to understand something before I can judge it.
+- **question** — I'm not sure I've understood. Ask the author to supply what I
+  can't see rather than asserting a defect: "am I reading this right — if
+  `retryCount` isn't reset on success, wouldn't the next failure start at the
+  cap?" The wording is mine to pick; the point is to invite the explanation
+  instead of making them disprove an accusation.
 - **thought** — an idea worth floating, offered collaboratively.
 - **fyi** — information offered without assuming the author doesn't already have it.
 - **nit** — cosmetic. Rare; often better folded into a `suggest` so it reads like
@@ -44,11 +48,32 @@ attention. Routine praise ("nice tests", "good description") is noise; leave it 
 
 ### Decorations
 
-- **(blocking)** — I want to sync on this before it merges. Not "go fix this" — I
-  want to be sure I've understood it, or that what I'm raising has been taken into
-  account.
-- **(non-blocking)** — worth saying, but it's the author's call.
-- **(minor)** — only if it's cheap; skip it otherwise.
+**Most comments carry none.** A bare label is a real finding that doesn't stop the
+merge — that's the default, and the default needs no marker. Two decorations
+exist, because each says something its label can't infer.
+
+**(blocking)** — only ever on `problem`, and only when **both** hold:
+
+1. **I'm near-certain.** I traced it. Not "this looks wrong."
+2. **It's severe.** Crashes, corrupts or erases data, breaks the user, or exposes
+   something that can't be un-exposed.
+
+Name the concrete failure. If I can't name it, it isn't blocking. Something done
+the wrong way, something that doesn't quite fully fix the problem, or something
+fixable in a follow-up is a plain `problem` — not a blocker.
+
+`blocking` still means *let's sync before this merges*, not "go fix it" — the
+author decides what to do either way. What's tightened is the bar for claiming it,
+not the meaning.
+
+**A false blocking costs more than a late one.** It teaches the author to discount
+every future one, and that discount is the whole value of the review. When unsure,
+drop the decoration.
+
+**(minor)** — only if it's cheap; skip it otherwise.
+
+`question` and `thought` never take `(blocking)`: a question is uncertain by
+definition, a thought is optional by definition.
 
 ### Body
 
@@ -84,26 +109,42 @@ isn't anchored to one line.
 
 ### Examples
 
-One part — nothing to add:
+One part — nothing to add, no decoration:
 
-> **question (non-blocking):** is the 30s timeout deliberate here, or inherited
-> from the old client?
+> **question:** is the 30s timeout deliberate here, or inherited from the old
+> client?
 
 Two parts — the impact is obvious, the action isn't:
 
-> **suggest (non-blocking):** three callers now build the same header map.
+> **suggest:** three callers now build the same header map.
 >
 > **Worth hoisting** into `internal/http/headers.go` before they drift.
 
-Three parts — the why is doing real work:
+Three parts — a real defect, but nothing critical breaks, so no decoration:
 
-> **problem (blocking):** `retryCount` is never reset after a successful call.
+> **problem:** `retryCount` is never reset after a successful call.
 >
 > **Which means** the next failure starts at the cap, so one transient error
 > degrades the retry budget for the life of the process.
 >
-> **What do you think about** resetting it in the success branch? I'd want to
-> confirm the cap isn't intentional first.
+> **What do you think about** resetting it in the success branch?
+
+The rare `(blocking)` — data is destroyed, and I traced it:
+
+> **problem (blocking):** the five-key whitelist rebuilds the entry from
+> `build_entry`'s nine keys plus these five.
+>
+> **Which means** every other field the desktop app stored on that entry is
+> gone after an install — silently, on data the app owns and we don't.
+>
+> **Can we sync** before this merges? I want to be sure I've read the ownership
+> boundary right.
+
+Not sure I've understood — ask, don't accuse:
+
+> **question:** am I reading the cadence right? `last_bumped` is written to
+> `pr-aging.json` but I can't find where it's read back — does something else
+> gate on it?
 
 A nit, kept cheap:
 
@@ -118,16 +159,17 @@ Praise, with no fixed label:
 
 ## Severity → decoration
 
-The review tool assigns LOW / MEDIUM / HIGH. Treat it as a starting point, not a
-mapping. The decoration says how much I want to talk about a finding, which isn't
-the same thing as how severe the finding is.
+The review tool assigns LOW / MEDIUM / HIGH. It does not map onto decorations,
+because most comments carry no decoration at all.
 
-As a rough guide: HIGH is usually `(blocking)`, MEDIUM is usually
-`(non-blocking)`, LOW is usually `(minor)` or `(non-blocking)`.
+Let severity inform the label, then apply the `(blocking)` test on its own terms:
+near-certain **and** severe. A HIGH-severity finding I haven't actually traced is
+a `question`, not a blocker. A HIGH-severity finding that's real but breaks
+nothing critical is a plain `problem`. `(minor)` is for cosmetic findings not
+worth a detour, usually LOW.
 
-Override it whenever the finding warrants. A LOW-severity design question I
-genuinely want to discuss is `(blocking)`; a HIGH-severity issue the author has
-clearly already weighed may not be.
+Expect `(blocking)` to be **rare** — a handful per hundred comments. If it's
+showing up on a fifth of them, the bar has slipped.
 
 ## Verdict meaning
 
