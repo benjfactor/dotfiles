@@ -2,9 +2,105 @@
 
 ### Add global hooks here
 
+# Refuse to rewrite or delete history on a protected branch.
+#
+# GitHub cannot enforce this: branch protection and rulesets are gated behind
+# GitHub Pro for private repos, and most of these repos are private. This is
+# the client-side equivalent, and it covers every repo at once because
+# core.hooksPath points here globally.
+#
+# It is a seatbelt, not a wall: `git push --no-verify` skips hooks entirely,
+# and so does any push made from another machine. It stops the accident, not
+# someone who means it.
+#
+# Deliberate overrides, per invocation:
+#   ALLOW_FORCE_PUSH=1   git push --force origin main
+#   ALLOW_BRANCH_DELETE=1 git push origin :main
+#
+# They are separate on purpose -- see the delete branch below.
+
+PROTECTED='main master'
+ZERO='0000000000000000000000000000000000000000'
+
+# stdin: <local ref> <local sha> <remote ref> <remote sha>, one line per ref.
+#
+# Read it all up front. A `while read` straight off stdin consumes it, which
+# leaves the repo-local hook dispatched at the bottom with nothing to read and
+# no refs to check -- it would silently no-op the very hook this dispatch
+# exists to run. The loop is fed from a here-doc rather than a pipe for a
+# second reason: a pipe would put it in a subshell, where `exit 1` ends the
+# subshell and the push carries on regardless.
+refs=$(cat)
+
+while read -r _local_ref local_sha remote_ref remote_sha; do
+  [ -z "$remote_ref" ] && continue
+
+  branch=${remote_ref#refs/heads/}
+  case " $PROTECTED " in
+    *" $branch "*) ;;
+    *) continue ;;
+  esac
+
+  # Deleting the remote branch.
+  #
+  # Checked before ALLOW_FORCE_PUSH, and behind its own variable. A rewrite
+  # usually survives in a reflog somewhere; a branch deleted on a remote you do
+  # not control does not. The one irreversible operation gets its own opt-in
+  # rather than riding along on the flag meant for force-pushes.
+  if [ "$local_sha" = "$ZERO" ]; then
+    if [ -n "$ALLOW_BRANCH_DELETE" ]; then
+      echo "pre-push: ALLOW_BRANCH_DELETE set -- permitting DELETE of '$branch'" >&2
+      continue
+    fi
+    echo "pre-push: refusing to DELETE protected branch '$branch'." >&2
+    echo "          Override: ALLOW_BRANCH_DELETE=1 git push origin :$branch" >&2
+    exit 1
+  fi
+
+  if [ -n "$ALLOW_FORCE_PUSH" ]; then
+    echo "pre-push: ALLOW_FORCE_PUSH set -- permitting history rewrite on '$branch'" >&2
+    continue
+  fi
+
+  # Brand-new branch on the remote; nothing to rewrite.
+  [ "$remote_sha" = "$ZERO" ] && continue
+
+  # Can't judge what we don't have. Refuse rather than guess -- a fetch is cheap
+  # and this only triggers when the remote is genuinely ahead or unknown.
+  if ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    echo "pre-push: remote commit $remote_sha for '$branch' is unknown locally." >&2
+    echo "          Run 'git fetch ${1:-origin}' so a force-push can be told from a fast-forward." >&2
+    exit 1
+  fi
+
+  # A fast-forward leaves the remote tip in our history. Anything else drops commits.
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha"; then
+    echo "pre-push: refusing NON-FAST-FORWARD push to protected branch '$branch'." >&2
+    echo "          This would discard commits already on the remote." >&2
+    echo "          Rebase or merge instead; override with ALLOW_FORCE_PUSH=1." >&2
+    exit 1
+  fi
+done <<EOF
+$refs
+EOF
+
 ### When global hooks processing is done, run the repo local hook if it exists
-if [ -e ./.git/hooks/pre-commit ]; then
-  ./.git/hooks/pre-commit "$@"
+#
+# Resolved against --git-common-dir so this works in linked worktrees, where
+# .git is a file rather than a directory. Do NOT use `rev-parse --git-path
+# hooks/...` here: that honours core.hooksPath, which points at this very
+# directory, so the hook would re-exec itself until the process table fills.
+# The self-guard below is belt-and-braces for the same reason.
+#
+# stdin is replayed from what was captured above, so the local hook sees the
+# same refs git handed us.
+LOCAL_HOOK="$(git rev-parse --git-common-dir)/hooks/pre-push"
+if [ -x "$LOCAL_HOOK" ] && [ "$(cd "$(dirname "$LOCAL_HOOK")" && pwd -P)" != "$(cd "$(dirname "$0")" && pwd -P)" ]; then
+  if [ -n "$refs" ]; then
+    printf '%s\n' "$refs" | "$LOCAL_HOOK" "$@"
+  else
+    "$LOCAL_HOOK" "$@" < /dev/null
+  fi
 else
   exit 0
 fi
