@@ -70,7 +70,7 @@ fi
 
 
 # https://github.com/garabik/grc: To set aliases for supported commands
-[[ -s "/etc/grc.sh" ]] && source /etc/grc.sh
+[[ -s "/opt/homebrew/etc/grc.sh" ]] && source /opt/homebrew/etc/grc.sh
 
 # custom path for vendasta box
 PATH=$PATH:$HOME/google-cloud-sdk/bin
@@ -236,7 +236,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-export PATH="usr/local/sbin:$PATH"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 
 start_spinner() {
   local pid=$1
@@ -276,10 +276,7 @@ fi
 test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
 
 
-[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
 
-# Added by `rbenv init` on Wed 24 Sep 2025 15:12:55 CST
-eval "$(rbenv init - --no-rehash bash)"
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
