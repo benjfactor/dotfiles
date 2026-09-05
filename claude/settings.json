@@ -103,7 +103,7 @@
       "~/Projects/"
     ]
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -193,12 +193,12 @@
     }
   },
   "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
   "editorMode": "vim",
   "verbose": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "skipWorkflowUsageWarning": true,
-  "tui": "fullscreen"
+  "voiceEnabled": true
 }
