@@ -7,7 +7,7 @@
 	"font_size": 18,
 	"ignored_packages":
 	[
-		"Vintage"
+		"Vintage",
 	],
 	"theme": "Adaptive.sublime-theme",
 }
