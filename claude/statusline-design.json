@@ -1,0 +1,388 @@
+{
+  "version": 1,
+  "name": "Two-Tone Grey, Live Bars",
+  "elements": [
+    {
+      "id": "ctxbar_g",
+      "type": "contextBar",
+      "width": 10,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 0,
+          "g": 187,
+          "b": 0
+        }
+      },
+      "showWhen": {
+        "field": "context_window.used_percentage",
+        "op": "lt",
+        "value": 80
+      }
+    },
+    {
+      "id": "ctxpct_g",
+      "type": "contextPct",
+      "prefix": " ",
+      "suffix": "%",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 0,
+          "g": 187,
+          "b": 0
+        }
+      },
+      "showWhen": {
+        "field": "context_window.used_percentage",
+        "op": "lt",
+        "value": 80
+      }
+    },
+    {
+      "id": "ctxtok_g",
+      "type": "contextTokens",
+      "variant": "ratio",
+      "compact": true,
+      "prefix": " · ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 0,
+          "g": 187,
+          "b": 0
+        }
+      },
+      "showWhen": {
+        "field": "context_window.used_percentage",
+        "op": "lt",
+        "value": 80
+      }
+    },
+    {
+      "id": "ctxbar_r",
+      "type": "contextBar",
+      "width": 10,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 187,
+          "g": 0,
+          "b": 0
+        }
+      },
+      "showWhen": {
+        "field": "context_window.used_percentage",
+        "op": "gt",
+        "value": 79.999
+      }
+    },
+    {
+      "id": "ctxpct_r",
+      "type": "contextPct",
+      "prefix": " ",
+      "suffix": "%",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 187,
+          "g": 0,
+          "b": 0
+        }
+      },
+      "showWhen": {
+        "field": "context_window.used_percentage",
+        "op": "gt",
+        "value": 79.999
+      }
+    },
+    {
+      "id": "ctxtok_r",
+      "type": "contextTokens",
+      "variant": "ratio",
+      "compact": true,
+      "prefix": " · ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 187,
+          "g": 0,
+          "b": 0
+        }
+      },
+      "showWhen": {
+        "field": "context_window.used_percentage",
+        "op": "gt",
+        "value": 79.999
+      }
+    },
+    {
+      "id": "dur",
+      "type": "sessionDuration",
+      "format": "human",
+      "prefix": " · ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 153,
+          "g": 153,
+          "b": 153
+        }
+      }
+    },
+    {
+      "id": "sep1",
+      "type": "separator",
+      "text": " │ ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      }
+    },
+    {
+      "id": "r5_g",
+      "type": "rateLimit5h",
+      "variant": "bar",
+      "width": 5,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "showWhen": {
+        "field": "rate_limits.five_hour.used_percentage",
+        "op": "lt",
+        "value": 80
+      },
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 0,
+          "g": 187,
+          "b": 0
+        }
+      }
+    },
+    {
+      "id": "r5_r",
+      "type": "rateLimit5h",
+      "variant": "bar",
+      "width": 5,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "showWhen": {
+        "field": "rate_limits.five_hour.used_percentage",
+        "op": "gt",
+        "value": 79.999
+      },
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 187,
+          "g": 0,
+          "b": 0
+        }
+      }
+    },
+    {
+      "id": "r5_l",
+      "type": "static",
+      "text": " 5h at ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      }
+    },
+    {
+      "id": "r5_v",
+      "type": "rateLimit5h",
+      "variant": "pct",
+      "width": 5,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "showResetTime": true,
+      "suffix": "% ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 153,
+          "g": 153,
+          "b": 153
+        }
+      }
+    },
+    {
+      "id": "sep2",
+      "type": "separator",
+      "text": "· ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 153,
+          "g": 153,
+          "b": 153
+        }
+      }
+    },
+    {
+      "id": "r7_g",
+      "type": "rateLimit7d",
+      "variant": "bar",
+      "width": 5,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "showWhen": {
+        "field": "rate_limits.seven_day.used_percentage",
+        "op": "lt",
+        "value": 80
+      },
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 0,
+          "g": 187,
+          "b": 0
+        }
+      }
+    },
+    {
+      "id": "r7_r",
+      "type": "rateLimit7d",
+      "variant": "bar",
+      "width": 5,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "showWhen": {
+        "field": "rate_limits.seven_day.used_percentage",
+        "op": "gt",
+        "value": 79.999
+      },
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 187,
+          "g": 0,
+          "b": 0
+        }
+      }
+    },
+    {
+      "id": "r7_l",
+      "type": "static",
+      "text": " 7d at ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      }
+    },
+    {
+      "id": "r7_v",
+      "type": "rateLimit7d",
+      "variant": "pct",
+      "width": 5,
+      "filledChar": "█",
+      "emptyChar": "░",
+      "showResetTime": true,
+      "suffix": "% ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 153,
+          "g": 153,
+          "b": 153
+        }
+      }
+    },
+    {
+      "id": "lb",
+      "type": "lineBreak",
+      "style": {}
+    },
+    {
+      "id": "model",
+      "type": "model",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 153,
+          "g": 153,
+          "b": 153
+        }
+      }
+    },
+    {
+      "id": "sep3",
+      "type": "separator",
+      "text": " │ ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      }
+    },
+    {
+      "id": "cwd",
+      "type": "cwd",
+      "mode": "tilde",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      }
+    },
+    {
+      "id": "glyph",
+      "type": "glyph",
+      "char": "",
+      "prefix": " ",
+      "suffix": " ",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      },
+      "showWhen": {
+        "field": "workspace.git_worktree",
+        "op": "exists"
+      }
+    },
+    {
+      "id": "branch",
+      "type": "gitBranch",
+      "style": {
+        "fg": {
+          "kind": "rgb",
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      },
+      "showWhen": {
+        "field": "workspace.git_worktree",
+        "op": "exists"
+      }
+    }
+  ]
+}
