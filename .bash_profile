@@ -135,6 +135,8 @@ alias sshusask="ssh bvh895@tuxworld.usask.ca"
 alias gc="gcloud"
 alias bashrc="~/.bash_profile"
 alias vim='command nvim' vio='command vim'
+alias cc="claude"                # Claude Code (shadows /usr/bin/cc; use \cc or 'command cc' for the C compiler)
+alias ca="claude agents"         # Claude Code background sessions / agents list
 eval $(thefuck --alias)
 # You can use whatever you want as an alias, like for Mondays:
 eval $(thefuck --alias fuck)
