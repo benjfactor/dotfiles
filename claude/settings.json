@@ -175,7 +175,8 @@
     "vendasta-dev-agent-toolkit@vendasta-dev-agent-toolkit": true,
     "gopls-lsp@claude-plugins-official": true,
     "compound-engineering@compound-engineering-plugin": true,
-    "vendasta-pr-studio@vendasta-dev-agent-toolkit": true
+    "vendasta-pr-studio@vendasta-dev-agent-toolkit": true,
+    "caveman@caveman": true
   },
   "extraKnownMarketplaces": {
     "vendasta-dev-agent-toolkit": {
@@ -189,6 +190,12 @@
       "source": {
         "source": "github",
         "repo": "EveryInc/compound-engineering-plugin"
+      }
+    },
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
       }
     }
   },
