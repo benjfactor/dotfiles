@@ -101,7 +101,7 @@ link vimide/.vim                       "$HOME/.config/nvim"
 # live session's state out from under it -- and you are quite likely running
 # this script from inside exactly such a session.
 #
-# Only the five tracked config entries get linked in. It does not matter
+# Only the tracked config entries get linked in. It does not matter
 # whether ~/.claude is a real directory (new machines) or itself a symlink into
 # this repo (the older layout, see SETUP.md): the links resolve to the same
 # place either way, so this is correct and idempotent on both.
@@ -119,6 +119,7 @@ link claude/settings.json         "$CLAUDE_DIR/settings.json"
 link claude/hooks                 "$CLAUDE_DIR/hooks"
 link claude/skills                "$CLAUDE_DIR/skills"
 link claude/statusline-command.sh "$CLAUDE_DIR/statusline-command.sh"
+link claude/themes                "$CLAUDE_DIR/themes"
 
 # PR Studio reads its global review preferences from a nested path, so the
 # directory has to exist before the link can go in. Everything else under

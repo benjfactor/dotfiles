@@ -1,0 +1,7 @@
+{
+  "name": "Dark mode (colorblind-friendly)",
+  "base": "dark-daltonized",
+  "overrides": {
+    "inactive": "rgb(65,65,65)"
+  }
+}
