@@ -322,12 +322,17 @@ branch_str=""
 # --- Bottom line: Model (default color) · v.X.X.XXX │~/cwd  branch (dimmed) ---
 dir_branch="${G2}${cwd}${branch_str}${G1}"
 
+# Held in two pieces so the separator can be pushed right to line up with the
+# one on the top line; recombined in the alignment block below.
 if [ -n "$model" ] && [ -n "$claude_version" ]; then
-    bottom_line="${model}${G2} · v.${claude_version} │ ${G1}${dir_branch}"
+    bottom_prefix="${model}${G2} · v.${claude_version}"
+    bottom_rest="${G2} │ ${G1}${dir_branch}"
 elif [ -n "$model" ]; then
-    bottom_line="${model}${G2} │ ${G1}${dir_branch}"
+    bottom_prefix="${model}"
+    bottom_rest="${G2} │ ${G1}${dir_branch}"
 else
-    bottom_line="${dir_branch}"
+    bottom_prefix=""
+    bottom_rest="${dir_branch}"
 fi
 
 # --- Right-align the sun segments (space-between) -----------------------------
@@ -367,6 +372,25 @@ vis_len() {
     out+=$s
     printf '%s' "${#out}"
 }
+
+# --- Line up the first │ on both lines ----------------------------------------
+# The top line's separator opens rate_str; the bottom line's follows the
+# version. Their natural widths differ by a character or two and drift apart as
+# the session timer rolls over and the token count grows, so the shorter prefix
+# is padded to match and the two read as one vertical rule.
+#
+# Only when both lines actually have a separator: with no rate limits, or no
+# model, there is nothing to line up and padding would just add a ragged gap.
+if [ -n "$rate_str" ] && [ -n "$bottom_prefix" ]; then
+    w_top=$(vis_len "$token_str")
+    w_bot=$(vis_len "$bottom_prefix")
+    if [ "$w_top" -lt "$w_bot" ]; then
+        token_str="${token_str}$(printf "%$(( w_bot - w_top ))s" "")"
+    elif [ "$w_bot" -lt "$w_top" ]; then
+        bottom_prefix="${bottom_prefix}$(printf "%$(( w_top - w_bot ))s" "")"
+    fi
+fi
+bottom_line="${bottom_prefix}${bottom_rest}"
 
 # Hold a few columns back from COLUMNS, or the harness truncates the tail with
 # an ellipsis and eats the clock.
