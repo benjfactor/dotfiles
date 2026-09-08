@@ -187,13 +187,15 @@ fi
 # per render is affordable; the cache makes the common path a single file read.
 # The cache is one line of four epochs -- today's rise and set, then tomorrow's
 # -- which is enough to name the next two events at any hour. Checked against
-# sunrise-sunset.org for Regina: agrees to within about a minute.
+# sunrise-sunset.org for both Regina and Rosetown: agrees within a minute.
 #
 # Override the location with CLAUDE_SUN_LAT / CLAUDE_SUN_LON (east-positive).
-SUN_LAT="${CLAUDE_SUN_LAT:-50.4452}"        # Regina, SK
-SUN_LON="${CLAUDE_SUN_LON:--104.6189}"
+SUN_LAT="${CLAUDE_SUN_LAT:-51.5539}"        # Rosetown, SK
+SUN_LON="${CLAUDE_SUN_LON:--108.0011}"
 sun_dir="$HOME/.cache/claude-statusline"
-sun_cache="$sun_dir/sun-$(date +%Y%m%d)"
+# Keyed on the coordinates as well as the date: keyed on date alone, changing
+# location would keep serving the previous city's times until midnight.
+sun_cache="$sun_dir/sun-$(date +%Y%m%d)-${SUN_LAT}_${SUN_LON}"
 
 if [ ! -s "$sun_cache" ]; then
     mkdir -p "$sun_dir" 2>/dev/null
@@ -203,7 +205,7 @@ import math, sys, datetime
 
 def sun_times(lat, lon_east, n):
     # Solar transit falls LATER in UT the further west you are, which is why an
-    # east-positive longitude is subtracted here (Regina: +0.29 d onto 12:00 UT).
+    # east-positive longitude is subtracted here (Rosetown: +0.30 d onto 12:00 UT).
     Js = n - lon_east/360.0
     M  = (357.5291 + 0.98560028*Js) % 360
     Mr = math.radians(M)
