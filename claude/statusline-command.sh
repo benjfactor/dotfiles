@@ -111,19 +111,55 @@ make_bar10() {
     echo "$bar"
 }
 
+# Five cells, but the first is halved so something shows at 10% instead of
+# staying blank until 20%. Above that it is plain fifths. 80-99 is deliberately
+# a single step -- the bar stops resolving there and the printed percentage
+# takes over (see pct_badge), which is far easier to read than three nearly
+# identical partial glyphs.
 make_bar5() {
-    local pct=$1 bar="" i
-    local filled=$(( pct * 5 / 100 )) empty=$(( 5 - pct * 5 / 100 ))
-    for (( i = 0; i < filled; i++ )); do bar="${bar}█"; done
-    for (( i = 0; i < empty;  i++ )); do bar="${bar}░"; done
-    echo "$bar"
+    local pct=$1
+    if   [ "$pct" -ge 100 ]; then echo "█████"
+    elif [ "$pct" -ge 80  ]; then echo "████░"
+    elif [ "$pct" -ge 60  ]; then echo "███░░"
+    elif [ "$pct" -ge 40  ]; then echo "██░░░"
+    elif [ "$pct" -ge 20  ]; then echo "█░░░░"
+    elif [ "$pct" -ge 10  ]; then echo "▌░░░░"
+    else                          echo "░░░░░"
+    fi
 }
 
+# 90-99 shows the number beside the bar, because four blocks means anything
+# from 80 to 99 and that is exactly the range worth being precise about. At
+# 100 the fifth block is unambiguous on its own, so the number is dropped.
+pct_badge() {
+    local pct=$1
+    if [ "$pct" -ge 90 ] && [ "$pct" -lt 100 ]; then
+        printf " %d%%" "$pct"
+    fi
+}
+
+# Three flat bands. The basic ANSI codes are used deliberately: in this
+# terminal's palette they resolve to #00bb00 / #bbbb00 / #bb0000, the same
+# green, yellow and red as the tmux hearts battery bar, so the two agree
+# without either hardcoding the other's values.
+#
+# Two functions rather than one because the two bars mean different things.
+# A rate limit at 85% is still workable -- the bar shows four blocks and the
+# printed percentage takes over above 90 -- whereas a context window at 85%
+# is already the point to act on, so it reddens ten points earlier.
 rate_color() {
     local pct=$1
-    if [ "$pct" -ge 80 ]; then printf "\e[0;31m"
-    elif [ "$pct" -ge 50 ]; then printf "\e[0;33m"
-    else printf "\e[0;32m"
+    if   [ "$pct" -ge 90 ]; then printf "\e[0;31m"   # red
+    elif [ "$pct" -ge 50 ]; then printf "\e[0;33m"   # yellow
+    else                         printf "\e[0;32m"   # green
+    fi
+}
+
+context_color() {
+    local pct=$1
+    if   [ "$pct" -ge 80 ]; then printf "\e[0;31m"   # red
+    elif [ "$pct" -ge 50 ]; then printf "\e[0;33m"   # yellow
+    else                         printf "\e[0;32m"   # green
     fi
 }
 
@@ -145,7 +181,7 @@ fmt_reset() {
 
 if [ -n "$used_pct" ]; then
     used_pct_int=$(printf '%.0f' "$used_pct")
-    color=$(rate_color "$used_pct_int")
+    color=$(context_color "$used_pct_int")
     bar=$(make_bar10 "$used_pct_int")
     if [ -n "$input_tokens" ] && [ -n "$context_size" ]; then
         used_fmt=$(fmt_k "$input_tokens")
@@ -170,7 +206,7 @@ if [ -n "$five_h_pct" ] && [ -n "$five_h_reset" ]; then
     c=$(rate_color "$pct_int")
     bar=$(make_bar5 "$pct_int")
     reset=$(fmt_reset "$five_h_reset")
-    rate_str="${rate_str} ${G2}│${G1} ${c}${bar}${G1} ${G2}5h in${G1} ${reset}"
+    rate_str="${rate_str} ${G2}│${G1} ${c}${bar}$(pct_badge "$pct_int")${G1} ${G2}5h in${G1} ${reset}"
 fi
 
 if [ -n "$seven_d_pct" ] && [ -n "$seven_d_reset" ]; then
@@ -178,7 +214,7 @@ if [ -n "$seven_d_pct" ] && [ -n "$seven_d_reset" ]; then
     c=$(rate_color "$pct_int")
     bar=$(make_bar5 "$pct_int")
     reset=$(date -r "$seven_d_reset" +"%a")
-    rate_str="${rate_str} · ${c}${bar}${G1} ${G2}7d on${G1} ${reset}"
+    rate_str="${rate_str} · ${c}${bar}$(pct_badge "$pct_int")${G1} ${G2}7d on${G1} ${reset}"
 fi
 
 # --- Sunrise / sunset ---------------------------------------------------------
