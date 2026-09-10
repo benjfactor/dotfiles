@@ -150,8 +150,8 @@ Write to `docs/specs/{TICKET}-{slug}.md`, creating `docs/specs/` if needed. Not 
 that directory is scanned by planning skills, and a spec sitting there gets picked up as something
 it is not.
 
-Use `assets/spec-template.md` as the structure: Problem, Definition of Success, Non-Goals, Users, Behavior,
-Acceptance Criteria, Open Questions, Notes.
+Use `assets/spec-template.md` as the structure: Problem, Users, Behavior, Non-Goals,
+Acceptance Criteria, Definition of Success, Open Questions, Notes.
 
 **Definition of Success is the section people skip, and it is the one that catches a wasted feature.** Acceptance
 Criteria ask whether each piece behaves correctly; the Definition of Success asks whether building it accomplished
