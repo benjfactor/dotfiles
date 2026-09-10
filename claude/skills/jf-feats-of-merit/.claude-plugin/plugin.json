@@ -1,0 +1,9 @@
+{
+  "name": "jf-feats-of-merit",
+  "version": "0.1.0",
+  "description": "Capture status-worthy moments as they happen and assemble them into a Weekly Status Update page.",
+  "author": {
+    "name": "benjfactor",
+    "url": "https://github.com/benjfactor"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "jf-git-commit-flow",
+  "version": "0.1.0",
+  "description": "Commit in small, green increments on a feature branch, with Conventional Commits messages and pre-commit test gates.",
+  "author": {
+    "name": "benjfactor",
+    "url": "https://github.com/benjfactor"
+  }
+}

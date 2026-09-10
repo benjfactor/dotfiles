@@ -1,0 +1,9 @@
+{
+  "name": "jf-arc",
+  "version": "0.1.0",
+  "description": "Open URLs in the Arc browser as a tab in the existing window, optionally targeting a named Space.",
+  "author": {
+    "name": "benjfactor",
+    "url": "https://github.com/benjfactor"
+  }
+}
