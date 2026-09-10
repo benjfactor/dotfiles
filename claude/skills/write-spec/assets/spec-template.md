@@ -12,7 +12,7 @@ created: YYYY-MM-DD
 Two or three sentences. What is broken or missing today, and who feels it. Describe the current
 behavior, not the desired one — the desired behavior has its own section.
 
-## Success Criteria
+## Definition of Success
 
 What is true once this ships, in a sentence or two. How you would know the built thing is right —
 not a metric, unless a real one exists and someone will actually look at it.

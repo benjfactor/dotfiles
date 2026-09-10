@@ -117,7 +117,7 @@ plausible options, options are the wrong shape and will steer the answer.
 
 ### When to stop
 
-Stop when two things are true: the **Success Criteria** is a sentence you could hold the built thing against,
+Stop when two things are true: the **Definition of Success** is a sentence you could hold the built thing against,
 and every **acceptance criterion is testable** — someone could read it and say whether the built
 thing passes, without asking you what you meant.
 
@@ -150,12 +150,12 @@ Write to `docs/specs/{TICKET}-{slug}.md`, creating `docs/specs/` if needed. Not 
 that directory is scanned by planning skills, and a spec sitting there gets picked up as something
 it is not.
 
-Use `assets/spec-template.md` as the structure: Problem, Success Criteria, Non-Goals, Users, Behavior,
+Use `assets/spec-template.md` as the structure: Problem, Definition of Success, Non-Goals, Users, Behavior,
 Acceptance Criteria, Open Questions, Notes.
 
-**Success Criteria is the section people skip, and it is the one that catches a wasted feature.** Acceptance
-Criteria ask whether each piece behaves correctly; Success Criteria asks whether building it accomplished
-anything. Every criterion can pass while the Success Criteria fails — a subject column that renders perfectly
+**Definition of Success is the section people skip, and it is the one that catches a wasted feature.** Acceptance
+Criteria ask whether each piece behaves correctly; the Definition of Success asks whether building it accomplished
+anything. Every criterion can pass while the Definition of Success fails — a subject column that renders perfectly
 and always reads "Re: (no subject)" satisfies its criteria and helps nobody. Write it as the
 observable end state, not a metric; invent a percentage only where a real one exists and someone
 will look at it.
