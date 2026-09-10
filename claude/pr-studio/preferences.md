@@ -115,6 +115,32 @@ the room — that's fine. The point is to have asked.
 
 Never say "LGTM" in any comment or review body.
 
+### Impact, not just mechanism
+
+The second part — **why it matters** — should be the concrete consequence, not
+the mechanism that produces it. "X reads stale for up to 60s" lands faster than
+a paragraph on *why* X goes stale; the mechanism can follow in the same part or
+get its own sentence, but the consequence comes first within that part, right
+after the label line.
+
+When a finding's impact is real today, say so plainly. When it's hypothetical —
+it only bites if some other change lands first — say that plainly too, and name
+the trigger. Don't let a "this could matter" finding read the same as a "this is
+broken now" one; the reader needs to know which one they're looking at to decide
+how much attention it deserves.
+
+If tracing the actual impact turns up nothing — no code path exercises it, no
+future change is likely to need it — that's a reason to downgrade the label
+(often to `fyi`) or drop the finding, not to keep it as a `problem` on the
+strength of the mechanism alone. A defect nobody can reach isn't a defect;
+naming the theoretical mechanism without an impact is what makes a comment feel
+like a wall of text nobody asked for.
+
+For an enumerable set (states, cases, call sites), a short bulleted list reads
+faster than the same items joined into prose. Reserve inline `file:line` citations
+for the one or two most load-bearing ones; collect the rest in a trailing
+`Refs:` line rather than interrupting the sentence repeatedly.
+
 PR-level comments must not just summarize what the PR does. The author knows what
 they wrote, and the description already covers it. A PR-level comment earns its
 place only if it says something the diff and description don't: a cross-cutting
