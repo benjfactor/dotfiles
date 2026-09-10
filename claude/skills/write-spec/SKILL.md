@@ -117,11 +117,13 @@ plausible options, options are the wrong shape and will steer the answer.
 
 ### When to stop
 
-Stop when every acceptance criterion is **testable** — someone could read it and say whether the
-built thing passes, without asking you what you meant.
+Stop when two things are true: the **Goal** is a sentence you could hold the built thing against,
+and every **acceptance criterion is testable** — someone could read it and say whether the built
+thing passes, without asking you what you meant.
 
-Not "handles errors gracefully." That is a feeling. "When the upstream call fails, the row keeps
-its previous status and the error is logged with the account ID" is a test.
+Not "handles errors gracefully." That is a feeling. "The row keeps its previous status when the
+upstream call fails, and the error is logged with the account ID" is a test. Short bullets, no
+required Given/When/Then ceremony — the test is whether it can be judged, not what shape it takes.
 
 ### When the user hands the decision back to you
 
@@ -148,7 +150,23 @@ Write to `docs/specs/{TICKET}-{slug}.md`, creating `docs/specs/` if needed. Not 
 that directory is scanned by planning skills, and a spec sitting there gets picked up as something
 it is not.
 
-Use `assets/spec-template.md` as the structure. Two rules about content:
+Use `assets/spec-template.md` as the structure: Problem, Goal, Non-Goals, Users, Behavior,
+Acceptance Criteria, Open Questions, Notes.
+
+**Goal is the one people skip, and it is the one that catches a wasted feature.** Acceptance
+Criteria ask whether each piece behaves correctly; Goal asks whether building it accomplished
+anything. Every criterion can pass while the Goal fails — a subject column that renders perfectly
+and always reads "Re: (no subject)" satisfies its criteria and helps nobody. Write it as the
+observable end state, not a metric; invent a percentage only where a real one exists and someone
+will look at it.
+
+**The ticket's acceptance criteria are a starting point, not a ceiling.** Jira AC are usually
+correct and too high-level to build against. Carry their intent, sharpen them into bullets that can
+be judged, and add the cases the ticket skipped — the empty value, the permission failure, the
+thing that must keep working. Where you went beyond the ticket, say so in Notes so the requester
+can see what you added on their behalf.
+
+Two rules about content:
 
 **When the ticket's own acceptance criteria contain implementation, split them.** Real tickets do
 this constantly — "implement the necessary API endpoints", "update the wizard UI to hook into the
@@ -160,7 +178,7 @@ sentence is what lets the planning session weigh it instead of inheriting it.
 
 **An acceptance criterion that is a task, not a behavior, is not an acceptance criterion.** "Draft
 a one-page proposal and review it with the Conversations team" is real work and it belongs in the
-spec — under Notes or Open Questions, as a step with an owner. Do not contort it into Given/When/Then;
+spec — under Notes or Open Questions, as a step with an owner. Do not dress it up as a criterion;
 a criterion that cannot be tested by looking at the built system is a plan item wearing the wrong hat.
 
 **No technology names in Problem, Users, Behavior, or Acceptance Criteria.** Not a library, not a

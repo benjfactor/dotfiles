@@ -12,6 +12,21 @@ created: YYYY-MM-DD
 Two or three sentences. What is broken or missing today, and who feels it. Describe the current
 behavior, not the desired one — the desired behavior has its own section.
 
+## Goal
+
+What is true once this ships, in a sentence or two. How you would know the built thing is right —
+not a metric, unless a real one exists and someone will actually look at it.
+
+This is the check that the Acceptance Criteria were worth passing. If every criterion below is met
+and this still is not true, the spec was wrong.
+
+## Non-Goals
+
+What this work explicitly does not do, including things a reasonable reader would assume it does.
+One line each, with the reason when the reason is not obvious.
+
+- Does not {thing}. {Why, or where it lives instead.}
+
 ## Users
 
 Who acts on this, and what each of them is trying to get done. One line each. Name the real
@@ -29,19 +44,18 @@ What the system does. One line per statement, present tense, observable from out
 No library, service, table, or file names here. If a technology genuinely constrains the behavior,
 say so in Notes and label it a constraint.
 
-## Non-Goals
-
-What this work explicitly does not do, including things a reasonable reader would assume it does.
-One line each, with the reason when the reason is not obvious.
-
-- Does not {thing}. {Why, or where it lives instead.}
-
 ## Acceptance Criteria
 
-Each one testable — a reader can say pass or fail without asking what was meant.
+Short bullets. Each one testable — a reader can say pass or fail without asking what was meant.
 
-- [ ] Given {starting state}, when {action}, then {observable result}.
-- [ ] Given {error condition}, when {action}, then {observable result}.
+Extend or sharpen the ticket's own acceptance criteria here. Jira AC are often right but too
+high-level to build against ("the subject line is visible in the preview" does not say what happens
+when there is no subject). Carry the ticket's intent, add the cases it skipped, and say so in Notes
+where you went beyond it.
+
+- [ ] {Observable result}, {under what condition}.
+- [ ] {What happens in the case the ticket did not cover}.
+- [ ] {Existing behavior} still {does what it did}.
 
 ## Open Questions
 
