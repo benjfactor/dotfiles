@@ -14,12 +14,17 @@ Write for a human skimming. Say what changed, why, and what the diff can't show 
 
 | Heading | Holds | Required? |
 |---|---|---|
+| **Relates to** | Other PRs, tickets or docs this pairs with, each with a word on the relationship ("ships after", "row half"). Sits at the top, under the ticket line. | When something else lands with, before or after this |
 | **Why** | One sentence of user value, or the problem being solved. Frame as the user's outcome, not the technical work. | Yes |
 | **What** | What changed — the shape of it, not an inventory. Bullets. | Yes |
 | **Alternatives** | What was considered and rejected, and why. One line each. | When a real one was rejected |
-| **Verify** | Left empty. Benj or an agent running functional tests fills it. | Yes, always last |
+| **Verify** | Left empty. Benj or an agent running functional tests fills it. A `before\|after` table for screenshots is fine here. | Yes, last — above the team tags |
 
-Add a heading beyond these only when it carries something the four can't — a risk table, a merge-order constraint, a follow-up that would otherwise be lost. A repo's own PR skill may mandate more sections or a different name for one of these; follow it, and apply these rules to everything it leaves open.
+Add a heading beyond these only when it carries something they can't — a risk table, a merge-order constraint, a follow-up that would otherwise be lost. A repo's own PR skill may mandate more sections or a different name for one of these; follow it, and apply these rules to everything it leaves open.
+
+**Link GitHub URLs raw**, not as markdown links — GitHub renders a bare PR or issue URL as a rich reference, and link syntax defeats that. Jira and other hosts still take markdown.
+
+**Team tags go last**, after Verify, below a `---` divider.
 
 **Must survive the cut:** the Why, the shape of the What, and anything invisible in the diff — a real limit, a risk, an alternative rejected and the reason.
 
