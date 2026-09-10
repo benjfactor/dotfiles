@@ -4,6 +4,37 @@
 - Minimize conversational fluff and do not output full code blocks or text diffs in your responses unless explicitly asked.
 - Summarize file changes in a single sentence (e.g., "Updated line 12 in server.js") instead of providing text-based diff previews.
 
+### PR descriptions, comments, and review replies
+
+Write for a human skimming. Say what changed, why, and what the diff can't show — then stop.
+
+**Prefer lists.** Three to five bullets beat the same content as prose. One clear sentence beats a padded list. Never a wall of paragraphs.
+
+**Sections.** Use these headings. The wording under them is yours — natural language that fits the change beats filling in a template:
+
+| Heading | Holds | Required? |
+|---|---|---|
+| **Why** | One sentence of user value, or the problem being solved. Frame as the user's outcome, not the technical work. | Yes |
+| **What** | What changed — the shape of it, not an inventory. Bullets. | Yes |
+| **Alternatives** | What was considered and rejected, and why. One line each. | When a real one was rejected |
+| **Proof** | Left empty. Benj or an agent running functional tests fills it. | Yes, always last |
+
+Add a heading beyond these only when it carries something the four can't — a risk table, a merge-order constraint, a follow-up that would otherwise be lost. A repo's own PR skill may mandate more sections or a different name for one of these; follow it, and apply these rules to everything it leaves open.
+
+**Must survive the cut:** the Why, the shape of the What, and anything invisible in the diff — a real limit, a risk, an alternative rejected and the reason.
+
+Test both ways: if they can't approve or reject without asking a question, it's too short; if they'd learn it faster from the diff, cut it.
+
+**Cut:**
+- Instructions to the reader — "worth confirming…", "reviewers should…"
+- Build, test, and lint results — handled by CI/CD
+- Restated diffs, filler sections, caveat essays
+- Tables, unless comparing 3+ things on 2+ axes
+
+Long rationale belongs in the commit message — cite the sha instead.
+
+Never write under **Proof** unless you exercised the real thing in a real environment; leaving it empty is the default, not a gap.
+
 ## Workflow
 - Always use git worktrees for feature branches. Never work directly on master/main.
 - Worktree dir naming — **all lowercase**, hyphens: `{repo}-{ticket-lower}-{description}` (e.g. `atlas-kat-1309-simple-templates-nav`)
