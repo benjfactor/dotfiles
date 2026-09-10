@@ -1,0 +1,74 @@
+{
+  "skill_name": "write-spec",
+  "evals": [
+    {
+      "id": 0,
+      "name": "subject-preview-truncation",
+      "prompt": "KAT-1412 \u2014 subject preview truncates mid-word in the message list, looks broken. Should cut on a word boundary with an ellipsis instead. Spec this out before we plan it.",
+      "expected_output": "docs/specs/KAT-1412-<slug>.md on a feature branch, 6 sections, testable Given/When/Then AC, a [NEEDS CLARIFICATION] for non-space scripts, non-goals covering body preview and sender column, no Go identifiers in the behavior section",
+      "files": [
+        "fixtures/email"
+      ],
+      "assertions": [
+        "Spec file was produced",
+        "Spec path is under docs/specs/ (not docs/plans/)",
+        "All six required sections present",
+        "Feature branch uses uppercase ticket with slash form",
+        "Handoff command includes confirm:ask and the spec path",
+        "Behavior section names no code identifiers",
+        "Acceptance criteria use testable Given/When/Then",
+        "No LLM filler phrases in the spec",
+        "Spec is under 120 lines",
+        "Asked between 3 and 7 questions",
+        "Flags non-space scripts (CJK) as unresolved",
+        "Non-goals name body preview and sender column"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "cross-repo-reply-attribution",
+      "prompt": "KAT-1455 replies coming from Outlook aren't getting attributed to the right contact, they end up unassigned. I think it spans both the email and conversation repos, have a look across both. Write me a spec, I don't want to plan this yet.",
+      "expected_output": "spec that names the ambiguous-match rule as behavior, keeps the 30-day unassigned bucket, marks backfill as an open question, non-goal on auto-adding the address to the contact, and cites what it found in both repos",
+      "files": [
+        "fixtures/email",
+        "fixtures/conversation"
+      ],
+      "assertions": [
+        "Spec file was produced",
+        "Spec path is under docs/specs/ (not docs/plans/)",
+        "All six required sections present",
+        "Feature branch uses uppercase ticket with slash form",
+        "Handoff command includes confirm:ask and the spec path",
+        "Behavior section names no code identifiers",
+        "Acceptance criteria use testable Given/When/Then",
+        "No LLM filler phrases in the spec",
+        "Spec is under 120 lines",
+        "Asked between 3 and 7 questions",
+        "States ambiguous match leaves the reply unattributed",
+        "Reprocessing existing unassigned replies left open, not decided",
+        "Cites findings from both the email and conversation repos"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "prespecified-bounce-suppression",
+      "prompt": "spec out KAT-1470 for me. ticket already has AC on it:\n\n---\nKAT-1470 \u2014 Suppress sending to hard-bounced addresses\nWhen the email provider reports a hard bounce for an address, stop sending to that address for that SMB account.\nAC:\n- Given an address has a recorded hard bounce for account A, when a campaign send targets it, then no message is queued and the skip is recorded.\n- Given the same address on account B with no bounce, when a campaign send targets it, then the message is queued normally.\n- Given a hard bounce arrives for an address with no prior record, when it is processed, then a suppression record is created for that account.\n---\n\nrepo is email.",
+      "expected_output": "few questions asked (AC already settled), AC carried forward not rewritten, non-goals covering soft bounce and unsubscribe, [NEEDS CLARIFICATION] on suppression-record retention, notes that no suppression code exists today after checking",
+      "assertions": [
+        "Spec file was produced",
+        "Spec path is under docs/specs/ (not docs/plans/)",
+        "All six required sections present",
+        "Feature branch uses uppercase ticket with slash form",
+        "Handoff command includes confirm:ask and the spec path",
+        "Behavior section names no code identifiers",
+        "Acceptance criteria use testable Given/When/Then",
+        "No LLM filler phrases in the spec",
+        "Spec is under 120 lines",
+        "Interview compressed because AC were already settled (<=5 questions)",
+        "Flags how long a suppression record lasts as unresolved",
+        "Preserves all three ticket acceptance criteria",
+        "Non-goals cover soft bounce and unsubscribe"
+      ]
+    }
+  ]
+}
