@@ -17,7 +17,7 @@ Write for a human skimming. Say what changed, why, and what the diff can't show 
 | **Why** | One sentence of user value, or the problem being solved. Frame as the user's outcome, not the technical work. | Yes |
 | **What** | What changed — the shape of it, not an inventory. Bullets. | Yes |
 | **Alternatives** | What was considered and rejected, and why. One line each. | When a real one was rejected |
-| **Proof** | Left empty. Benj or an agent running functional tests fills it. | Yes, always last |
+| **Verify** | Left empty. Benj or an agent running functional tests fills it. | Yes, always last |
 
 Add a heading beyond these only when it carries something the four can't — a risk table, a merge-order constraint, a follow-up that would otherwise be lost. A repo's own PR skill may mandate more sections or a different name for one of these; follow it, and apply these rules to everything it leaves open.
 
@@ -33,7 +33,7 @@ Test both ways: if they can't approve or reject without asking a question, it's 
 
 Long rationale belongs in the commit message — cite the sha instead.
 
-Never write under **Proof** unless you exercised the real thing in a real environment; leaving it empty is the default, not a gap.
+Never write under **Verify** unless you exercised the real thing in a real environment; leaving it empty is the default, not a gap.
 
 ## Workflow
 - Always use git worktrees for feature branches. Never work directly on master/main.
