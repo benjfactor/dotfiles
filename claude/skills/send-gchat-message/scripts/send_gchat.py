@@ -38,6 +38,7 @@ TEAM_CHANNELS = {
     "meerkats":                            "AAAAIj8WMWc",  # personal team PR channel (Craig + Daniel)
     "snapcats":                            "AAAAAHjNt6A",
     "snack-ops":                           "AAAAjno8gDs",
+    "tif":                                 "AAAAjno8gDs",  # same space as snack-ops
     "phoenix":                             "AAAAN_I9hG8",
     "marina":                              "AAAABIynxDE",  # discovered via spaces.list 2026-06-24
     "autobots":                            "AAAAkkgulAw",  # corrected via spaces.list 2026-06-26 (old AAAAWOyaLAg → 403)
