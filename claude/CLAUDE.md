@@ -22,7 +22,7 @@ Write for a human skimming. Say what changed, why, and what the diff can't show 
 
 Add a heading beyond these only when it carries something they can't — a risk table, a merge-order constraint, a follow-up that would otherwise be lost. A repo's own PR skill may mandate more sections or a different name for one of these; follow it, and apply these rules to everything it leaves open.
 
-**Link GitHub URLs raw**, not as markdown links — GitHub renders a bare PR or issue URL as a rich reference, and link syntax defeats that. Jira and other hosts still take markdown.
+**Link GitHub URLs raw**, not as markdown links — GitHub renders a bare PR or issue URL as a rich reference, and link syntax defeats that. That rich reference already shows open/merged/closed state, so never annotate a link with its status. Jira and other hosts still take markdown.
 
 **Team tags go last**, after Verify, below a `---` divider.
 
