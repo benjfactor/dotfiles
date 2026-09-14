@@ -50,7 +50,8 @@ Never write under **Verify** unless you exercised the real thing in a real envir
 - Start with a draft PR, mark ready only when explicitly asked.
 - Small, focused commits. Use conventional commits (`feat`, `fix`, `docs`, `chore`).
 - Commit messages focus on WHY, not what changed.
-- **Code comments stay terse.** Keep only what the code cannot say — a non-obvious why, a constraint, a rejected alternative. Cut anything restating the line beside it. One or two lines is usually enough; a docstring past ~5 lines needs a reason. Long rationale goes in the commit message.
+- **Touch as little as the change needs.** Don't rewrite comments, reflow code, or reformat files the change didn't otherwise require — a reviewer shouldn't have to read past noise to find the diff. Never run a blanket formatter (`prettier --write`, `gofmt -w`) over a file; format only what you wrote. Many repo files are already unformatted and no CI step gates on it, so "fixing" them is pure churn.
+- **Comments I write stay terse.** Only what the code cannot say — a non-obvious why, a constraint, a rejected alternative. One or two lines is usually enough; past ~5 needs a reason. Long rationale goes in the commit message. This governs new comments, not a pass over existing ones.
 - **After every `ce:plan` completes:** immediately invoke the `plan-commit-to-worktree` skill without waiting for the user to ask. It moves the plan file into a new worktree and commits it.
 
 ## PR Reviews
