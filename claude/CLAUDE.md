@@ -40,6 +40,8 @@ Long rationale belongs in the commit message — cite the sha instead.
 
 Never write under **Verify** unless you exercised the real thing in a real environment; leaving it empty is the default, not a gap.
 
+**Punctuation:** No em-dashes. Use a semicolon to join two independent clauses; use parentheses for an aside (interchange with commas when they read more naturally). Applies anywhere I'm speaking for Benj — PR descriptions, comments, review replies, GChat posts, etc. — not to code, commit messages, or in-chat responses.
+
 ## Workflow
 - Always use git worktrees for feature branches. Never work directly on master/main.
 - Worktree dir naming — **all lowercase**, hyphens: `{repo}-{ticket-lower}-{description}` (e.g. `atlas-kat-1309-simple-templates-nav`)
@@ -48,6 +50,7 @@ Never write under **Verify** unless you exercised the real thing in a real envir
 - Start with a draft PR, mark ready only when explicitly asked.
 - Small, focused commits. Use conventional commits (`feat`, `fix`, `docs`, `chore`).
 - Commit messages focus on WHY, not what changed.
+- **Code comments stay terse.** Keep only what the code cannot say — a non-obvious why, a constraint, a rejected alternative. Cut anything restating the line beside it. One or two lines is usually enough; a docstring past ~5 lines needs a reason. Long rationale goes in the commit message.
 - **After every `ce:plan` completes:** immediately invoke the `plan-commit-to-worktree` skill without waiting for the user to ask. It moves the plan file into a new worktree and commits it.
 
 ## PR Reviews
