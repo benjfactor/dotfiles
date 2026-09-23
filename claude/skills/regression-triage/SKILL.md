@@ -74,6 +74,12 @@ Ask the routing decision:
 - **Alert the owning team** (Phase 4a) — tracker: Jira bug or GitHub issue
 - **Record only** (Phase 4c) — a GitHub issue as a known defect, no alert, for a later prioritisation pass
 
+**Every Jira bug / GitHub issue this skill creates opens with a provenance line**
+(italic, first line of the description/body), so triaged items trace back to the
+release being monitored when they were found:
+`_Found and triaged while monitoring the release of <PR URL> (<TICKET>)._`
+Add "Not introduced by that release." when attribution showed that.
+
 ## Phase 3 — Post the PR comment (all routes, when there's an introducing PR)
 
 Write the body to a file and use `gh pr comment <n> --body-file` (heredoc quoting
