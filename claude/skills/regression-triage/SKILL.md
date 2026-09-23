@@ -1,14 +1,14 @@
 ---
 name: regression-triage
-description: When a side problem surfaces (e.g. during a deploy-monitor watch) that looks like a regression introduced by an earlier PR, attribute it to the PR that introduced it, then route to one of two outcomes — alert the owning team, or fix it. Use when a bug/panic/error is found that is NOT from the change currently being worked on and you need to find the responsible PR and act. Triggers: "find the PR that introduced this", "who broke this", "this panic isn't from my change", a deploy-monitor side-finding, or any attributed regression that needs an alert-or-fix decision.
+description: When a side problem surfaces (e.g. during a deploy-monitor watch) that looks like a regression introduced by an earlier PR, attribute it to the PR that introduced it, then route to one of three outcomes — fix it, alert the owning team, or record it as a known defect (GitHub issue). Findings that don't trace to a PR still go through the gate. Use when a bug/panic/error is found that is NOT from the change currently being worked on and you need to find the responsible PR and act. Triggers: "find the PR that introduced this", "who broke this", "this panic isn't from my change", a deploy-monitor side-finding, or any regression that needs a fix/alert/record decision.
 ---
 
 # Regression Triage
 
 Takes a **finding** (a bug/panic/error, usually surfaced by `deploy-monitor`)
-and turns it into action: attribute it to the introducing PR, then either
-**alert** the owning team or **fix** it — in both cases posting the finding's
-context on the responsible PR.
+and turns it into action: attribute it to the introducing PR, then **fix** it,
+**alert** the owning team, or **record** it as a known defect — posting the
+finding's context on the responsible PR when there is one.
 
 This skill is **standalone** — `deploy-monitor` surfaces a side-finding and
 *suggests* running this; it does not auto-invoke. Invoke it manually whenever you
@@ -49,21 +49,32 @@ Gather (from the deploy-monitor context or pasted in):
 5. Produce **ranked candidate PR(s) with the evidence chain** — and stop here.
    No Arc, no comment, no branch until the gate confirms.
 
+**No introducing PR?** If onset predates every candidate, or the cause is outside
+the code (provider behaviour change, infra/config drift, data), say so with the
+evidence and go to the gate anyway. Skip the PR comment (Phase 3); the owning
+team comes from CODEOWNERS / the owning service instead.
+
 ## Phase 2 — Single review gate (catch misattribution here)
 
-Present everything at once and get one approval (use `AskUserQuestion`):
-- The attributed PR(s) + reasoning + onset evidence (so a wrong call is catchable)
-- The **drafted PR comment** (see template below)
+**Where to ask:** if you're talking with the user directly, use `AskUserQuestion`.
+If you were delegated by another agent, send the gate to that agent (e.g.
+`SendMessage` to `main`) and wait for its answer; it relays to the user or decides.
+
+Present everything at once and get one approval:
+- The attributed PR(s) + reasoning + onset evidence (so a wrong call is catchable),
+  or the no-PR evidence
+- The **drafted PR comment** (see template below), when there's an introducing PR
 - The **owning team** + target Chat channel(s) — infer from CODEOWNERS for the
   faulting file and/or `@vendasta/<team>` mentions / Jira tag on the introducing PR
-- The proposed **Jira project** + a draft bug (project inferred from the owning
-  team / the introducing PR's Jira tag; confirm or override)
+- The proposed **tracker**: a Jira bug (project inferred from the owning team /
+  the introducing PR's Jira tag) or a GitHub issue on the owning repo, with a draft
 
-Ask the two routing decisions:
-- **Fix it** or **alert-only**?
-- **Create a Jira bug?** (Y/N, + board override)
+Ask the routing decision:
+- **Fix it** (Phase 4b) — always a Jira bug, since its key names the branch
+- **Alert the owning team** (Phase 4a) — tracker: Jira bug or GitHub issue
+- **Record only** (Phase 4c) — a GitHub issue as a known defect, no alert, for a later prioritisation pass
 
-## Phase 3 — Post the PR comment (BOTH branches)
+## Phase 3 — Post the PR comment (all routes, when there's an introducing PR)
 
 Write the body to a file and use `gh pr comment <n> --body-file` (heredoc quoting
 breaks — always use a file). Template (from the worked example, which landed well):
@@ -73,13 +84,14 @@ breaks — always use a file). Template (from the worked example, which landed w
 - **Root cause** — exact file:line call sites and the actual faulting line (e.g. the SDK deref)
 - **Why it went unnoticed** — happy path never hits it; affected cohort; rate ("~N/day since <date>")
 - **Provenance** — name the PR that introduced the code path vs the one that widened the trigger; be precise, don't over-claim
-- **Fix** — link the fix PR + Jira (fix branch), OR **de-escalation** ("No action needed here — flagging for context since the code originated in this PR.") (alert branch)
+- **Fix** — link the fix PR + Jira (fix route), OR **de-escalation** ("No action needed here — flagging for context since the code originated in this PR.") plus the Jira bug / GitHub issue link (alert and record routes)
 
-## Phase 4a — Alert-only
+## Phase 4a — Alert the owning team
 
-1. (If chosen) create the Jira bug via the Atlassian MCP `createJiraIssue` — project
-   from the gate, issue type **Bug**, description = finding summary + links to the
-   introducing PR / the PR comment.
+1. Record it in the tracker chosen at the gate: a Jira bug via the Atlassian MCP
+   `createJiraIssue` (project from the gate, type **Bug**, description = finding
+   summary + links to the introducing PR / the PR comment), or a GitHub issue as
+   in Phase 4c.
 2. Notify the owning team via the **send-gchat-message** skill, resolving the team
    to its channel and linking the PR comment. Use a prefix that ties it to the
    finding's origin:
@@ -91,23 +103,27 @@ breaks — always use a file). Template (from the worked example, which landed w
 ## Phase 4b — Fix → hand off to the existing dev flow
 
 Do **not** orchestrate the dev flow rigidly — kick it off and step back. It is a
-chain of existing skills that evolves over time (see the flow diagram in the repo
-README). Order:
+chain of existing skills that evolves over time, so this skill doesn't restate it.
 
 1. **Create the Jira bug FIRST** (before the branch) so the ticket key drives the
    branch name. (`createJiraIssue`, project from the gate, type Bug; set sprint/assignee/status as you normally do.)
-2. **Branch off latest `origin/master`**, named from the ticket — via
-   `git-worktree-jira-branch` (or a plain branch if not using worktrees), e.g.
-   `<TICKET>/<short-desc>`.
-3. **Plan or not — your call:** run `/plan` for non-trivial fixes, or implement
-   directly for a small/obvious one. Then the work gets done with **small green
-   commits** (`green-commits` / `plan-implementation-commits`; run the repo's
-   pre-commit / `golang-pre-commit-tests` before each).
-4. **`open-pr`** (draft) → open in Arc (`open-in-arc`) for review.
-5. When ready: **`pr-ready`** (marks ready, adds reviewers, posts via `notify-pr-channels`).
-6. **`pr-feedback-watcher`** to watch + address feedback.
-7. On approvals + green: prompt to merge → **`merge-pr`**, which hands off to
-   **`deploy-monitor`** on the fix PR — closing the loop.
+2. **Follow the "Skill flow" in `~/.claude/skills/README.md`** from the worktree
+   step onward, with the ticket from step 1.
+
+## Phase 4c — Record only (known defect)
+
+For a real defect nobody is fixing now, so it's findable at the next prioritisation
+pass. No Jira bug, no team alert.
+
+1. **Search first** on the owning repo:
+   `gh issue list -R <owner/repo> --search "<error signature>" --state all`.
+   If a matching issue exists, comment on it with the new evidence instead of
+   opening a duplicate (reopen only if the user agrees).
+2. Otherwise `gh issue create -R <owner/repo> --body-file <file>`. Body: the
+   signature with file:line, onset and rate, affected cohort and impact, the
+   introducing PR if any, and how it was found ("while monitoring #X"). Only use
+   labels the repo already has.
+3. Link the issue from the PR comment (Phase 3) when there is one.
 
 ### Guardrails for the fix (learned the hard way)
 
@@ -121,5 +137,4 @@ README). Order:
 
 - `deploy-monitor` → surfaces the side-finding that triggers this skill.
 - `send-gchat-message` → delivers the alert (Phase 4a).
-- `notify-pr-channels` → used inside `pr-ready` on the fix branch (Phase 4b).
-- `merge-pr` → tail of the fix branch; hands back to `deploy-monitor`.
+- The README "Skill flow" → owns everything on the fix route after the Jira bug (Phase 4b).
