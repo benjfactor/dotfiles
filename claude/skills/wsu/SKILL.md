@@ -117,24 +117,49 @@ Combine GitHub, GChat, git, and questionnaire answers into concise PPP content.
 - **Problems**: only genuine blockers needing outside help. Leave blank if none.
 - **No boilerplate** — no instructions or filler text in the page body.
 
-Page structure:
+**Highlights — write this last.** It sits at the top of the page but is derived from
+Progress, not planned before it. Two audiences: a human skimming, and an LLM reading a
+quarter of these at merit or promo time, where the signal otherwise gets lost in detail.
+
+- **2–4 bullets, hard cap.** More and it becomes a second Progress.
+- **Never introduce a fact Progress doesn't carry.** It compresses; it doesn't add.
+- **A bullet earns its place only if it says something no single Progress bullet says.**
+  Either it's the week's one standout, or it's the through-line across several small ones.
+- **At least one bullet should name a pattern where there is one** — small items that add
+  up to a behaviour (three drive-by fixes outside your program; a habit of backing out
+  your own wrong approach). Patterns may reach across weeks; that's the point, since no
+  single page can see them.
+- Lead each bullet with a bold claim, then the evidence in a sentence or two.
+- Don't soften it into a summary. "Retired a flag instead of flipping it" beats "did some
+  flag cleanup."
+
+Page structure — the Highlights panel needs `contentFormat: html`; the rest can be plain
+HTML blocks:
+```html
+<div data-type="panel-custom" data-icon=":key:" data-color="#EAE6FF">
+  <p><strong>Highlights</strong></p>
+  <ul><li><p><strong>Claim.</strong> Evidence.</p></li></ul>
+</div>
+
+<p><strong>Progress</strong></p>
+<ul><li><p>item</p></li></ul>
+
+<p>&zwnj;</p>
+
+<p><strong>Plan</strong></p>
+<ul><li><p>item</p></li></ul>
+
+<p>&zwnj;</p>
+
+<p><strong>Problems</strong></p>
+<ul><li><p>item or blank</p></li></ul>
 ```
-**Progress**
 
-* <item>
-
-‌
-
-**Plan**
-
-* <item>
-
-‌
-
-**Problems**
-
-* <item or blank>
-```
+`panel-custom` is used rather than `panel-note` because only the custom panel takes an
+icon; `#EAE6FF` (Light purple) is from Confluence's supported background palette, and
+`:key:` reads as "key points" rather than the congratulatory tone a star carries — these
+bullets often include rework and reversals. Before authoring HTML bodies, call
+`getContentFormatGuide` with `toolName: "updateConfluencePage"`.
 
 ### 7. Create or update the page
 
@@ -143,7 +168,7 @@ Page structure:
 updateConfluencePage:
   cloudId:       77fcf126-19b9-4276-9a8f-9d9fa1efe60f
   pageId:        <existing page ID>
-  contentFormat: markdown
+  contentFormat: html
   body:          <filled PPP content>
 ```
 
@@ -154,7 +179,7 @@ createConfluencePage:
   spaceId:       1518010429
   parentId:      <quarter parent page ID>
   title:         <derived title>
-  contentFormat: markdown
+  contentFormat: html
   body:          <filled PPP content>
 ```
 
