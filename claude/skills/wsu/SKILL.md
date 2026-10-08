@@ -21,6 +21,7 @@ Quarter parent pages (add new ones as quarters roll over):
 |---------|---------|-------|
 | Q2 2026 | `4046848046` | WSU 2026 Q2 |
 | Q3 2026 | `4344840197` | WSU 2026 Q3 |
+| Q4 2026 | `4696047708` | WSU 2026 Q4 |
 
 To find the parent for a future quarter, search Confluence for a page titled "WSU YYYY QN" in the space.
 
