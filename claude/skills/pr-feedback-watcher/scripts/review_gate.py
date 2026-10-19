@@ -68,6 +68,9 @@ def main():
         login = (r.get('author') or {}).get('login')
         if not login:
             continue
+        # COMMENTED doesn't change a reviewer's verdict, so it must not erase an approval.
+        if r.get('state') in ('COMMENTED', 'PENDING'):
+            continue
         latest[login] = r.get('state')  # reviews are returned in chronological order
     approvers = sorted([u for u, s in latest.items() if s == 'APPROVED'])
     human_approvers = [u for u in approvers if not is_bot(u)]
@@ -76,7 +79,8 @@ def main():
     # Teams of interest: explicit + body @org/team mentions + requested reviewer teams.
     body = data.get('body') or ''
     body_teams = [m.split('/')[-1] for m in re.findall(r'@[\w-]+/[\w-]+', body)]
-    requested_teams = [t.get('slug') or t.get('name', '').lower().replace(' ', '-')
+    # gh returns requested team slugs as "org/team"; the members API wants just "team".
+    requested_teams = [(t.get('slug') or t.get('name', '').lower().replace(' ', '-')).split('/')[-1]
                        for t in data.get('reviewRequests', []) if t.get('name') or t.get('slug')]
     teams = []
     for t in explicit_teams + body_teams + requested_teams:
