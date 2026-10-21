@@ -13,6 +13,66 @@ agents catch project-specific concerns the general reviewer won't — for the
 risk check (new VStore Kinds, Temporal registrations, eager singleton network
 calls).
 
+## What's worth surfacing at all
+
+Before any comment style applies, filter hard. The goal of review is a safe
+merge, not a correct diff — a mistake is exactly as easy to fix after merge as
+before it, so being *wrong* is not by itself a reason to comment. Being *unsafe*
+is.
+
+Surface a finding only when it's near the top on **both**:
+
+- **Confidence** — I traced it, not "this looks off."
+- **Risk of impact**, read across three axes:
+  - **User impact** — does someone outside the team see broken, lost, or wrong
+    behavior?
+  - **System impact** — does it degrade, cascade, or take down something beyond
+    the immediate code path?
+  - **Data integrity** — if it fires, how hard is it to undo? Cheaply-reversed
+    (a bad log line, a stale cache entry) sits far below destroyed, corrupted,
+    or permanently-lost data.
+
+A correctness nit that's easy to notice and easy to fix later — style,
+naming, a slightly-off comment, test coverage without a live consequence —
+isn't worth a comment on its own merits, regardless of how confident I am.
+Fewer, sharper comments beat a complete list; if nothing clears this bar,
+the right number of comments is zero.
+
+## How many, and how sure
+
+This refines the bar above. Where the two disagree, this section wins.
+
+**The filter is impact, then fix cost.** Ask what happens if it fires: an
+outage, data corruption, or a feature regression? Then ask how hard it is to
+fix after merge (a one-line follow-up versus a migration or backfill). Low
+impact and easy to fix stays dropped. There is no second tier of nits.
+
+**Confidence is reported, not a gate.** Every finding carries one of three
+levels, and the level never decides whether the finding ships:
+
+- **traced**: I followed it end to end and can name the input that triggers it.
+- **likely**: the mechanism is real but one link is unverified, for example
+  whether any caller passes that value in production.
+- **unverified**: a suspicion with no trace. Ships only when the impact is
+  severe.
+
+State the level as a plain word at the start of the comment body, with a short
+basis (what I traced, or which link I did not check). The label still says
+what I want done (`problem`, `question`, and so on); the level says how sure
+I am. The level word is for me, and I strip it before posting.
+
+**Count.** No quota. The filter decides, and the usual result is 0 to 3 per
+PR. If more than 5 clear the bar, show the 5 worst and fold the rest into one
+`fyi` line with a count.
+
+**Zero findings.** Say so, and add a 2 to 3 line note at PR level on what I
+checked, so silence reads as "reviewed and fine" rather than "skipped". The
+note stays in the Studio and is never posted to GitHub unless I approve it.
+
+**Where to look.** When something needs human judgment (an undocumented
+behavior change, a design call), add one line naming the 1 to 2 spots. Skip
+it when nothing is non-obvious.
+
 ## Comment style
 
 Based on [Conventional Comments](https://conventionalcomments.org/), with a
@@ -104,6 +164,10 @@ bot handle it — and then nothing I said actually lands. Shorter is usually eas
 to read, but the goal is readability, not brevity: never cut something the author
 or a bot needs to act on it.
 
+**Shorter and clearer wins over complete.** Prefer trimming a comment to its
+essential claim over keeping every trace step that got me there. If the finding
+survives without a sentence, cut the sentence.
+
 Most findings land somewhere around 40–80 words. That's an observation, not a
 target — an eight-word comment that says everything is better than a padded one,
 and nothing is gained by writing up to a number.
@@ -113,7 +177,30 @@ this still reads well, or whether the opening is carrying evidence that would la
 better a paragraph down. Sometimes the answer is that the trace really does need
 the room — that's fine. The point is to have asked.
 
+### Quoting format
+
+Every comment, wherever it's posted (chat, PR-level, or a rewritten card),
+opens with a plain attribution line, a blank line, then the entire comment body
+as a markdown blockquote — every line of the body prefixed with `>`, including
+blank lines between parts:
+
+```
+Benj's agent found:
+
+> **label (decoration):** what I'm looking at.
+>
+> **Which means** the consequence.
+>
+> **What do you think about** the next step.
+```
+
+This holds for a one-part comment too — the attribution line still precedes a
+one-line blockquote.
+
 Never say "LGTM" in any comment or review body.
+
+No em-dashes. Use a semicolon to join two independent clauses; use parentheses
+for an aside (interchange with commas when they read more naturally).
 
 ### Impact, not just mechanism
 
@@ -229,3 +316,8 @@ github: teams
 
 # Meerkats team PR channel
 AAAAIj8WMWc
+
+## Watch behavior
+
+auto_rereview: off
+review_model: opus
