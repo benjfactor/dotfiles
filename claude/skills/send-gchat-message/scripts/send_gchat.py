@@ -39,6 +39,7 @@ TEAM_CHANNELS = {
     "snapcats":                            "AAAAAHjNt6A",
     "snack-ops":                           "AAAAjno8gDs",
     "tif":                                 "AAAAjno8gDs",  # same space as snack-ops
+    "wow":                                 "AAAAjno8gDs",  # same space as tif
     "phoenix":                             "AAAAN_I9hG8",
     "marina":                              "AAAABIynxDE",  # discovered via spaces.list 2026-06-24
     "autobots":                            "AAAAkkgulAw",  # corrected via spaces.list 2026-06-26 (old AAAAWOyaLAg → 403)

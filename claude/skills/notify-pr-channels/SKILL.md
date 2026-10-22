@@ -15,6 +15,7 @@ When a build passes or a PR is ready, the script always posts to the personal te
 | Snapcats | https://chat.google.com/room/AAAAAHjNt6A?cls=7 | External — posted when `@vendasta/snapcats` in PR body |
 | SnackOps | https://chat.google.com/room/AAAAjno8gDs?cls=7 | External — posted when `@vendasta/snack-ops` in PR body |
 | TIF | https://chat.google.com/room/AAAAjno8gDs?cls=7 | External — posted when `@vendasta/tif` in PR body (same space as SnackOps) |
+| WOW | https://chat.google.com/room/AAAAjno8gDs?cls=7 | External — posted when `@vendasta/wow` in PR body (same space as TIF) |
 | Phoenix | https://chat.google.com/room/AAAAN_I9hG8?cls=7 | External — posted when `@vendasta/phoenix` in PR body |
 | Autobots | https://chat.google.com/room/AAAAWOyaLAg?cls=7 | External — posted when `@vendasta/autobots` in PR body |
 | NP-Easy (CRMaaS) | https://chat.google.com/room/AAAAqGa-a8I?cls=7 | External — posted when `@vendasta/np-easy` in PR body |
