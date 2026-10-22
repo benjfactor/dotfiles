@@ -45,6 +45,7 @@ TEAM_CHANNELS = {
     "np-easy":                             "AAAAqGa-a8I",
     "warped-tour":                         "AAQANVVa_PA",
     "marketplace-institute-of-technology": "AAAACpnkUis",
+    "psycho-billers":                      "AAAAXzAnFJA",  # billing team (#psychobillers-billing), added 2026-10-22
 }
 
 # Person slug -> Google Chat user ID, for --mention. Same rationale as TEAM_CHANNELS: this is the

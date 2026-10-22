@@ -43,4 +43,5 @@ description: Mark a draft PR as ready for review, tag the meerkats team handle i
 
 - If the PR is already out of draft, skip step 2 — still ensure the body tag (step 3) and post.
 - Do NOT post in the snapcats channel for `pr-ready` — that's only for build notifications via `notify-pr-channels`.
+- Step 4 also posts to every external team tagged `@vendasta/<slug>` in the PR body (e.g. `@vendasta/psycho-billers` for billing PRs), via the `TEAM_CHANNELS` map in `send-gchat-message/scripts/send_gchat.py`.
 - Chat posting uses OAuth (not a webhook) — see `notify-pr-channels` skill if auth needs refreshing.

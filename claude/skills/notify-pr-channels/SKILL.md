@@ -20,6 +20,7 @@ When a build passes or a PR is ready, the script always posts to the personal te
 | NP-Easy (CRMaaS) | https://chat.google.com/room/AAAAqGa-a8I?cls=7 | External — posted when `@vendasta/np-easy` in PR body |
 | Warped Tour | https://chat.google.com/room/AAQANVVa_PA?cls=7 | External — posted when `@vendasta/warped-tour` in PR body |
 | Marketplace Institute of Technology | https://chat.google.com/room/AAAACpnkUis?cls=7 | External — posted when `@vendasta/marketplace-institute-of-technology` in PR body |
+| Psycho Billers (billing) | https://chat.google.com/room/AAAAXzAnFJA?cls=7 | External — posted when `@vendasta/psycho-billers` in PR body |
 
 To add a new external team: add their slug → space ID to `TEAM_CHANNELS` in the
 [send-gchat-message](../send-gchat-message/SKILL.md) skill (`scripts/send_gchat.py`) —
