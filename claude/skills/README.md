@@ -69,11 +69,11 @@ flowchart TD
     READY --> FB
     FB --> SYNC --> MERGE --> DM
     DM -- side-finding --> RT
-    RT -- all routes, if PR found --> PRC
     RT -- notify-owner --> GCHAT
     RT -- notify-owner --> TRACKER
     RT -- record-only --> KNOWN
     RT -- fix --> JIRA --> WT
+    JIRA & TRACKER & KNOWN -- if PR found --> PRC
 ```
 
 **Cursor:** If these skills are not being applied in new chats, enable **Agent Skills** in Cursor Settings → Rules (Import Settings), or add the key rules as **User Rules** in the same place so they are always in context.
