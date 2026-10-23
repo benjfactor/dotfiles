@@ -54,6 +54,7 @@ flowchart TD
         JIRA[(Jira bug)]
         TRACKER[(Jira bug / GitHub issue)]
         KNOWN[(GitHub issue - known defect)]
+        PRC[comment on introducing PR]
     end
 
     WT --> PLAN
@@ -68,8 +69,9 @@ flowchart TD
     READY --> FB
     FB --> SYNC --> MERGE --> DM
     DM -- side-finding --> RT
-    RT -- alert-only --> GCHAT
-    RT -- alert-only --> TRACKER
+    RT -- all routes, if PR found --> PRC
+    RT -- notify-owner --> GCHAT
+    RT -- notify-owner --> TRACKER
     RT -- record-only --> KNOWN
     RT -- fix --> JIRA --> WT
 ```
