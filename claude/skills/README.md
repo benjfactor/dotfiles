@@ -33,12 +33,14 @@ flowchart TD
     subgraph Develop
         WT[git-worktree-jira-branch]
         PLAN{"/plan ?"}
-        PCW[plan-commit-to-worktree]
+        PCW["plan-commit-to-worktree<br/>(opens draft PR in Arc)"]
+        PGATE{"plan review<br/>wait for go-ahead"}
         WORK["do the work<br/>green-commits / plan-implementation-commits<br/>+ golang-pre-commit-tests + commit-preferences"]
     end
     subgraph Ship
-        DRAFT[open-pr - draft]
+        DRAFT["open-pr - draft<br/>(skipped if plan already opened one)"]
         ARC[open-in-arc / pr-studio-open-in-arc]
+        WGATE{"review + functional verify<br/>wait for go-ahead"}
         READY[pr-ready]
         NOTIFY[notify-pr-channels]
         GCHAT[send-gchat-message]
@@ -53,9 +55,13 @@ flowchart TD
     end
 
     WT --> PLAN
-    PLAN -- yes --> PCW --> WORK
+    PLAN -- yes --> PCW --> PGATE
+    PGATE -- go-ahead --> WORK
+    PGATE -- revise --> PCW
     PLAN -- no --> WORK
-    WORK --> DRAFT --> ARC --> READY
+    WORK --> DRAFT --> ARC --> WGATE
+    WGATE -- go-ahead --> READY
+    WGATE -- changes --> WORK
     READY --> NOTIFY --> GCHAT
     READY --> FB
     FB --> SYNC --> MERGE --> DM
