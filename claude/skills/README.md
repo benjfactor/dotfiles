@@ -52,6 +52,8 @@ flowchart TD
         DM[["deploy-monitor (plugin)"]]
         RT[regression-triage]
         JIRA[(Jira bug)]
+        TRACKER[(Jira bug / GitHub issue)]
+        KNOWN[(GitHub issue - known defect)]
     end
 
     WT --> PLAN
@@ -67,9 +69,9 @@ flowchart TD
     FB --> SYNC --> MERGE --> DM
     DM -- side-finding --> RT
     RT -- alert-only --> GCHAT
-    RT -- alert-only --> JIRA
-    RT -- fix - Jira first --> JIRA
-    RT -- fix --> WT
+    RT -- alert-only --> TRACKER
+    RT -- record-only --> KNOWN
+    RT -- fix --> JIRA --> WT
 ```
 
 **Cursor:** If these skills are not being applied in new chats, enable **Agent Skills** in Cursor Settings → Rules (Import Settings), or add the key rules as **User Rules** in the same place so they are always in context.
