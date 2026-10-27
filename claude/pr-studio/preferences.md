@@ -32,11 +32,11 @@ Surface a finding only when it's near the top on **both**:
     (a bad log line, a stale cache entry) sits far below destroyed, corrupted,
     or permanently-lost data.
 
-A correctness nit that's easy to notice and easy to fix later — style,
-naming, a slightly-off comment, test coverage without a live consequence —
-isn't worth a comment on its own merits, regardless of how confident I am.
-Fewer, sharper comments beat a complete list; if nothing clears this bar,
-the right number of comments is zero.
+Pure style or naming with no consequence still isn't worth a comment. But a
+real defect, a missing test around changed behavior, a misleading comment, or a
+spot where a future reader will trip is worth a short `suggest` or `question`
+even when it's cheap to fix later. Err toward saying it; the author can
+ignore it. If nothing clears this bar, zero comments is still fine.
 
 ## How many, and how sure
 
@@ -45,7 +45,8 @@ This refines the bar above. Where the two disagree, this section wins.
 **The filter is impact, then fix cost.** Ask what happens if it fires: an
 outage, data corruption, or a feature regression? Then ask how hard it is to
 fix after merge (a one-line follow-up versus a migration or backfill). Low
-impact and easy to fix stays dropped. There is no second tier of nits.
+impact and easy to fix can still ship as a short `suggest` or `question` when
+the issue is real; only cosmetic noise stays dropped.
 
 **Confidence is reported, not a gate.** Every finding carries one of three
 levels, and the level never decides whether the finding ships:
@@ -61,8 +62,8 @@ basis (what I traced, or which link I did not check). The label still says
 what I want done (`problem`, `question`, and so on); the level says how sure
 I am. The level word is for me, and I strip it before posting.
 
-**Count.** No quota. The filter decides, and the usual result is 0 to 3 per
-PR. If more than 5 clear the bar, show the 5 worst and fold the rest into one
+**Count.** No quota. The filter decides, and the usual result is 1 to 5 per
+PR. If more than 8 clear the bar, show the 8 worst and fold the rest into one
 `fyi` line with a count.
 
 **Zero findings.** Say so, and add a 2 to 3 line note at PR level on what I
@@ -177,25 +178,22 @@ this still reads well, or whether the opening is carrying evidence that would la
 better a paragraph down. Sometimes the answer is that the trace really does need
 the room — that's fine. The point is to have asked.
 
-### Quoting format
+### Format
 
-Every comment, wherever it's posted (chat, PR-level, or a rewritten card),
-opens with a plain attribution line, a blank line, then the entire comment body
-as a markdown blockquote — every line of the body prefixed with `>`, including
-blank lines between parts:
+The footnote already says the comment came from my agent, so no attribution
+line and no blockquote. Post the body as plain text, wherever it's posted
+(chat, PR-level, or a rewritten card):
 
 ```
-Benj's agent found:
+**label (decoration):** what I'm looking at.
 
-> **label (decoration):** what I'm looking at.
->
-> **Which means** the consequence.
->
-> **What do you think about** the next step.
+**Which means** the consequence.
+
+**What do you think about** the next step.
 ```
 
-This holds for a one-part comment too — the attribution line still precedes a
-one-line blockquote.
+The examples below are shown as blockquotes for readability only; post them
+without the `>` prefix.
 
 Never say "LGTM" in any comment or review body.
 
