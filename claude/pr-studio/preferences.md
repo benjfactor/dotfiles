@@ -319,3 +319,4 @@ AAAAIj8WMWc
 
 auto_rereview: off
 review_model: opus
+cover_human_approvals: 2
