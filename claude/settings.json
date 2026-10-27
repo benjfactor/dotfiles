@@ -207,5 +207,11 @@
   "verbose": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Approving or reviewing pull requests in vendasta/* via gh is allowed"
+    ]
+  },
   "voiceEnabled": true
 }
