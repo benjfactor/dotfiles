@@ -11,7 +11,7 @@ After opening a PR, poll for new reviewer feedback. For code change requests: im
 
 A PR is *fully ready to merge* only when all three hold:
 
-1. **CI is green** (`ci/cloudbuild` = SUCCESS).
+1. **CI is green** (`ci/cloudbuild` in galaxy, or the `<service>-any-branch-N` check in Go service repos, = SUCCESS).
 2. **At least 2 human approvals.** Bot reviews (`github-actions`, any `*[bot]`) never count toward the two.
 3. **At least one approval from a member of a "team of interest"** — typically the team that owns the code being changed.
 
@@ -60,13 +60,13 @@ Monitor({
 
 Outside a background job, choose one fixed state path (e.g. `~/.cache/pr-watch/<repo>-<PR_NUMBER>.seen`) and reuse it on every re-arm. A fresh `mktemp` path each time would replay everything.
 
-The script polls every 2 minutes and prints one line per event, and nothing when nothing changed:
+The script polls every 5 minutes and prints one line per event, and nothing when nothing changed:
 
 - `BASELINE ...`: always the first line. It also lists any feedback newer than `<BASELINE>` that you haven't seen. This is the race guard: a review that lands between Step 1 and the first poll still shows up here. Treat each listed item as new, even if Step 1 may already have shown it.
 - `REVIEW <state> @who <time> id=...: <body>`
 - `COMMENT @who <time> id=...: <body>`
 - `INLINE @who <time> id=<id> reply-to=<root id> <path>:<line>: <body>`: reply in-thread with `<root id>` (Step 3).
-- `CI <state> <url>`: `ci/cloudbuild` changed.
+- `CI <state> <url>`: the CI check (`ci/cloudbuild` or `*-any-branch-*`) changed.
 - `ERROR ...`: `gh` failed. The script keeps retrying, but tell the user if errors persist.
 
 Bodies are cut at 300 chars. Fetch the full comment when the text is truncated. Your own comments and reviews are skipped (your replies would otherwise echo back); pass `--include-self` if the user is commenting by hand to give instructions.
@@ -115,7 +115,7 @@ After any code push, check CI:
 
 ```bash
 gh pr view <PR_NUMBER> --json statusCheckRollup \
-  --jq '[.statusCheckRollup[] | select(.context == "ci/cloudbuild") | {status: (.state // .conclusion), url: (.targetUrl // .detailsUrl)}]'
+  --jq '[.statusCheckRollup[] | select((.context // .name // "") | test("^ci/cloudbuild$|-any-branch-")) | {status: (.state // .conclusion // .status), url: (.targetUrl // .detailsUrl)}]'
 ```
 
 - `SUCCESS` → green. Keep watching (Step 2). The running monitor reports CI changes too, so you don't need a second loop.

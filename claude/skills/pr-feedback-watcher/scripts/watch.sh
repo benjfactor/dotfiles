@@ -4,8 +4,8 @@
 # Usage: watch.sh <PR_NUMBER> <BASELINE_ISO> [--repo owner/name] [--interval SECONDS]
 #                 [--state FILE] [--include-self]
 #
-# Reports reviews, top-level comments, inline review comments and ci/cloudbuild
-# changes at or after BASELINE_ISO (e.g. 2026-10-08T15:50:00Z). The first poll
+# Reports reviews, top-level comments, inline review comments and CI check
+# changes (ci/cloudbuild, or a Cloud Build trigger named *-any-branch-*) at or after BASELINE_ISO (e.g. 2026-10-08T15:50:00Z). The first poll
 # always prints a BASELINE line, so anything that landed between taking the
 # baseline and the first poll is reported, never absorbed. Later polls print
 # nothing when nothing changed. Your own comments are skipped unless
@@ -30,7 +30,7 @@ pr=$1
 baseline=$2
 shift 2
 repo=""
-interval=120
+interval=300
 include_self=0
 state=""
 while [ $# -gt 0 ]; do
@@ -67,7 +67,7 @@ fetch_pr() {
       | \"\(.id)\tREVIEW \(.state) @\(.author.login) \(.submittedAt) id=\(.id): \(.body | $flat)\"]
      + [.comments[] | select(.createdAt >= \"$baseline\" and .author.login != \"$me\")
       | \"\(.id)\tCOMMENT @\(.author.login) \(.createdAt) id=\(.id): \(.body | $flat)\"]
-     + [.statusCheckRollup[] | select((.context // .name) == \"ci/cloudbuild\")
+     + [.statusCheckRollup[] | select((.context // .name // \"\") | test(\"^ci/cloudbuild$|-any-branch-\"))
       | \"ci\tCI \(.state // .conclusion // .status) \(.targetUrl // .detailsUrl // \"\")\"])[]"
 }
 

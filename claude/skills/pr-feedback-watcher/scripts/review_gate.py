@@ -104,10 +104,10 @@ def main():
     required_teams = explicit_teams if explicit_teams else teams
     owner_approved = any(t in team_member_approvals for t in required_teams)
 
-    # CI status (ci/cloudbuild).
+    # CI status: galaxy reports ci/cloudbuild; Go services report a check run named <service>-any-branch-N.
     ci = None
     for c in data.get('statusCheckRollup', []) or []:
-        if c.get('context') == 'ci/cloudbuild':
+        if c.get('context') == 'ci/cloudbuild' or '-any-branch-' in (c.get('name') or ''):
             ci = c.get('state') or c.get('conclusion')
             break
 
