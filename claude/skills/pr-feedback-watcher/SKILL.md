@@ -97,6 +97,18 @@ For each new item:
 
 **Build failure** (see Step 4): diagnose and fix before continuing to watch for more feedback.
 
+## When to notify
+
+Handle feedback without asking: implement change requests, answer questions, fix CI. Replies speak for the user, so follow their PR comment rules (no em-dashes, terse). Notify the user (a `PushNotification` plus a short summary with your suggested next step) and wait only when you can't settle it yourself:
+
+- The reviewer disagrees with a design decision the user made, or asks for something outside the PR's scope.
+- Two reasonable fixes exist and the choice changes behaviour users or other teams would notice.
+- A CI failure you can't fix, or a fix that needs access or data you don't have.
+- A review-gate decision (approvals and CI met but the owning team hasn't signed off).
+- The PR is `fullyReady`: tell the user it's ready for `/merge-pr`. Never merge.
+
+Everything else (a fix pushed, a question answered, CI back to green) needs no notification; it shows in the PR.
+
 ## Step 4: Check build status after each push
 
 After any code push, check CI:
@@ -129,4 +141,4 @@ When the user starts the watch and names a team to wait for ("watch it and wait 
 - Never commit or push to master — all changes go to the feature branch.
 - All code changes go through `green-commits` — run lint and tests before committing.
 - Keep replies concise and focused on the reviewer's concern.
-- If a comment is ambiguous, make a reasonable interpretation, implement it, and note your assumption in the reply.
+- If a comment is ambiguous, make a reasonable interpretation, implement it, and note your assumption in the reply. If the interpretations differ in behaviour users would notice, notify instead (see When to notify).

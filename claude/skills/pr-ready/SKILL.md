@@ -37,7 +37,9 @@ description: Mark a draft PR as ready for review, tag the meerkats team handle i
    ```
    User IDs for Craig and Daniel are hardcoded in the script — no need to look them up.
 
-5. **Report back** with the PR URL and confirmation that the team handle is tagged and the Chat post went out.
+5. **Hand off to `pr-feedback-watcher`** for the PR, in its default auto-handle mode: it implements requested changes, answers questions and keeps CI green on its own, and notifies the user only for what it can't settle (see that skill's "When to notify"). It never merges.
+
+6. **Report back** with the PR URL, confirmation that the team handle is tagged and the Chat post went out, and that the watcher is running.
 
 ## Notes
 

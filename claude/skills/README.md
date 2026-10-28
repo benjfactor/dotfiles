@@ -12,7 +12,7 @@
 | **commit-preferences** | When writing commit messages: use Conventional Commits (feat, fix, refactor, etc.) and the user’s preferred types/scopes. |
 | **golang-pre-commit-tests** | Before committing in a Go repo: run the full internal test suite (e.g. `go test ./internal/...`) so commits are green. |
 | **open-pr** | When opening a pull request: always create as draft, include Jira link, fill PR template. |
-| **pr-ready** | When marking a PR ready for review: un-draft, add `vendasta/meerkats` reviewer, append `@vendasta/meerkats` to body, post in team GChat PR channel. |
+| **pr-ready** | When marking a PR ready for review: un-draft, append `@vendasta/meerkats` to body (no formal reviewer request), post in team GChat PR channel, then start **pr-feedback-watcher** (auto-handles feedback, notifies only when it needs the user). |
 | **notify-pr-channels** | When a build passes or notifying the team: post to personal team PR channel (AT Craig & Daniel) and any `@vendasta/<team>` channels in the PR body. Delegates delivery to **send-gchat-message**. |
 | **send-gchat-message** | Low-level primitive: post a message to any Google Chat space/team, resolving space IDs / `@vendasta/<team>` handles / slugs. Owns Chat auth + the `TEAM_CHANNELS` map. Used by notify-pr-channels and regression-triage. |
 | **regression-triage** | When a side problem (e.g. from **deploy-monitor**) looks like a regression from an earlier PR: attribute it to the introducing PR (confirm-gate — first blame is often wrong), then route to **fix** it (hands off to the dev flow below), **alert** the owning team, or **record** it as a known-defect GitHub issue. Findings with no introducing PR still go through the gate. |
@@ -66,7 +66,7 @@ flowchart TD
     WGATE -- go-ahead --> READY
     WGATE -- changes --> WORK
     READY --> NOTIFY --> GCHAT
-    READY --> FB
+    READY -- auto-handle --> FB
     FB --> SYNC --> MERGE --> DM
     DM -- side-finding --> RT
     RT -- notify-owner --> GCHAT
