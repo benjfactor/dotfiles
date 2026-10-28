@@ -47,6 +47,7 @@ TEAM_CHANNELS = {
     "warped-tour":                         "AAQANVVa_PA",
     "marketplace-institute-of-technology": "AAAACpnkUis",
     "psycho-billers":                      "AAAAXzAnFJA",  # billing team (#psychobillers-billing), added 2026-10-22
+    "sre":                                 "AAAA1jE6Ze4",  # team-sre, added 2026-10-28
 }
 
 # Person slug -> Google Chat user ID, for --mention. Same rationale as TEAM_CHANNELS: this is the

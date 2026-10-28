@@ -1,5 +1,8 @@
 {
   "permissions": {
+    "ask": [
+      "mcp__mission-control__create_delivery"
+    ],
     "allow": [
       "Bash(cd *)",
       "Bash(ls *)",
