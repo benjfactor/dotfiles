@@ -1,0 +1,21 @@
+#!/bin/bash
+# CPU history sparkline for the tmux status line. Each call takes one 1s
+# sample, so the history spans N x status-interval.
+# Usage: #(~/dotfiles/bin/tmux-cpu-sparkline [N])   N = samples kept (default 20)
+
+n=${1:-20}
+hist="${TMPDIR:-/tmp}/tmux-cpu-sparkline.hist"
+
+idle=$(iostat -c 2 -w 1 -n 0 | awk 'END { print $3 }')
+case $idle in '' | *[!0-9]*) exit 0 ;; esac
+cpu=$((100 - idle))
+
+# Write via temp file + mv so overlapping calls never leave a torn history.
+{ tail -n $((n - 1)) "$hist" 2>/dev/null; echo "$cpu"; } >"$hist.$$" && mv "$hist.$$" "$hist"
+
+bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+spark=
+while read -r v; do spark+=${bars[v * 7 / 100]}; done <"$hist"
+
+if ((cpu >= 80)); then color=red; elif ((cpu >= 30)); then color=yellow; else color=green; fi
+printf 'CPU #[fg=%s]%s %3d%%#[default]' "$color" "$spark" "$cpu"
