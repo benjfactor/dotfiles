@@ -1,6 +1,7 @@
 #!/bin/bash
 # RAM history sparkline for the tmux status line; companion to tmux-cpu-sparkline.
-# "Used" matches Activity Monitor: app (anonymous - purgeable) + wired + compressed.
+# "Used" matches Activity Monitor: app (anonymous - purgeable) + wired + compressed;
+# colour follows memory pressure.
 # Usage: #(~/dotfiles/bin/tmux-mem-sparkline [N] [STEP])   defaults 20, 5
 
 n=${1:-20}
@@ -27,5 +28,11 @@ bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
 spark=
 while read -r v; do spark+=${bars[v * 7 / 100]}; done <"$hist"
 
-if ((mem >= 90)); then color=red; elif ((mem >= 75)); then color=yellow; else color=green; fi
+# Colour by kernel memory pressure (1 normal, 2 warn, 4 critical), not usage:
+# macOS keeps RAM full on purpose, so high usage alone isn't a problem.
+case $(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null) in
+4) color=red ;;
+2) color=yellow ;;
+*) color=green ;;
+esac
 printf 'RAM #[fg=%s]%s %3d%%#[default]' "$color" "$spark" "$mem"
