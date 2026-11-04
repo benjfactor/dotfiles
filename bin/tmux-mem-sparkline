@@ -33,8 +33,8 @@ while ((n-- > 0)); do pad+=▁; done
 # Colour by kernel memory pressure (1 normal, 2 warn, 4 critical), not usage:
 # macOS keeps RAM full on purpose, so high usage alone isn't a problem.
 case $(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null) in
-4) color=red ;;
-2) color=yellow ;;
-*) color=green ;;
+4) color=#BB0000 ;;
+2) color=#BBBB00 ;;
+*) color=#00BB00 ;;
 esac
-printf 'RAM #[fg=colour4]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$mem"
+printf 'RAM #[fg=colour4]%s#[fg=colour236]%s #[fg=%s]%3d%%#[default]' "$pad" "$spark" "$color" "$mem"

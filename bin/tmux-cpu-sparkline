@@ -22,5 +22,5 @@ while read -r v; do spark+=${bars[v * 7 / 100]}; ((n--)); done < <(tail -n "$n" 
 # Unfilled slots in vim's ~ colour so the graph keeps a fixed width.
 while ((n-- > 0)); do pad+=▁; done
 
-if ((cpu >= 80)); then color=red; elif ((cpu >= 30)); then color=yellow; else color=green; fi
-printf 'CPU #[fg=colour4]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$cpu"
+if ((cpu >= 90)); then color=#BB0000; elif ((cpu >= 70)); then color=#BBBB00; else color=#00BB00; fi
+printf 'CPU #[fg=colour4]%s#[fg=colour236]%s #[fg=%s]%3d%%#[default]' "$pad" "$spark" "$color" "$cpu"
