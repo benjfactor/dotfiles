@@ -37,4 +37,4 @@ case $(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null) in
 2) color=yellow ;;
 *) color=green ;;
 esac
-printf 'RAM #[fg=colour12]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$mem"
+printf 'RAM #[fg=colour4]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$mem"

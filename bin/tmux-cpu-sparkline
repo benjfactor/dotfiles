@@ -8,7 +8,7 @@ step=${2:-5}
 hist="${TMPDIR:-/tmp}/tmux-cpu-sparkline.hist"
 
 # tmux re-runs #() on every status redraw (up to 1/s), not per status-interval.
-if [ ! -s "$hist" ] || (($(date +%s) - $(stat -f %m "$hist") >= step)); then
+if [ ! -s "$hist" ] || (($(date +%s) - $(stat -f %m "$hist") >= step - 1)); then # sample itself takes 1s
 	idle=$(iostat -c 2 -w 1 -n 0 | awk 'END { print $3 }')
 	case $idle in '' | *[!0-9]*) exit 0 ;; esac
 	# Write via temp file + mv so overlapping calls never leave a torn history.
@@ -23,4 +23,4 @@ while read -r v; do spark+=${bars[v * 7 / 100]}; ((n--)); done < <(tail -n "$n" 
 while ((n-- > 0)); do pad+=▁; done
 
 if ((cpu >= 80)); then color=red; elif ((cpu >= 30)); then color=yellow; else color=green; fi
-printf 'CPU #[fg=colour12]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$cpu"
+printf 'CPU #[fg=colour4]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$cpu"
