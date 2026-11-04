@@ -1,17 +1,20 @@
 #!/bin/bash
-# CPU history sparkline for the tmux status line. Each call takes one 1s
-# sample, so the history spans N x status-interval.
-# Usage: #(~/dotfiles/bin/tmux-cpu-sparkline [N])   N = samples kept (default 20)
+# CPU history sparkline for the tmux status line. Takes a 1s sample at most
+# every STEP seconds, so the history spans N x STEP.
+# Usage: #(~/dotfiles/bin/tmux-cpu-sparkline [N] [STEP])   defaults 20, 5
 
 n=${1:-20}
+step=${2:-5}
 hist="${TMPDIR:-/tmp}/tmux-cpu-sparkline.hist"
 
-idle=$(iostat -c 2 -w 1 -n 0 | awk 'END { print $3 }')
-case $idle in '' | *[!0-9]*) exit 0 ;; esac
-cpu=$((100 - idle))
-
-# Write via temp file + mv so overlapping calls never leave a torn history.
-{ tail -n $((n - 1)) "$hist" 2>/dev/null; echo "$cpu"; } >"$hist.$$" && mv "$hist.$$" "$hist"
+# tmux re-runs #() on every status redraw (up to 1/s), not per status-interval.
+if [ ! -s "$hist" ] || (($(date +%s) - $(stat -f %m "$hist") >= step)); then
+	idle=$(iostat -c 2 -w 1 -n 0 | awk 'END { print $3 }')
+	case $idle in '' | *[!0-9]*) exit 0 ;; esac
+	# Write via temp file + mv so overlapping calls never leave a torn history.
+	{ tail -n $((n - 1)) "$hist" 2>/dev/null; echo $((100 - idle)); } >"$hist.$$" && mv "$hist.$$" "$hist"
+fi
+cpu=$(tail -n 1 "$hist")
 
 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
 spark=

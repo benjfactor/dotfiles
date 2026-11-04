@@ -1,23 +1,27 @@
 #!/bin/bash
 # RAM history sparkline for the tmux status line; companion to tmux-cpu-sparkline.
 # "Used" matches Activity Monitor: app (anonymous - purgeable) + wired + compressed.
-# Usage: #(~/dotfiles/bin/tmux-mem-sparkline [N])   N = samples kept (default 20)
+# Usage: #(~/dotfiles/bin/tmux-mem-sparkline [N] [STEP])   defaults 20, 5
 
 n=${1:-20}
+step=${2:-5}
 hist="${TMPDIR:-/tmp}/tmux-mem-sparkline.hist"
 
-total=$(sysctl -n hw.memsize)
-mem=$(vm_stat | awk -v total="$total" '
-  /page size of/            { page = $8 }
-  /^Anonymous pages/        { anon = $3 }
-  /^Pages purgeable/        { purge = $3 }
-  /^Pages wired down/       { wired = $4 }
-  /^Pages occupied by comp/ { comp = $5 }
-  END { if (page && total) printf "%d", (anon - purge + wired + comp) * page * 100 / total }')
-case $mem in '' | *[!0-9]*) exit 0 ;; esac
-
-# Write via temp file + mv so overlapping calls never leave a torn history.
-{ tail -n $((n - 1)) "$hist" 2>/dev/null; echo "$mem"; } >"$hist.$$" && mv "$hist.$$" "$hist"
+# tmux re-runs #() on every status redraw (up to 1/s), not per status-interval.
+if [ ! -s "$hist" ] || (($(date +%s) - $(stat -f %m "$hist") >= step)); then
+	total=$(sysctl -n hw.memsize)
+	mem=$(vm_stat | awk -v total="$total" '
+	  /page size of/            { page = $8 }
+	  /^Anonymous pages/        { anon = $3 }
+	  /^Pages purgeable/        { purge = $3 }
+	  /^Pages wired down/       { wired = $4 }
+	  /^Pages occupied by comp/ { comp = $5 }
+	  END { if (page && total) printf "%d", (anon - purge + wired + comp) * page * 100 / total }')
+	case $mem in '' | *[!0-9]*) exit 0 ;; esac
+	# Write via temp file + mv so overlapping calls never leave a torn history.
+	{ tail -n $((n - 1)) "$hist" 2>/dev/null; echo "$mem"; } >"$hist.$$" && mv "$hist.$$" "$hist"
+fi
+mem=$(tail -n 1 "$hist")
 
 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
 spark=
