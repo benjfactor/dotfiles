@@ -17,8 +17,10 @@ fi
 cpu=$(tail -n 1 "$hist")
 
 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
-spark=
-while read -r v; do spark+=${bars[v * 7 / 100]}; done <"$hist"
+spark= pad=
+while read -r v; do spark+=${bars[v * 7 / 100]}; ((n--)); done < <(tail -n "$n" "$hist")
+# Unfilled slots in vim's ~ colour so the graph keeps a fixed width.
+while ((n-- > 0)); do pad+=▁; done
 
 if ((cpu >= 80)); then color=red; elif ((cpu >= 30)); then color=yellow; else color=green; fi
-printf 'CPU #[fg=%s]%s %3d%%#[default]' "$color" "$spark" "$cpu"
+printf 'CPU #[fg=colour12]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$cpu"

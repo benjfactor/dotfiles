@@ -25,8 +25,10 @@ fi
 mem=$(tail -n 1 "$hist")
 
 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
-spark=
-while read -r v; do spark+=${bars[v * 7 / 100]}; done <"$hist"
+spark= pad=
+while read -r v; do spark+=${bars[v * 7 / 100]}; ((n--)); done < <(tail -n "$n" "$hist")
+# Unfilled slots in vim's ~ colour so the graph keeps a fixed width.
+while ((n-- > 0)); do pad+=▁; done
 
 # Colour by kernel memory pressure (1 normal, 2 warn, 4 critical), not usage:
 # macOS keeps RAM full on purpose, so high usage alone isn't a problem.
@@ -35,4 +37,4 @@ case $(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null) in
 2) color=yellow ;;
 *) color=green ;;
 esac
-printf 'RAM #[fg=%s]%s %3d%%#[default]' "$color" "$spark" "$mem"
+printf 'RAM #[fg=colour12]%s#[fg=%s]%s %3d%%#[default]' "$pad" "$color" "$spark" "$mem"
