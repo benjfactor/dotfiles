@@ -307,7 +307,7 @@ showing up on a fifth of them, the bar has slipped.
 
 ## Discovery sources
 
-chat: tagged
+chat: off
 github: teams
 
 ## Watched chat spaces

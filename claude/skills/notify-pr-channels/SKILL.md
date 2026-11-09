@@ -1,17 +1,17 @@
 ---
 name: notify-pr-channels
-description: Post PR build/ready notifications to Google Chat channels. Always posts to personal team channel (@Craig and @Daniel). Also auto-detects @vendasta/<team> mentions in the PR body and posts to matching external team channels (snapcats, snack-ops, etc.).
+description: Post PR build/ready notifications to external team Google Chat channels. Does NOT post to the Meerkats channel. Auto-detects @vendasta/<team> mentions in the PR body and posts to matching external team channels (snapcats, snack-ops, etc.). A PR that tags only meerkats posts nothing.
 ---
 
 # Notify PR Channels
 
-When a build passes or a PR is ready, the script always posts to the personal team channel, then reads the PR body for `@vendasta/<team>` mentions and posts to any matching external team channels.
+When a build passes or a PR is ready, the script reads the PR body for `@vendasta/<team>` mentions and posts to any matching external team channels. It does not post to the Meerkats channel; the team finds those PRs through GitHub review requests.
 
 ## Channels
 
 | Channel | Google Chat URL | Type |
 |---|---|---|
-| Personal team PR | https://chat.google.com/room/AAAAIj8WMWc?cls=7 | Always posted — @Craig and @Daniel |
+| Personal team PR | https://chat.google.com/room/AAAAIj8WMWc?cls=7 | Never posted (dropped); @vendasta/meerkats in the body is skipped too |
 | Snapcats | https://chat.google.com/room/AAAAAHjNt6A?cls=7 | External — posted when `@vendasta/snapcats` in PR body |
 | SnackOps | https://chat.google.com/room/AAAAjno8gDs?cls=7 | External — posted when `@vendasta/snack-ops` in PR body |
 | TIF | https://chat.google.com/room/AAAAjno8gDs?cls=7 | External — posted when `@vendasta/tif` in PR body (same space as SnackOps) |
@@ -45,7 +45,7 @@ python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "<PR_URL>" "<PR
 ```
 
 The script:
-- Always posts to the personal team PR channel with @Craig Kumick and @Daniel Ngo mentions
+- Does not post to the personal team PR channel
 - Reads the PR body via `gh pr view` and posts to any external team channels whose `@vendasta/<slug>` appears in the body
 - Optional 3rd arg is a prefix line prepended to every message
 - **Delegates auth + channel resolution to the [send-gchat-message](../send-gchat-message/SKILL.md) skill** (`scripts/send_gchat.py`) — it only owns the PR-specific message shape

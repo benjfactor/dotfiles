@@ -1,6 +1,6 @@
 ---
 name: pr-ready
-description: Mark a draft PR as ready for review, tag the meerkats team handle in the PR description, and post in the team Google Chat PR channel. Use when the user says the PR is ready, wants to request review, or wants to move out of draft.
+description: Mark a draft PR as ready for review, tag the meerkats team handle in the PR description, and post to any tagged external team Google Chat channels (not the Meerkats channel). Use when the user says the PR is ready, wants to request review, or wants to move out of draft.
 ---
 
 # Mark PR Ready
@@ -29,21 +29,20 @@ description: Mark a draft PR as ready for review, tag the meerkats team handle i
    esac
    ```
 
-4. **Post in the personal team PR channel** — use the bundled script from `notify-pr-channels`:
+4. **Post to external team channels only** (nothing goes to the Meerkats channel; a PR that tags only meerkats posts nothing) — use the bundled script from `notify-pr-channels`:
    ```bash
    PR_URL=$(gh pr view --json url --jq '.url')
    PR_TITLE=$(gh pr view --json title --jq '.title')
    python3 ~/.claude/skills/notify-pr-channels/scripts/chat_post.py "$PR_URL" "$PR_TITLE"
    ```
-   User IDs for Craig and Daniel are hardcoded in the script — no need to look them up.
 
 5. **Hand off to `pr-feedback-watcher`** for the PR, in its default auto-handle mode: it implements requested changes, answers questions and keeps CI green on its own, and notifies the user only for what it can't settle (see that skill's "When to notify"). It never merges.
 
-6. **Report back** with the PR URL, confirmation that the team handle is tagged and the Chat post went out, and that the watcher is running.
+6. **Report back** with the PR URL, confirmation that the team handle is tagged and any external-team Chat posts went out, and that the watcher is running.
 
 ## Notes
 
-- If the PR is already out of draft, skip step 2 — still ensure the body tag (step 3) and post.
+- If the PR is already out of draft, skip step 2 — still ensure the body tag (step 3) and run step 4.
 - Do NOT post in the snapcats channel for `pr-ready` — that's only for build notifications via `notify-pr-channels`.
 - Step 4 also posts to every external team tagged `@vendasta/<slug>` in the PR body (e.g. `@vendasta/psycho-billers` for billing PRs), via the `TEAM_CHANNELS` map in `send-gchat-message/scripts/send_gchat.py`.
 - Chat posting uses OAuth (not a webhook) — see `notify-pr-channels` skill if auth needs refreshing.
