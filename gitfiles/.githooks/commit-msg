@@ -3,8 +3,25 @@
 ### Add global hooks here
 
 ### When global hooks processing is done, run the repo local hook if it exists
-if [ -e ./.git/hooks/pre-commit ]; then
-  ./.git/hooks/pre-commit "$@"
-else
-  exit 0
+#
+# Named after this hook rather than a hardcoded one: every hook here used to
+# dispatch to the repo's *pre-commit* regardless of which hook it actually was,
+# so a repo-local commit-msg or pre-rebase hook never ran while pre-commit ran
+# from all of them.
+#
+# Resolved against --git-common-dir so this works in linked worktrees, where
+# .git is a file rather than a directory, instead of the cwd-relative
+# ./.git/hooks path this used before -- that only resolved when git happened to
+# invoke the hook from the top of the working tree.
+#
+# Do NOT use `rev-parse --git-path hooks/...` here: that honours
+# core.hooksPath, which points at this very directory, so the hook would
+# re-exec itself until the process table fills. The self-guard below is
+# belt-and-braces for the same reason.
+#
+# exec, so the local hook inherits stdin untouched and its exit status is ours.
+LOCAL_HOOK="$(git rev-parse --git-common-dir)/hooks/$(basename "$0")"
+if [ -x "$LOCAL_HOOK" ] && [ "$(cd "$(dirname "$LOCAL_HOOK")" && pwd -P)" != "$(cd "$(dirname "$0")" && pwd -P)" ]; then
+  exec "$LOCAL_HOOK" "$@"
 fi
+exit 0
