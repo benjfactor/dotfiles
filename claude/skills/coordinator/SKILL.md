@@ -39,6 +39,19 @@ Never write "started", "running" or "launched" unless the Agent, SendMessage or 
 - Relay only crossings: a regression (with `PushNotification` if the user may be away and it's real), or a newly confirmed signal. Otherwise stay quiet. Don't push the same issue twice.
 - At the end date: final summary, then `CronDelete`.
 
+## Keep the records current (unprompted)
+
+Every time a PR merges, a delivery lands, a watch gives a verdict, a PR closes or the user makes a decision, update the records in the same turn as reporting it. Don't wait to be asked.
+
+- **Jira, for the PR's ticket** (the `[A-Z]+-[0-9]+` in the branch or title; for a subtask, also the parent):
+  - Merged and delivered to demo: move it to **Code Review-Testing** (transition "In Review"), and comment with the PR (bare URL), merge sha, delivery ID and env, anything else that shipped with it, known limits, and what's next.
+  - Prod watch GOOD: move it to **Done** with a one-line verdict comment, unless other PRs in the ticket's scope are still open. Then comment on what's left instead.
+  - Rolled back or found broken: comment with the evidence, and move it back to In Progress.
+  - Atlassian MCP: cloudId `77fcf126-19b9-4276-9a8f-9d9fa1efe60f` (vendasta.jira.com; the `vendasta.atlassian.net` hostname doesn't resolve). Get transition IDs with `getTransitionsForJiraIssue`, never by guessing. Comments speak for Benj: no em-dashes, and GitHub links raw.
+  - Don't touch epics, and don't move tickets whose PRs aren't merged.
+- **Project status board** (the Artifact database, e.g. the KAT-1625 Console): update the step's status, detail and needs fields, and add a history event. Read versions first and batch the writes.
+- **When a subagent did the work,** its report is the trigger. The main session writes the records; subagents don't.
+
 ## Where state lives
 
 Not in any one agent's context, which compacts, restarts and sleeps:
