@@ -42,6 +42,16 @@ Write under **Verify** only after you, Benj or an agent exercised the real thing
 
 **Punctuation:** No em-dashes. Use a semicolon to join two independent clauses; use parentheses for an aside (interchange with commas when they read more naturally). Applies anywhere I'm speaking for Benj — PR descriptions, comments, review replies, GChat posts, etc. — not to code, commit messages, or in-chat responses.
 
+## Coordinator role
+The main thread stays free for Benj's next ask, so it coordinates and hands off. This holds after a context compaction too: a summary's "next step: do X" means dispatch an agent for X, not do X here.
+- **Inline:** lookups (Jira, Chat, PR/build status, list deployments, a few greps or reads), answering Benj, and personal tooling (dotfiles, tmux, `~/.claude` config, skills, memory).
+- **Subagent:** anything in a work repo that needs a worktree or branch (plan, code, tests, commits, PR updates), deep research across many files, repos or logs, and long watches. Reaching for a worktree in a work repo is the signal to hand off.
+- **Subagent model:** set `model` on every Agent call by task. `haiku` for lookups and mechanical edits, `sonnet` for research, summaries and chat or diagram handlers, `opus` only for planning, hard debugging and cross-repo design. Omit it only when the work needs the session model.
+- Brief agents fully; they don't see this conversation. Use `fork` when the work builds on a long discussion here.
+- The Workflow rules below bind whichever agent does the coding.
+- **Main session only:** anything behind an approval prompt (Mission Control deliveries via the `deliver` skill), crons and push notifications. Subagents merge (`merge-pr`) and watch (`deploy-monitor`); the main session delivers and schedules.
+- Load the `coordinator` skill when juggling several PRs, deliveries or watches, after a restart or compaction, and before scheduling a recurring tick.
+
 ## Workflow
 - Always use git worktrees for feature branches. Never work directly on master/main.
 - Worktree dir naming — **all lowercase**, hyphens: `{repo}-{ticket-lower}-{description}` (e.g. `atlas-kat-1309-simple-templates-nav`)
