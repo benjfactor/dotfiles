@@ -16,6 +16,9 @@
 | **notify-pr-channels** | When a build passes or notifying the team: post to personal team PR channel (AT Craig & Daniel) and any `@vendasta/<team>` channels in the PR body. Delegates delivery to **send-gchat-message**. |
 | **send-gchat-message** | Low-level primitive: post a message to any Google Chat space/team, resolving space IDs / `@vendasta/<team>` handles / slugs. Owns Chat auth + the `TEAM_CHANNELS` map. Used by notify-pr-channels and regression-triage. |
 | **regression-triage** | When a side problem (e.g. from **deploy-monitor**) looks like a regression from an earlier PR: attribute it to the introducing PR (confirm-gate — first blame is often wrong), then route to **fix** it (hands off to the dev flow below), **alert** the owning team, or **record** it as a known-defect GitHub issue. Findings with no introducing PR still go through the gate. |
+| **merge-pr** | Land a PR: approval, CI green, sync, squash merge, report the sha. Subagent-safe. Stops before delivery. |
+| **deliver** | Ship a merged backend change: cluster vs Mission Control check, list what else ships, preview + approve (main session only), demo checks, prod on a yes, then hand the watch to **deploy-monitor**. Vendasta-specific; swap per company. |
+| **coordinator** | Main-session playbook: what stays in the main thread, subagent handoffs, where state lives, crons and long watches surviving sleep/restarts. |
 | **gcp-ci-watch** | When watching CI/CD for a branch: poll GCP Cloud Build directly (not GitHub checks). Report green/failure. Only merge if explicitly asked. On failure, always diagnose logs, fix, push, and re-watch — don't wait to be asked. |
 | **wsu** | When creating a new Weekly Status Update page: compute the correct title, gather data from GitHub/GChat/git, run the questionnaire, and create the Confluence page. |
 | **wsu-note** | When the user wants to capture a WSU-worthy moment mid-week. Appends a timestamped note to the weekly file for `/wsu` to pick up at compile time. |
@@ -49,6 +52,7 @@ flowchart TD
         MERGE[merge-pr]
     end
     subgraph DeployTriage["Deploy & Triage"]
+        DELIVER["deliver<br/>(main session: MC preview + approve)"]
         DM[["deploy-monitor (plugin)"]]
         RT[regression-triage]
         JIRA[(Jira bug)]
@@ -67,7 +71,7 @@ flowchart TD
     WGATE -- changes --> WORK
     READY --> NOTIFY --> GCHAT
     READY -- auto-handle --> FB
-    FB --> SYNC --> MERGE --> DM
+    FB --> SYNC --> MERGE -- sha --> DELIVER --> DM
     DM -- side-finding --> RT
     RT -- notify-owner --> GCHAT
     RT -- notify-owner --> TRACKER
