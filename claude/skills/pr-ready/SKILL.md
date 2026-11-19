@@ -29,6 +29,11 @@ description: Mark a draft PR as ready for review, tag the meerkats team handle i
    esac
    ```
 
+3b. **Request Craig and Daniel as individual reviewers** (always, on every PR; the team handle alone doesn't put it in their review queue):
+   ```bash
+   gh pr edit --add-reviewer ckumick-va,danielngo2025
+   ```
+
 4. **Post to external team channels only** (nothing goes to the Meerkats channel; a PR that tags only meerkats posts nothing) — use the bundled script from `notify-pr-channels`:
    ```bash
    PR_URL=$(gh pr view --json url --jq '.url')
