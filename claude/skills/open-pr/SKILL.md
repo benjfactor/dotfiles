@@ -55,9 +55,9 @@ EOF
 
 5. **Return the PR URL.**
 
-6. **Open the PR in Dia** (work PRs only):
+6. **Open the PR in the browser** (work PRs only):
    ```bash
-   open -a Dia "<pr-url>"
+   open "<pr-url>"
    ```
    Skip this step when the caller is `plan-commit-to-worktree`: plan-only PRs are not opened. Best-effort: if it fails, still report the URL; never block PR creation on it.
 

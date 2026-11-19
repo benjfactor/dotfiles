@@ -320,3 +320,7 @@ AAAAIj8WMWc
 auto_rereview: off
 review_model: opus
 cover_human_approvals: 2
+
+## Opening the review page
+
+As soon as `start_server.py` prints its JSON `url`, open it with `open "<url>"` (the default browser) so the review page is already up.

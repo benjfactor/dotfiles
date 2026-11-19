@@ -76,7 +76,6 @@ The main thread stays free for Benj's next ask, so it coordinates and hands off.
   - **git**: `git -C <path> <subcommand>` (e.g., `git -C /path/to/repo pull`)
 
 ## Dev Environment
-- **Browser is Dia** (Arc is retired): `open -a Dia "<url>"`. Dia has no AppleScript, so no Space targeting. Open work PRs and PR Studio review pages unprompted; never open plan-only PRs.
 - Galaxy dev server: `PID=VUNI NODE_OPTIONS=--max_old_space_size=12000 npm run start business-center-client` (run from galaxy worktree)
 - Auth tokens: `mscli auth session --env {demo|prod} --skip-version-check`
 - **Apple M5 (arm64). Check whether the shell is translated before trusting `brew`:** `uname -m` (`arm64` = native, `x86_64` = Rosetta), or `sysctl -n sysctl.proc_translated` (0/1). **If translated, a bare `brew` reports itself x86_64 and will fetch Intel bottles into `/opt/homebrew`** — use `arch -arm64 brew ...`. When native, plain `brew` is correct and `arch -arm64` is a harmless no-op. Arch is fixed at exec time, so a running process can never change — only a fresh one can.
