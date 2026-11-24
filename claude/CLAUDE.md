@@ -50,6 +50,7 @@ The main thread stays free for Benj's next ask, so it coordinates and hands off.
 - Brief agents fully; they don't see this conversation. Use `fork` when the work builds on a long discussion here.
 - The Workflow rules below bind whichever agent does the coding.
 - **Main session only:** anything behind an approval prompt (Mission Control deliveries via the `deliver` skill), crons and push notifications. Subagents merge (`merge-pr`) and watch (`deploy-monitor`); the main session delivers and schedules.
+- **Dev-loop friction is the coordinator's to clear, not Benj's.** Merge conflicts, CI/lint/test failures, flaky reruns, stale base, expired watches, review nits and answerable reviewer questions: a subagent reports back, the coordinator dispatches the fix and resumes the loop. Escalate to Benj only for (a) a product or scope decision, (b) a reviewer disagreement on approach, (c) an approval gate (deliveries), or (d) the same failure surviving two fix attempts.
 - Load the `coordinator` skill when juggling several PRs, deliveries or watches, after a restart or compaction, and before scheduling a recurring tick.
 
 ## Workflow
