@@ -24,6 +24,8 @@ Add a heading beyond these only when it carries something they can't — a risk 
 
 **Link GitHub URLs raw**, not as markdown links — GitHub renders a bare PR or issue URL as a rich reference, and link syntax defeats that. That rich reference already shows open/merged/closed state, so never annotate a link with its status. Jira and other hosts still take markdown.
 
+**Images:** reference `![alt](./shot.png)` in the body and upload with `gh pr edit|comment --attach ./shot.png`; never commit screenshots to a branch.
+
 **Team tags go last**, after Verify and Relates to, below a `---` divider.
 
 **Must survive the cut:** the Why, the shape of the What, and anything invisible in the diff — a real limit, a risk, an alternative rejected and the reason.
