@@ -135,7 +135,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Bottle.aiff"
+            "command": "(afplay /System/Library/Sounds/Bottle.aiff >/dev/null 2>&1 &); true"
           }
         ]
       },
@@ -164,7 +164,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Basso.aiff"
+            "command": "(afplay /System/Library/Sounds/Basso.aiff >/dev/null 2>&1 &); true"
           }
         ]
       }
